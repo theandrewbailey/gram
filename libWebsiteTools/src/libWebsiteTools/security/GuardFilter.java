@@ -24,12 +24,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.core.HttpHeaders;
-import libWebsiteTools.AllBeanAccess;
 import libWebsiteTools.turbo.CachedPage;
 import libWebsiteTools.turbo.PageCache;
 import libWebsiteTools.imead.IMEADHolder;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.tag.AbstractInput;
+import libWebsiteTools.Landlord;
+import libWebsiteTools.Tenant;
 
 @WebFilter(description = "DoS preventer (maybe) and reverse proxy", filterName = "GuardFilter", dispatcherTypes = {DispatcherType.REQUEST}, urlPatterns = {"/*"}, asyncSupported = true)
 public class GuardFilter implements Filter {
@@ -44,7 +45,7 @@ public class GuardFilter implements Filter {
     private static final String VIA_HEADER = "site_via";
     private static final Logger LOG = Logger.getLogger(GuardFilter.class.getName());
     @EJB
-    private AllBeanAccess allBeans;
+    private Landlord landlord;
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
@@ -54,22 +55,22 @@ public class GuardFilter implements Filter {
         HttpServletResponse res = (HttpServletResponse) response;
         response.setCharacterEncoding(DEFAULT_RESPONSE_ENCODING);
         res.setStatus(HttpServletResponse.SC_OK);
-        AllBeanAccess beans = allBeans.getInstance(req);
+        Tenant ten = landlord.setTenant(req);
         AbstractInput.getTokenURL(req);
         // kill suspicious requests
         if (null == req.getSession(false) || req.getSession().isNew()) {
-            if (beans.getError().inHoneypot(SecurityRepo.getIP(req))) {
+            if (ten.getError().inHoneypot(SecurityRepo.getIP(req))) {
                 req.setAttribute(SpinnerServlet.REASON, "IP already in honeypot");
 //                req.getRequestDispatcher("/spin").forward(request, response);
                 return;
             }
-            if (IMEADHolder.matchesAny(req.getRequestURL(), beans.getImead().getPatterns(SecurityRepo.HONEYPOTS))) {
+            if (IMEADHolder.matchesAny(req.getRequestURL(), ten.getImead().getPatterns(SecurityRepo.HONEYPOTS))) {
                 req.setAttribute(SpinnerServlet.REASON, "IP added to honeypot: Illegal URL");
 //                req.getRequestDispatcher("/spin").forward(request, response);
                 return;
             }
             String userAgent = req.getHeader("User-Agent");
-            if (userAgent != null && IMEADHolder.matchesAny(userAgent, beans.getImead().getPatterns(SecurityRepo.DENIED_USER_AGENTS))) {
+            if (userAgent != null && IMEADHolder.matchesAny(userAgent, ten.getImead().getPatterns(SecurityRepo.DENIED_USER_AGENTS))) {
                 req.setAttribute(SpinnerServlet.REASON, "IP added to honeypot: Illegal User-Agent");
 //                req.getRequestDispatcher("/spin").forward(request, response);
                 return;
@@ -85,15 +86,15 @@ public class GuardFilter implements Filter {
                 break;
             default:
                 killInHoney(req, res);
-                beans.getError().logException((HttpServletRequest) request, null, "IP added to honeypot: Illegal method", null);
+                ten.getError().logException((HttpServletRequest) request, null, "IP added to honeypot: Illegal method", null);
                 return;
         }
         // set variables and headers
-        req.setAttribute(SecurityRepo.BASE_URL, beans.getImeadValue(SecurityRepo.BASE_URL));
+        req.setAttribute(SecurityRepo.BASE_URL, ten.getImeadValue(SecurityRepo.BASE_URL));
         res.setDateHeader(HttpHeaders.DATE, localNow.toInstant().toEpochMilli());
         res.setHeader("X-Content-Type-Options", "nosniff");
         res.setHeader(HttpHeaders.VARY, VARY_HEADER);
-        CertUtil certs = beans.getError().getCerts();
+        CertUtil certs = ten.getError().getCerts();
         if (isSecure(req) && null != certs.getSubject()) {
             try {
                 certs.getSubject().checkValidity();
@@ -103,9 +104,9 @@ public class GuardFilter implements Filter {
                     res.setHeader(STRICT_TRANSPORT_SECURITY, "max-age=" + d.getSeconds() + "; includeSubDomains");
                 }
             } catch (CertificateExpiredException | CertificateNotYetValidException | RuntimeException ex) {
-                beans.getError().logException(req, "High security misconfigured", null, ex);
+                ten.getError().logException(req, "High security misconfigured", null, ex);
                 try {
-                    certs.verifyCertificate(beans.getImeadValue(CERTIFICATE_NAME));
+                    certs.verifyCertificate(ten.getImeadValue(CERTIFICATE_NAME));
                 } catch (Exception rx) {
                 }
             }
@@ -116,10 +117,10 @@ public class GuardFilter implements Filter {
         }
         // set request language
         String forwardURL = null;
-        Locale selected = Local.resolveLocales(beans.getImead(), req).get(0);
+        Locale selected = Local.resolveLocales(ten.getImead(), req).get(0);
         String servletPath = req.getServletPath();
-        if (null != selected && !Locale.ROOT.equals(selected) && beans.getImead().getLocales().contains(selected)) {
-            req.setAttribute(SecurityRepo.BASE_URL, beans.getImeadValue(SecurityRepo.BASE_URL) + selected.toString() + "/");
+        if (null != selected && !Locale.ROOT.equals(selected) && ten.getImead().getLocales().contains(selected)) {
+            req.setAttribute(SecurityRepo.BASE_URL, ten.getImeadValue(SecurityRepo.BASE_URL) + selected.toString() + "/");
             String rootPath = "/" + selected.toString();
             if (!servletPath.startsWith(rootPath + "/") && !servletPath.equals(rootPath)) {
                 forwardURL = req.getContextPath() + "/" + selected.toString() + req.getRequestURI().substring(req.getContextPath().length());
@@ -139,7 +140,7 @@ public class GuardFilter implements Filter {
         }
         // carry on
         try {
-            if (!reverseProxy(beans, req, res)) {
+            if (!reverseProxy(ten, req, res)) {
                 if (null != forwardURL) {
                     req.getServletContext().getRequestDispatcher(forwardURL).forward(request, response);
                 } else {
@@ -147,12 +148,12 @@ public class GuardFilter implements Filter {
                 }
             }
             if (res.getStatus() >= 400 && req.getAttribute(HANDLED_ERROR) == null) {
-                beans.getError().logException(req, null, "HTTP " + res.getStatus(), null);
+                ten.getError().logException(req, null, "HTTP " + res.getStatus(), null);
             }
             res.flushBuffer();
         } catch (IOException | ServletException x) {
             LOG.log(Level.SEVERE, "Exception caught in GuardFilter", x);
-            beans.getError().logException(req, null, null, x);
+            ten.getError().logException(req, null, null, x);
         }
     }
 
@@ -162,7 +163,7 @@ public class GuardFilter implements Filter {
 
     public boolean killInHoney(HttpServletRequest req, HttpServletResponse res) {
         kill(req, res);
-        return allBeans.getInstance(req).getError().putInHoneypot(SecurityRepo.getIP(req));
+        return Landlord.getTenant(req).getError().putInHoneypot(SecurityRepo.getIP(req));
     }
 
     public static void kill(ServletRequest request, ServletResponse response) {
@@ -185,12 +186,12 @@ public class GuardFilter implements Filter {
      * @return if something was found and written to response
      * @throws IOException
      */
-    public static boolean reverseProxy(AllBeanAccess beans, HttpServletRequest req, HttpServletResponse res) throws IOException {
+    public static boolean reverseProxy(Tenant ten, HttpServletRequest req, HttpServletResponse res) throws IOException {
         if (null != req.getParameter("nocache")) {
-            res.setHeader(HttpHeaders.ETAG, PageCache.getETag(beans.getImead(), req));
+            res.setHeader(HttpHeaders.ETAG, PageCache.getETag(ten.getImead(), req));
             return false;
         }
-        String lookup = PageCache.getLookup(beans.getImead(), req);
+        String lookup = PageCache.getLookup(ten.getImead(), req);
         String ifNoneMatch = req.getHeader(HttpHeaders.IF_NONE_MATCH);
         if (null == ifNoneMatch) {
             ifNoneMatch = "";
@@ -198,10 +199,10 @@ public class GuardFilter implements Filter {
         CachedPage page;
         switch (req.getMethod()) {
             case HttpMethod.GET:
-                page = beans.getGlobalCache().get(lookup);
+                page = ten.getGlobalCache().get(lookup);
                 if (null != page && page.isApplicable(req)) {
-                    writeHeaders(beans.getImead(), res, page);
-                    if (ifNoneMatch.equals(page.getHeader(HttpHeaders.ETAG)) || ifNoneMatch.equals(PageCache.getETag(beans.getImead(), req))) {
+                    writeHeaders(ten.getImead(), res, page);
+                    if (ifNoneMatch.equals(page.getHeader(HttpHeaders.ETAG)) || ifNoneMatch.equals(PageCache.getETag(ten.getImead(), req))) {
                         res.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
                         return true;
                     }
@@ -211,24 +212,24 @@ public class GuardFilter implements Filter {
                     out.flush();
                     res.flushBuffer();
                     page.hit();
-                    beans.getGlobalCache().incrementTotalHit();
+                    ten.getGlobalCache().incrementTotalHit();
                     return true;
                 }
-                res.setHeader(HttpHeaders.ETAG, PageCache.getETag(beans.getImead(), req));
+                res.setHeader(HttpHeaders.ETAG, PageCache.getETag(ten.getImead(), req));
                 break;
             case HttpMethod.HEAD:
-                page = beans.getGlobalCache().get(lookup);
+                page = ten.getGlobalCache().get(lookup);
                 if (null != page && page.isApplicable(req)) {
-                    if (ifNoneMatch.equals(PageCache.getETag(beans.getImead(), req))) {
+                    if (ifNoneMatch.equals(PageCache.getETag(ten.getImead(), req))) {
                         res.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
                     }
-                    writeHeaders(beans.getImead(), res, page);
+                    writeHeaders(ten.getImead(), res, page);
                     res.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(req, Boolean.TRUE));
                     page.hit();
-                    beans.getGlobalCache().incrementTotalHit();
+                    ten.getGlobalCache().incrementTotalHit();
                     return true;
                 }
-                res.setHeader(HttpHeaders.ETAG, PageCache.getETag(beans.getImead(), req));
+                res.setHeader(HttpHeaders.ETAG, PageCache.getETag(ten.getImead(), req));
                 break;
             default:
                 break;

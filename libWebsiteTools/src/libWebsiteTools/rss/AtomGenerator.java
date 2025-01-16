@@ -4,11 +4,11 @@ import org.w3c.dom.Element;
 
 /**
  *
- * @author: Andrew Bailey (praetor_alpha) praetoralpha 'at' gmail.com
+ * @author alpha
  */
 public class AtomGenerator extends AtomCommonAttribs {
 
-    private String generator = "praetor_alpha's libRssServlet";
+    private String generator = "libRssServlet";
     private String version = "2.0";
     private String uri;
 

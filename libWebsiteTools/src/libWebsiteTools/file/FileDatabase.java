@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.NoResultException;
@@ -81,12 +80,14 @@ public class FileDatabase implements FileRepository {
             try {
                 em.getTransaction().begin();
                 for (Fileupload upload : entities) {
-                    if (null == em.find(Fileupload.class, upload.getFilename())) {
+                    if (null == upload) {
+                        continue;
+                    } else if (null == em.find(Fileupload.class, upload.getFilename())) {
                         em.persist(upload);
-                        LOG.log(Level.INFO, "File added {0}", upload.getFilename());
+                        LOG.log(Level.FINE, "File added {0}", upload.getFilename());
                     } else {
                         upload = em.merge(upload);
-                        LOG.log(Level.INFO, "File upserted {0}", upload.getFilename());
+                        LOG.log(Level.FINE, "File upserted {0}", upload.getFilename());
                     }
                     out.add(upload);
                 }
@@ -117,22 +118,18 @@ public class FileDatabase implements FileRepository {
     }
 
     /**
-     * process all files one by one
-     *
-     * @param operation
-     * @param transaction are you modifying anything?
+     * @param operation This will be run in parallel.
+     * @param transaction Should changes be saved?
      */
     @Override
     public void processArchive(Consumer<Fileupload> operation, Boolean transaction) {
         try (EntityManager em = PU.createEntityManager()) {
             if (transaction) {
                 em.getTransaction().begin();
-                Stream<Fileupload> results = em.createNamedQuery("Fileupload.findAll", Fileupload.class).getResultStream();
-                results.forEach(operation);
+                em.createNamedQuery("Fileupload.findAll", Fileupload.class).getResultStream().forEach(operation);
                 em.getTransaction().commit();
             } else {
-                Stream<Fileupload> results = em.createNamedQuery("Fileupload.findAll", Fileupload.class).getResultStream();
-                results.forEach(operation);
+                em.createNamedQuery("Fileupload.findAll", Fileupload.class).getResultStream().forEach(operation);
             }
         }
     }

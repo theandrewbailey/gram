@@ -7,6 +7,7 @@ import java.io.OutputStream;
  *
  * @author alpha
  * @param <OperatesOn>
+ * @param <QueryOn>
  */
 public interface CompressionAlgorithm<OperatesOn, QueryOn> {
 

@@ -30,6 +30,14 @@ public interface Repository<Entity> {
     public Entity get(Object id);
 
     /**
+     * Get everything stored, up to limit.
+     *
+     * @param limit will return this many (or everything if null).
+     * @return all stored entities, up to limit.
+     */
+    public List<Entity> getAll(Integer limit);
+
+    /**
      * Search entities on the given term.
      *
      * @param term
@@ -43,17 +51,9 @@ public interface Repository<Entity> {
      * Delete a single entity.
      *
      * @param id the primary key of the desired entity.
-     * @return the desired entity, or null.
+     * @return the deleted entity, or null.
      */
     public Entity delete(Object id);
-
-    /**
-     * Get everything stored, up to limit.
-     *
-     * @param limit will return this many (or everything if null).
-     * @return all stored entities, up to limit.
-     */
-    public List<Entity> getAll(Integer limit);
 
     /**
      * Execute an operation on every stored entity. Depending on implementation,

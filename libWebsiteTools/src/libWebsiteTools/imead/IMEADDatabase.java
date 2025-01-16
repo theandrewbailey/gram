@@ -32,10 +32,10 @@ public class IMEADDatabase extends IMEADHolder {
     public IMEADHolder evict() {
         LOG.entering(IMEADHolder.class.getName(), "evict");
         PU.getCache().evict(Localization.class);
-        localizedCache = Collections.unmodifiableMap(getProperties());
         localizedHash = HashUtil.getSHA256Hash(localizedCache.toString());
         patterns.clear();
         filteredCache.clear();
+        localizedCache = Collections.unmodifiableMap(getProperties());
         LOG.exiting(IMEADHolder.class.getName(), "evict");
         return this;
     }

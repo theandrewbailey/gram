@@ -18,17 +18,15 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import libWebsiteTools.AllBeanAccess;
 import libWebsiteTools.BaseServlet;
 import org.w3c.dom.Document;
+import libWebsiteTools.Landlord;
+import libWebsiteTools.Tenant;
 
 /**
- * praetor_alpha libRssServlet
+ * Servlet for serving RSS/Atom feeds.
  *
- * Feel free to use this in your websites, blogs, or anything else you can think
- * of. If you have improvements, please, do tell.
- *
- * @author: Andrew Bailey (praetor_alpha) praetoralpha 'at' gmail.com
+ * @author alpha
  */
 @WebServlet(name = "RssServlet", description = "RSS host servlet, writes XML DOM for RSS feeds", urlPatterns = {"/rss/*"}, loadOnStartup = 1)
 public class RssServlet extends BaseServlet {
@@ -54,8 +52,8 @@ public class RssServlet extends BaseServlet {
         if (null == feed) {
             String name = getRssName(req.getRequestURL().toString());
             req.setAttribute(RssServlet.class.getSimpleName(), name);
-            AllBeanAccess beans = (AllBeanAccess) req.getAttribute(AllBeanAccess.class.getCanonicalName());
-            feed = beans.getFeeds().get(name);
+            Tenant ten = Landlord.getTenant(req);
+            feed = ten.getFeeds().get(name);
             if (feed == null) {
                 LOG.log(Level.FINE, "RSS feed {0} not found", name);
                 return null;

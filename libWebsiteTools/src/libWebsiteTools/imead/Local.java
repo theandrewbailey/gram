@@ -15,8 +15,9 @@ import jakarta.servlet.jsp.JspException;
 import jakarta.servlet.jsp.PageContext;
 import jakarta.servlet.jsp.tagext.SimpleTagSupport;
 import jakarta.ws.rs.core.HttpHeaders;
-import libWebsiteTools.AllBeanAccess;
-import libWebsiteTools.NullWriter;
+import java.io.Writer;
+import libWebsiteTools.Landlord;
+import libWebsiteTools.Tenant;
 
 /**
  *
@@ -106,16 +107,16 @@ public class Local extends SimpleTagSupport {
     @SuppressWarnings({"unchecked", "UseSpecificCatch", "ThrowableResultIgnored"})
     protected String getValue() {
         try {
-            getJspBody().invoke(new NullWriter());
+            getJspBody().invoke(Writer.nullWriter());
         } catch (Exception n) {
         }
         HttpServletRequest req = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest());
-        AllBeanAccess beans = (AllBeanAccess) req.getAttribute(AllBeanAccess.class.getCanonicalName());
+        Tenant ten = Landlord.getTenant(req);
         try {
             if (locale != null) {
-                return MessageFormat.format(beans.getImead().getLocal(getKey(), locale), getParams().toArray());
+                return MessageFormat.format(ten.getImead().getLocal(getKey(), locale), getParams().toArray());
             }
-            return MessageFormat.format(beans.getImead().getLocal(getKey(), resolveLocales(beans.getImead(), (HttpServletRequest) ((PageContext) getJspContext()).getRequest())), getParams().toArray());
+            return MessageFormat.format(ten.getImead().getLocal(getKey(), resolveLocales(ten.getImead(), (HttpServletRequest) ((PageContext) getJspContext()).getRequest())), getParams().toArray());
         } catch (EJBException e) {
             if (!(e.getCause() instanceof LocalizedStringNotFoundException)) {
                 throw e;

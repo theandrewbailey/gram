@@ -11,9 +11,9 @@ import jakarta.servlet.WriteListener;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import libWebsiteTools.AllBeanAccess;
 import libWebsiteTools.BaseServlet;
 import libWebsiteTools.tag.AbstractInput;
+import libWebsiteTools.Landlord;
 
 /**
  *
@@ -25,19 +25,19 @@ public class SpinnerServlet{
 //
     public static final String REASON = "$_SPINNER_REASON";
 //    @EJB
-//    protected AllBeanAccess allBeans;
+//    protected Landlord allBeans;
 //
 //    public static class Whirr implements WriteListener, Runnable {
 //
 //        private final ServletOutputStream writer;
 //        private final AsyncContext ac;
-//        private final AllBeanAccess beans;
+//        private final Landlord beans;
 //        private byte[] LEADER = "<!DOCTYPE html>\n<html><head></head><body>".getBytes();
 //        private final byte[] SPINNER;
 //        private volatile long sent = 0L;
 //        private volatile Thread running;
 //
-//        public Whirr(ServletOutputStream sos, AsyncContext context, AllBeanAccess beans) {
+//        public Whirr(ServletOutputStream sos, AsyncContext context, Landlord beans) {
 //            this.writer = sos;
 //            this.ac = context;
 //            this.beans = beans;
@@ -109,7 +109,7 @@ public class SpinnerServlet{
 //    }
 //
 //    protected void serve(HttpServletRequest req, HttpServletResponse res) throws IOException {
-//        AllBeanAccess beans = allBeans.getInstance(req);
+//        Landlord beans = allBeans.getInstance(req);
 //        /*res.setBufferSize(3000);
 //        res.setContentType("text/html");
 //        if (JspFilter.GZIP.equals(JspFilter.getCompression(req))) {
@@ -136,7 +136,7 @@ public class SpinnerServlet{
 //
 //    @Override
 //    protected void doHead(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-//        AllBeanAccess beans = allBeans.getInstance(request);
+//        Landlord beans = allBeans.getInstance(request);
 //        String reason = request.getAttribute(REASON).toString();
 //        if (null != reason) {
 //            beans.getError().logException(request, SecurityRepo.getIP(request) + ' ' + request.getMethod() + ' ' + AbstractInput.getTokenURL(request),

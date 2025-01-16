@@ -4,11 +4,15 @@ import java.io.Serializable;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Cacheable;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
+import java.util.UUID;
+import libWebsiteTools.UUIDConverter;
 
 /**
  *
@@ -30,13 +34,20 @@ public class Localization implements Serializable {
     @Basic
     @Column(name = "value", length = 65000)
     private String value;
+    @Basic(optional = false)
+    @NotNull
+    @Convert(converter = UUIDConverter.class)
+    @Column(name = "uuid", nullable = false, columnDefinition = "uuid")
+    private UUID uuid;
 
     public Localization() {
+        uuid = UUID.randomUUID();
     }
 
     public Localization(String localecode, String key, String value) {
         this.localizationPK = new LocalizationPK(key, localecode);
         this.value = value;
+        uuid = UUID.randomUUID();
     }
 
     public LocalizationPK getLocalizationPK() {
@@ -55,6 +66,14 @@ public class Localization implements Serializable {
         this.value = value;
     }
 
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
+    }
+
     @Override
     public int hashCode() {
         int hash = 0;
@@ -64,7 +83,7 @@ public class Localization implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
+        // Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof Localization)) {
             return false;
         }

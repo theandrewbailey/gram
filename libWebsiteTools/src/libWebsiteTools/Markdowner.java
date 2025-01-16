@@ -1,6 +1,7 @@
 package libWebsiteTools;
 
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.commonmark.Extension;
 import org.commonmark.ext.autolink.AutolinkExtension;
@@ -38,15 +39,14 @@ public class Markdowner {
 
     public static String getMarkdown(String html) {
         // TODO: find library to convert HTML to proper markdown, pass through HTML for now
-        LOG.info("HTML (not) converted to markdown");
+        LOG.log(Level.FINEST, "HTML (not) converted to markdown");
         return html;
     }
 
     public static String getHtml(String markdown) {
         Node n = COMMONMARK_PARSER.parse(markdown);
         String html = COMMONMARK_HTML_RENDERER.render(n);
-        LOG.info("converted markdown to HTML");
+        LOG.log(Level.FINEST, "converted markdown to HTML");
         return html;
     }
-
 }

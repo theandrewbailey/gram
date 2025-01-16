@@ -6,7 +6,7 @@ import org.w3c.dom.Element;
 /**
  * a simple category in an RSS feed shouldn't need to worry about this much
  *
- * @author: Andrew Bailey (praetor_alpha) praetoralpha 'at' gmail.com
+ * @author alpha
  */
 public class RssCategory implements Serializable, Publishable {
 

@@ -4,12 +4,11 @@ import org.w3c.dom.Element;
 
 /**
  *
- * @author: Andrew Bailey (praetor_alpha) praetoralpha 'at' gmail.com
+ * @author alpha
  */
 public class AtomText extends AtomCommonAttribs {
 
     public static enum Type {
-
         text,
         html,
         xhtml

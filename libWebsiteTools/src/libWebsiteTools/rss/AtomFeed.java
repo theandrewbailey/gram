@@ -14,7 +14,7 @@ import org.w3c.dom.DOMException;
 
 /**
  *
- * @author: Andrew Bailey (praetor_alpha) praetoralpha 'at' gmail.com
+ * @author alpha
  */
 public abstract class AtomFeed extends AtomCommonAttribs implements Feed, Publishable {
 

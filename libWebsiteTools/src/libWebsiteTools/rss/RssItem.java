@@ -11,7 +11,7 @@ import org.w3c.dom.Element;
  * represents a single entry in an rss channel (article, post, podcast...)
  * shouldn't need to extend unless you are adding a namespace to the feed
  *
- * @author: Andrew Bailey (praetor_alpha) praetoralpha 'at' gmail.com
+ * @author alpha
  */
 public class RssItem implements Serializable, Publishable {
 

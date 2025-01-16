@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.time.OffsetDateTime;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -13,6 +14,8 @@ import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
+import libWebsiteTools.UUIDConverter;
 
 /**
  *
@@ -45,6 +48,11 @@ public class Honeypot implements Serializable {
     @NotNull
     @Column(name = "startedatatime", nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime startedatatime;
+    @Basic(optional = false)
+    @NotNull
+    @Convert(converter = UUIDConverter.class)
+    @Column(name = "uuid", nullable = false, columnDefinition = "uuid")
+    private UUID uuid;
 
     public Honeypot() {
     }
@@ -53,11 +61,12 @@ public class Honeypot implements Serializable {
         this.honeypotid = honeypotid;
     }
 
-    public Honeypot(Integer honeypotid, OffsetDateTime expiresatatime, String ip, OffsetDateTime startedatatime) {
+    public Honeypot(Integer honeypotid, OffsetDateTime expiresatatime, String ip, OffsetDateTime startedatatime, UUID uuid) {
         this.honeypotid = honeypotid;
         this.expiresatatime = expiresatatime;
         this.ip = ip;
         this.startedatatime = startedatatime;
+        this.uuid = uuid;
     }
 
     public Integer getHoneypotid() {
@@ -92,6 +101,14 @@ public class Honeypot implements Serializable {
         this.startedatatime = startedatatime;
     }
 
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
+    }
+
     @Override
     public int hashCode() {
         int hash = 0;
@@ -101,7 +118,7 @@ public class Honeypot implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
+        // Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof Honeypot)) {
             return false;
         }
@@ -113,5 +130,5 @@ public class Honeypot implements Serializable {
     public String toString() {
         return "libWebsiteTools.db.Honeypot[ honeypotid=" + honeypotid + " ]";
     }
-    
+
 }

@@ -29,10 +29,9 @@ import libWebsiteTools.Repository;
 
 /**
  * The feed bucket, the source from which all RSS feeds come. Does what the
- * label reads: stores your feeds when you're not using them. nothing too fancy
- * here, doesn't manipulate space-time or anything like that, sorry
+ * label reads: stores your feeds when you're not using them.
  *
- * @author: Andrew Bailey (praetor_alpha) praetoralpha 'at' gmail.com
+ * @author alpha
  */
 public class FeedBucket implements Repository<Feed> {
 
@@ -111,7 +110,7 @@ public class FeedBucket implements Repository<Feed> {
                 feeds.put(feed.getName(), feed);
                 feed.postAdd();
             }
-            LOG.log(Level.INFO, "Feed added, name: {0} class: {1}", new Object[]{feed.getName(), feed.getClass().getName()});
+            LOG.log(Level.FINEST, "Feed added, name: {0} class: {1}", new Object[]{feed.getName(), feed.getClass().getName()});
         }
         return new ArrayList<>(entities);
     }
@@ -180,11 +179,12 @@ public class FeedBucket implements Repository<Feed> {
             feed.preRemove();
             feeds.remove(name.toString()).postRemove();
         }
-        LOG.log(Level.INFO, "Feed removed: {0}", name);
+        LOG.log(Level.FINE, "Feed removed: {0}", name);
         return feed;
     }
 
     @PreDestroy
+    @SuppressWarnings("unused")
     private void destroy() {
         for (String el : new ArrayList<>(feeds.keySet())) {
             try {
@@ -192,6 +192,6 @@ public class FeedBucket implements Repository<Feed> {
             } catch (Exception x) {
             }
         }
-        LOG.log(Level.INFO, "FeedBucket destroyed");
+        LOG.log(Level.FINE, "FeedBucket destroyed");
     }
 }

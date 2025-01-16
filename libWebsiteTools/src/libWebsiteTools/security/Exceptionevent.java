@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.time.OffsetDateTime;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -13,6 +14,8 @@ import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
+import libWebsiteTools.UUIDConverter;
 
 /**
  *
@@ -46,6 +49,11 @@ public class Exceptionevent implements Serializable {
     @Size(min = 1, max = 65000)
     @Column(name = "title", nullable = false, length = 65000)
     private String title;
+    @Basic(optional = false)
+    @NotNull
+    @Convert(converter = UUIDConverter.class)
+    @Column(name = "uuid", nullable = false, columnDefinition = "uuid")
+    private UUID uuid;
 
     public Exceptionevent() {
     }
@@ -54,11 +62,12 @@ public class Exceptionevent implements Serializable {
         this.exceptioneventid = exceptioneventid;
     }
 
-    public Exceptionevent(Integer exceptioneventid, OffsetDateTime atime, String description, String title) {
+    public Exceptionevent(Integer exceptioneventid, OffsetDateTime atime, String description, String title, UUID uuid) {
         this.exceptioneventid = exceptioneventid;
         this.atime = atime;
         this.description = description;
         this.title = title;
+        this.uuid = uuid;
     }
 
     public Integer getExceptioneventid() {
@@ -93,6 +102,14 @@ public class Exceptionevent implements Serializable {
         this.title = title;
     }
 
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
+    }
+
     @Override
     public int hashCode() {
         int hash = 0;
@@ -102,7 +119,7 @@ public class Exceptionevent implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
+        // Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof Exceptionevent)) {
             return false;
         }
@@ -114,5 +131,4 @@ public class Exceptionevent implements Serializable {
     public String toString() {
         return "libWebsiteTools.db.Exceptionevent[ exceptioneventid=" + exceptioneventid + " ]";
     }
-
 }

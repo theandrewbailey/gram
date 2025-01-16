@@ -11,8 +11,9 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import libWebsiteTools.AllBeanAccess;
 import libWebsiteTools.BaseServlet;
+import libWebsiteTools.Landlord;
+import libWebsiteTools.Tenant;
 
 /**
  *
@@ -39,7 +40,7 @@ public class CSPReporter extends BaseServlet {
         for (Map.Entry<String, JsonValue> field : reportObject.entrySet()) {
             report.append(SecurityRepo.htmlFormat(field.getKey())).append(": ").append(SecurityRepo.htmlFormat(field.getValue().toString())).append(SecurityRepo.NEWLINE);
         }
-        AllBeanAccess beans = (AllBeanAccess) request.getAttribute(AllBeanAccess.class.getCanonicalName());
-        beans.getError().logException(null, "Content Security Policy violation", report.toString(), null);
+        Tenant ten = Landlord.getTenant(request);
+        ten.getError().logException(null, "Content Security Policy violation", report.toString(), null);
     }
 }

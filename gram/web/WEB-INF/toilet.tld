@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<taglib version="2.1" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-jsptaglibrary_2_1.xsd">
+  <tlib-version>1.0</tlib-version>
+  <short-name>g</short-name>
+  <uri>uri:gram</uri>
+  <tag>
+    <name>categorizer</name>
+    <tag-class>gram.tag.Categorizer</tag-class>
+    <body-content>scriptless</body-content>
+    <attribute>
+      <description>a single category</description>
+      <name>category</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>gram.bean.database.Section</type>
+    </attribute>
+    <attribute>
+      <description>page number</description>
+      <name>page</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.Integer</type>
+    </attribute>
+  </tag>
+  <tag>
+    <name>articleUrl</name>
+    <tag-class>gram.tag.ArticleUrl</tag-class>
+    <body-content>scriptless</body-content>
+    <attribute>
+      <description>article to generate link for</description>
+      <name>article</name>
+      <required>true</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>gram.bean.database.Article</type>
+    </attribute>
+    <attribute>
+      <description>anchor id in link URL</description>
+      <name>anchor</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.String</type>
+    </attribute>
+    <attribute>
+      <description>generate anchor tag? (default true)</description>
+      <name>link</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.Boolean</type>
+    </attribute>
+    <attribute>
+      <description>target attribute</description>
+      <name>target</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.String</type>
+    </attribute>
+    <attribute>
+      <description>text displayed within tag</description>
+      <name>text</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.String</type>
+    </attribute>
+    <attribute>
+      <description>class for the anchor element</description>
+      <name>cssClass</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.String</type>
+    </attribute>
+    <attribute>
+      <description>id for the anchor element</description>
+      <name>id</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.String</type>
+    </attribute>
+  </tag>
+  <tag>
+    <name>recentArticles</name>
+    <tag-class>gram.tag.RecentArticles</tag-class>
+    <body-content>scriptless</body-content>
+    <attribute>
+      <description>how many articles</description>
+      <name>number</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.Integer</type>
+    </attribute>
+    <attribute>
+      <description>section to display from</description>
+      <name>section</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>gram.bean.database.Section</type>
+    </attribute>
+    <attribute>
+      <description>article variable. default: _article</description>
+      <name>var</name>
+      <required>false</required>
+      <rtexprvalue>false</rtexprvalue>
+      <type>java.lang.String</type>
+    </attribute>
+  </tag>
+</taglib>

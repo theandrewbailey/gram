@@ -85,7 +85,7 @@ public class PageCache implements Cache<String, CachedPage> {
     public static String getETag(IMEADHolder imead, HttpServletRequest req) {
         Object etag = req.getAttribute(HttpHeaders.ETAG);
         if (null == etag) {
-            etag = "\"" + HashUtil.getSHA256Hash(PageCache.getLookup(imead, req)) + "\"";
+            etag = "W/\"" + HashUtil.getSHA256Hash(PageCache.getLookup(imead, req)) + "\"";
             req.setAttribute(HttpHeaders.ETAG, etag);
         }
         return etag.toString();

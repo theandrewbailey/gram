@@ -1,6 +1,5 @@
 package libWebsiteTools.turbo;
 
-import jakarta.ejb.EJB;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletRequestEvent;
 import jakarta.servlet.ServletRequestListener;
@@ -11,9 +10,9 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import libWebsiteTools.AllBeanAccess;
+import libWebsiteTools.Landlord;
+import libWebsiteTools.Tenant;
 
 /**
  *
@@ -26,8 +25,6 @@ public class RequestTimer implements ServletRequestListener {
     private static final String START_TIME_PARAM = "$_LIBWEBSITETOOLS_START_TIME";
     private static final String FRONT_TIME_PARAM = "$_LIBWEBSITETOOLS_FRONT_TIME";
     private static final String REQUEST_TIMINGS_PARAM = "$_LIBWEBSITETOOLS_REQUEST_TIMINGS";
-    @EJB
-    private AllBeanAccess allBeans;
 
     public static OffsetDateTime getStartTime(ServletRequest req) {
         OffsetDateTime time = (OffsetDateTime) req.getAttribute(START_TIME_PARAM);
@@ -107,12 +104,12 @@ public class RequestTimer implements ServletRequestListener {
                 timings.remove("miss");
             }
             RequestTimes requestTimes = new RequestTimes(req.getRequestURI(), timings, (OffsetDateTime) req.getAttribute(FRONT_TIME_PARAM), cached);
-            AllBeanAccess beans = allBeans.getInstance(req);
+            Tenant ten = Landlord.getTenant(req);
             Object servletName = req.getAttribute(WebServlet.class.getCanonicalName());
             if (null == servletName) {
                 servletName = requestTimes.getUrl();
             }
-            beans.getPerfStats().submit(requestTimes, servletName.toString());
+            ten.getPerfStats().submit(requestTimes, servletName.toString());
         }
     }
 }

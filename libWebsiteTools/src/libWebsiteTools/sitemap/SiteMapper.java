@@ -27,7 +27,7 @@ public class SiteMapper {
 
     public Document getSiteMap() {
         Document xml = null;
-        LOG.fine("Sitemap requested");
+        LOG.log(Level.FINEST, "Sitemap requested");
         int renderLevel = 0;
         int urlcount = 0;
         int size = 71;

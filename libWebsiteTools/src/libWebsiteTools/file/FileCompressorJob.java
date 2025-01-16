@@ -14,9 +14,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import libWebsiteTools.AllBeanAccess;
 import libWebsiteTools.CompressionAlgorithm;
 import libWebsiteTools.turbo.GzipOutputStream;
+import libWebsiteTools.Tenant;
 
 /**
  *
@@ -33,7 +33,7 @@ public abstract class FileCompressorJob implements Callable<Boolean>, Comparable
 
         private ByteArrayOutputStream collector;
 
-        public Zstd(AllBeanAccess beans, Fileupload file) {
+        public Zstd(Tenant beans, Fileupload file) {
             super(beans, file);
             if (!Native.isLoaded()) {
                 throw new IllegalStateException("Zstd is not loaded.");
@@ -72,7 +72,7 @@ public abstract class FileCompressorJob implements Callable<Boolean>, Comparable
 
         private ByteArrayOutputStream collector;
 
-        public Brotli(AllBeanAccess beans, Fileupload file) {
+        public Brotli(Tenant beans, Fileupload file) {
             super(beans, file);
             if (!Brotli4jLoader.isAvailable()) {
                 throw new IllegalStateException("Brotli is not loaded.");
@@ -113,7 +113,7 @@ public abstract class FileCompressorJob implements Callable<Boolean>, Comparable
 
         private ByteArrayOutputStream collector;
 
-        public Gzip(AllBeanAccess beans, Fileupload file) {
+        public Gzip(Tenant beans, Fileupload file) {
             super(beans, file);
         }
 
@@ -145,17 +145,17 @@ public abstract class FileCompressorJob implements Callable<Boolean>, Comparable
         }
     }
 
-    public static List<Future> startAllJobs(AllBeanAccess beans, Fileupload file) {
-        return List.of(beans.getExec().submit(new Gzip(beans, file)),
-                beans.getExec().submit(new Brotli(beans, file)),
-                beans.getExec().submit(new Zstd(beans, file)));
+    public static List<Future> startAllJobs(Tenant ten, Fileupload file) {
+        return List.of(ten.getExec().submit(new Gzip(ten, file)),
+                ten.getExec().submit(new Brotli(ten, file)),
+                ten.getExec().submit(new Zstd(ten, file)));
     }
     private final static Logger LOG = Logger.getLogger(FileCompressorJob.class.getName());
     final Fileupload file;
-    final AllBeanAccess beans;
+    final Tenant ten;
 
-    public FileCompressorJob(AllBeanAccess beans, Fileupload file) {
-        this.beans = beans;
+    public FileCompressorJob(Tenant ten, Fileupload file) {
+        this.ten = ten;
         this.file = file;
     }
 
@@ -175,10 +175,10 @@ public abstract class FileCompressorJob implements Callable<Boolean>, Comparable
         byte[] compressedData = getResult();
         synchronized (file) {
             if (null != compressedData && compressedData.length < file.getFiledata().length) {
-                Fileupload activeFile = beans.getFile().get(file.getFilename());
-                beans.getFile().upsert(Arrays.asList(setResult(activeFile, compressedData)));
-                beans.getFile().evict();
-                beans.getGlobalCache().clear();
+                Fileupload activeFile = ten.getFile().get(file.getFilename());
+                ten.getFile().upsert(Arrays.asList(setResult(activeFile, compressedData)));
+                ten.getFile().evict();
+                ten.getGlobalCache().clear();
                 return true;
             }
         }

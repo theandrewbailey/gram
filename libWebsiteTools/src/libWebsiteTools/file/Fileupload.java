@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Cacheable;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
@@ -13,6 +14,8 @@ import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
+import libWebsiteTools.UUIDConverter;
 
 /**
  *
@@ -30,7 +33,7 @@ import jakarta.validation.constraints.Size;
     @NamedQuery(name = "Filemetadata.searchByFilenames", query = "SELECT" + Fileupload.METADATA_CONSTRUCTOR + "FROM Fileupload f WHERE f.filename like CONCAT('%',:term,'%') ORDER BY f.filename")})
 public class Fileupload implements Serializable {
 
-    public static final String METADATA_CONSTRUCTOR = " new libWebsiteTools.file.Fileupload(f.filename,f.atime,f.etag,f.mimetype,f.url,f.datasize,f.gzipsize,f.brsize,f.zstdsize) ";
+    public static final String METADATA_CONSTRUCTOR = " new libWebsiteTools.file.Fileupload(f.filename,f.atime,f.etag,f.mimetype,f.url,f.datasize,f.gzipsize,f.brsize,f.zstdsize,f.uuid) ";
     private static final long serialVersionUID = 1L;
     @Id
     @Basic(optional = false)
@@ -61,6 +64,11 @@ public class Fileupload implements Serializable {
     @Column(name = "url", length = 65000)
     private String url;
     @Basic(optional = false)
+    @NotNull
+    @Convert(converter = UUIDConverter.class)
+    @Column(name = "uuid", nullable = false, columnDefinition = "uuid")
+    private UUID uuid;
+    @Basic(optional = false)
     @Lob
     @Column(name = "gzipdata")
     private byte[] gzipdata;
@@ -82,18 +90,21 @@ public class Fileupload implements Serializable {
     private Integer zstdsize;
 
     public Fileupload() {
+        uuid = UUID.randomUUID();
     }
 
     public Fileupload(String filename) {
         this.filename = filename;
+        uuid = UUID.randomUUID();
     }
 
     public Fileupload(String filename, OffsetDateTime atime) {
         this.filename = filename;
         this.atime = atime;
+        uuid = UUID.randomUUID();
     }
 
-    public Fileupload(String filename, OffsetDateTime atime, String etag, String mimetype, String url, Integer datasize, Integer gzipsize, Integer brsize, Integer zstdsize) {
+    public Fileupload(String filename, OffsetDateTime atime, String etag, String mimetype, String url, Integer datasize, Integer gzipsize, Integer brsize, Integer zstdsize, UUID uuid) {
         this.filename = filename;
         this.atime = atime;
         this.etag = etag;
@@ -103,6 +114,7 @@ public class Fileupload implements Serializable {
         this.gzipsize = gzipsize;
         this.brsize = brsize;
         this.zstdsize = zstdsize;
+        this.uuid = uuid;
     }
 
     public OffsetDateTime getAtime() {
@@ -153,6 +165,14 @@ public class Fileupload implements Serializable {
         this.url = url;
     }
 
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
+    }
+
     @Override
     public int hashCode() {
         return filename.hashCode();
@@ -160,7 +180,7 @@ public class Fileupload implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
+        // Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof Fileupload)) {
             return false;
         }
@@ -173,72 +193,42 @@ public class Fileupload implements Serializable {
         return "libWebsiteTools.file.Fileupload[ filename=" + filename + " ]";
     }
 
-    /**
-     * @return the gzipdata
-     */
     public byte[] getGzipdata() {
         return gzipdata;
     }
 
-    /**
-     * @param gzipdata the gzipdata to set
-     */
     public void setGzipdata(byte[] gzipdata) {
         this.gzipdata = gzipdata;
     }
 
-    /**
-     * @return the brdata
-     */
     public byte[] getBrdata() {
         return brdata;
     }
 
-    /**
-     * @param brdata the brdata to set
-     */
     public void setBrdata(byte[] brdata) {
         this.brdata = brdata;
     }
 
-    /**
-     * @return the zstddata
-     */
     public byte[] getZstddata() {
         return zstddata;
     }
 
-    /**
-     * @param zstddata the zstddata to set
-     */
     public void setZstddata(byte[] zstddata) {
         this.zstddata = zstddata;
     }
 
-    /**
-     * @return the datasize
-     */
     public Integer getDatasize() {
         return datasize;
     }
 
-    /**
-     * @return the gzipsize
-     */
     public Integer getGzipsize() {
         return gzipsize;
     }
 
-    /**
-     * @return the brsize
-     */
     public Integer getBrsize() {
         return brsize;
     }
 
-    /**
-     * @return the zstdsize
-     */
     public Integer getZstdsize() {
         return zstdsize;
     }

@@ -10,10 +10,11 @@ import jakarta.servlet.jsp.tagext.SimpleTagSupport;
 import java.io.StringWriter;
 import java.util.UUID;
 import java.util.logging.Logger;
-import libWebsiteTools.AllBeanAccess;
 import libWebsiteTools.file.BaseFileServlet;
 import libWebsiteTools.file.Fileupload;
 import libWebsiteTools.imead.Local;
+import libWebsiteTools.Landlord;
+import libWebsiteTools.Tenant;
 
 /**
  *
@@ -30,7 +31,7 @@ public class HtmlScript extends SimpleTagSupport {
     private static final Logger LOG = Logger.getLogger(HtmlScript.class.getName());
 
     @SuppressWarnings("unchecked")
-    public static List<Fileupload> getJavascriptFiles(AllBeanAccess beans, HttpServletRequest req) {
+    public static List<Fileupload> getJavascriptFiles(Tenant ten, HttpServletRequest req) {
         try {
             List files = (List) req.getAttribute(SITE_JAVASCRIPT_KEY);
             if (files != null) {
@@ -41,15 +42,15 @@ public class HtmlScript extends SimpleTagSupport {
         try {
             List<String> filenames = new ArrayList<>();
             List<Fileupload> files = new ArrayList<>();
-            for (String filename : beans.getImead().getLocal(SITE_JAVASCRIPT_KEY, Local.resolveLocales(beans.getImead(), req)).split("\n")) {
-                List<Fileupload> f = beans.getFile().getFileMetadata(Arrays.asList(filename));
+            for (String filename : ten.getImead().getLocal(SITE_JAVASCRIPT_KEY, Local.resolveLocales(ten.getImead(), req)).split("\n")) {
+                List<Fileupload> f = ten.getFile().getFileMetadata(Arrays.asList(filename));
                 if (null != f && !f.isEmpty()) {
                     files.addAll(f);
                 } else {
                     filenames.add(BaseFileServlet.getNameFromURL(filename));
                 }
             }
-            files.addAll(beans.getFile().getFileMetadata(filenames));
+            files.addAll(ten.getFile().getFileMetadata(filenames));
             req.setAttribute(SITE_JAVASCRIPT_KEY, List.copyOf(files));
             return files;
         } catch (Exception x) {
@@ -84,8 +85,8 @@ public class HtmlScript extends SimpleTagSupport {
             }
         } catch (Exception ex) {
         }
-        AllBeanAccess beans = (AllBeanAccess) req.getAttribute(AllBeanAccess.class.getCanonicalName());
-        for (Fileupload f : getJavascriptFiles(beans, (HttpServletRequest) ((PageContext) getJspContext()).getRequest())) {
+        Tenant ten = Landlord.getTenant(req);
+        for (Fileupload f : getJavascriptFiles(ten, (HttpServletRequest) ((PageContext) getJspContext()).getRequest())) {
             String nonce = UUID.randomUUID().toString();
             // TOTAL HACK: this assumes that the CSS is hosted locally 
             try {

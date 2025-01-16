@@ -1,0 +1,12 @@
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<%@ taglib prefix="h" uri="uri:libwebsitetools:htmlTools" %>
+<%@ taglib prefix="g" uri="uri:gram" %><!DOCTYPE html>
+<html lang="${$_LIBIMEAD_PRIMARY_LOCALE.toLanguageTag()}"><head>
+<h:stylesheet/><h:meta/>
+<h:localVar key="page_title"/><h:title siteTitle="${page_title}" pageTitle="${title}" siteTitleHide="${siteTitleHide}" />
+</head><body>
+<header><h1><a title="Home" href="${security_baseURL}index.html">${page_title}</a></h1><c:if test="${index != null and index}">
+<h2 class="noPrint"><h:local key="page_tagline"/></h2></c:if>
+<noscript><h:local key="page_noscript"/></noscript>
+</header>

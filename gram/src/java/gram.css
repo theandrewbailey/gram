@@ -1,0 +1,300 @@
+/* Toiletwave. トイレ周波美学 */
+html,body,blockquote,button,div,span,article,section,header,figure,figcaption,footer,h1,h2,h3,iframe,nav,p,picture,pre,abbr,a,form,input,textarea,label,time,fieldset,legend,ul,li,img,table,thead,tbody,tr,td,code,br,strong,main,sup,sub,.reset{
+  margin: 0.0rem;
+  border: 0.0rem;
+  padding: 0.0rem;
+  list-style: none;
+  font-weight: normal;
+  vertical-align: baseline;
+  box-sizing: border-box;
+  background-color: transparent;
+  text-decoration-skip-ink: none;
+}article,footer,header,nav,section,main,figure,figcaption,aside li>a{
+  display: block;
+  width: -webkit-fill-available;
+  width: -moz-available;
+  width: stretch;
+}html{
+  font-family: "Times New Roman", "SimSun", "NSimSun", serif;
+  font-size: 16pt;
+  line-height: 1.2em;
+}a:focus,input:focus,textarea:focus,select:focus,button:focus{
+  outline: gray dotted 1px;
+}strong{
+  font-weight: bold;
+}pre,code{
+  font-family: "Courier New";
+}pre{
+  overflow-x: scroll;
+}h1{
+  font-size: 2.0rem;
+  line-height: 1.0em;
+}h2{
+  font-size: 1.2rem;
+  line-height: 1.2em;
+}body>header{
+  text-align: center;
+  text-transform: full-width;
+}body>header>h1>a:after{
+  content: " 美学";
+  margin-left: -1px;
+}p,pre,li,.pagenation{
+  margin: 0.0rem 0.0rem 1.0rem 0.0rem;
+}img{
+  height: auto;
+  max-width: 100%;
+  vertical-align: top;
+}p:last-of-type>img{
+  margin: -1.0rem 0.0rem 0.0rem 0.0rem;
+}abbr{
+  border-bottom: 1px dotted;
+}sup{
+  font-size: 0.7rem;
+  vertical-align: top;
+}fieldset,.seeAlso>ul>li{
+  padding-block-start: 0.5rem;
+  padding-block-end: 0.5rem;
+  padding-inline-start: 0.5rem;
+  padding-inline-end: 0.5rem;
+  border: 2px groove ThreeDLightShadow;
+}ol>li{
+  list-style: decimal outside none;
+}.indexPage>article{
+  margin-bottom: 2rem;
+}.placeholder{
+  position: absolute;
+}article>footer,.articleFooter{
+  font-size: 0.9rem;
+}article>p{
+  overflow: auto;
+}article>p:last-of-type{
+  margin: 0.0rem 0.0rem 0.0rem 0.0rem;
+}article>table td,article>table th{
+  padding: 0.0rem 0.5rem;
+}article.comment,.noComment{
+  margin-top: 1.5rem;
+}article>ul,article>ul>li>*,blockquote{
+  margin-left: 2rem;
+}article>ul>li>*:first-child{
+  margin: 0.0rem;
+}article>iframe{
+  overflow: hidden;
+}.comment>p,.noComment{
+  font-size: 0.9rem;
+}.comment>footer{
+  font-size: 0.8rem;
+}.commentForm,legend{
+  padding: 0.0rem;
+}input,textarea,select,input[type="submit"],button{
+  font-family: "Microsoft Sans Serif", sans-serif;
+  resize: none;
+  border-width: 2px;
+  margin: 0rem 0.2rem 0.2rem 0rem;
+  padding:  0.1rem 0.1rem 0.1rem 0.1rem;
+}input[type="submit"],button{
+  border-style: outset;
+  padding:  0.2rem 1.0rem 0.2rem 1.0rem;
+  min-width: 7em;
+}input:focus,textarea:focus,select:focus,input[type="submit"]:focus,button:focus{
+  outline-offset: -4px;
+}.commentForm{
+  margin: 2.0rem 0.0rem 0.0rem 0.0rem;
+}.commentForm>fieldset>textarea{
+  width: 100%;
+  box-sizing: border-box;
+}.pagenation{
+  list-style-type: none;
+  text-align: center;
+}.pagen_newest>a:before{
+  content: "<< ";
+  speak: none;
+}.pagen_newer>a:before{
+  content: "< ";
+  speak: none;
+}.pagen_older>a:after{
+  content: " >";
+  speak: none;
+}.pagen_oldest>a:after{
+  content: " >>";
+  speak: none;
+}.pagenation *{
+  display: inline;
+}.pagenation>span,.pagenation>a,.pagenation>ul>li{
+  margin: 0.0rem 0.7rem 0.0rem 0.0rem;
+  list-style: none outside none;
+  white-space: nowrap;
+}.seeAlso h1{
+  font-size: 1.5rem;
+}.seeAlso>ul>li{
+  display: inline-block;
+  height: 13rem;
+  width: 13rem;
+  margin: 0.25rem;
+  overflow: hidden;
+}.seeAlso>ul>li.withFigure{
+  vertical-align: top;
+}.seeAlso>ul>li.withFigure figure{
+  overflow: visible;
+}.seeAlso>ul>li.withFigure figcaption{
+  bottom: 0;
+  left: 0;
+  position: sticky;
+}.seeAlso>ul>li.withFigure figcaption h1{
+  position: absolute;
+  left: 0rem;
+  bottom: -1.5rem;
+  width: 100%;
+  text-decoration: underline;
+}.seeAlso>ul img{
+  height: 10.25rem;
+  width: 15rem;
+  object-fit: cover;
+}.seeAlso>ul>li p{
+  display: none;
+}.seeAlso>ul>li.noFigure>article>a{
+  position: relative;
+  height: 11.45rem;
+  display: block;
+}.seeAlso>ul>li.noFigure h1{
+  text-decoration: underline 1px;
+  position: absolute;
+  bottom: 0;
+}.error,.errorPage{
+  font-size: 1.5rem;
+}.errorPage figure{
+  overflow: visible;
+}aside.noPrint h1{
+  font-size: 1.1rem;
+}.side_bottom>ol{
+  margin-left: -1rem;
+}aside>*{
+  padding: 0.3em 0.3em 0.0em 0.3em;
+}aside li>a{
+  display: block;
+}.suggestionList{
+  margin: 0rem 0rem 0rem -1rem;
+}.suggestionList>li{
+  margin: 1rem 0rem 1rem 0rem;
+}p.secondmin,.secondmin>td,.secondmin>td:first-child{
+  padding-left: 0.5rem;
+}/* SCREEN STYLES */
+@media screen{html{
+  --text-color: #620d55;
+  --background-color: #e9fbff;
+  --link-color: #0000FF;
+  --ui-border-light: #d3d3d3;
+  --ui-border-dark: #808080;
+  --ui-textbox: #fff;
+  --button: #c0c0c0;
+  --button-hover: #999999;
+  padding: 0.5rem;
+  color: var(--text-color);
+  background-color: var(--background-color);
+}html.reset{
+  background-color: rgba(233, 251, 255, 0);
+  min-width: unset;
+}body{
+  width: 100%;
+}body>*{
+  margin: 0.0rem auto 0.0rem auto;
+  min-width: 300px;
+}figure{
+  position: relative;
+  width: auto;
+}a{
+  color: var(--link-color);
+}a.withFigure>figure>picture>img{
+  min-height: 7rem;
+  max-height: 25rem;
+}.indexPage>article>a.withFigure{
+  display: block;
+  width: fit-content;
+}.seeAlso>ul>li.withFigure figcaption{
+  background-color: var(--background-color);
+}.seeAlso>ul>li.withFigure figcaption h1{
+  background-color: var(--background-color);
+}input,textarea,select,input[type="submit"],button{
+  background-color: var(--ui-textbox);
+  border-style: inset;
+  border-color: var(--ui-border-dark) var(--ui-border-light) var(--ui-border-light) var(--ui-border-dark);
+}input[type="submit"],button{
+  border-style: outset;
+  border-color: var(--ui-border-light) var(--ui-border-dark) var(--ui-border-dark) var(--ui-border-light);
+  background: var(--button);
+  color: black;
+}input[type="submit"]:active:hover,button:active:hover{
+  border-style: inset;
+  background: var(--button-hover);
+  border-color: var(--ui-border-dark) var(--ui-border-light) var(--ui-border-light) var(--ui-border-dark);
+}aside{
+  background-image: linear-gradient(#fbf,var(--background-color));
+}#searchTerm{
+  width: 100%;
+}body>footer{
+  clear: both;
+}.zoom{
+  cursor: zoom-in;
+}.locked{
+  overflow: hidden;
+}picture.zoomed{
+  cursor: zoom-out;
+  position: fixed;
+  top: 0;
+  max-width: 100%;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+}picture.zoomed>img{
+  max-height: 100%;
+  object-fit: contain;
+  width: 100%;
+}} /* DESKTOP STYLES */
+@media screen and (min-width: 901px){body>*{
+  max-width: 1160px;
+}main.leftContent{
+  margin-right: 200px;
+  width: 960px;
+  width: calc(100% - 200px);
+  float: left;
+}main.leftContent:after{
+  content: "";
+  display: table;
+  clear: both;
+}.indexPage>article>.withFigure>figure{
+  min-width: 600px;
+  min-height: 300px;
+}a.withFigure>figure{
+  min-height: 7rem;
+}aside{
+  float: right;
+  width: 200px;
+}body>div>aside{
+  margin-left: -200px;
+}.asideCollide{
+  max-width: calc(100% - 200px);
+}.pagenation{
+  float: right;
+}}/* PHONE STYLES */
+@media screen and (max-width: 900px){body>header{
+  text-transform: unset;
+}main{
+  width: 100%;
+  display: flex;
+  flex-flow: column;
+}aside{
+  order: 9999;
+}.search{
+  display: flex;
+  flex-flow: row;
+}.search>*{
+  margin-right: 0.5rem;
+}}/* PRINT STYLES */
+@media print{
+aside,form,body>header>h2,body>footer,.noComment,.pagenation,.noPrint,.seeAlso{
+  display: none;
+}}

@@ -20,6 +20,8 @@ import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
+import java.util.logging.Level;
 import libWebsiteTools.Repository;
 import libWebsiteTools.imead.IMEADHolder;
 
@@ -65,7 +67,7 @@ public class SecurityRepo implements Repository<Exceptionevent> {
     }
 
     public void logException(HttpServletRequest req, String title, String desc, Throwable t) {
-        LOG.finest("Saving exception");
+        LOG.log(Level.FINEST, "Saving exception");
         if (title == null && req != null) {
             title = getIP(req) + ' ' + req.getMethod() + ' ' + req.getRequestURI();
         } else if (title == null && t != null) {
@@ -99,7 +101,7 @@ public class SecurityRepo implements Repository<Exceptionevent> {
             additionalDesc.append(w.toString().replace("\n\tat ", SecurityRepo.NEWLINE + " at "));
         }
         desc = additionalDesc.toString();
-        upsert(Arrays.asList(new Exceptionevent(null, OffsetDateTime.now(), desc, title)));
+        upsert(Arrays.asList(new Exceptionevent(null, OffsetDateTime.now(), desc, title, UUID.randomUUID())));
     }
 
     @Override
@@ -245,7 +247,7 @@ public class SecurityRepo implements Repository<Exceptionevent> {
                     h.setExpiresatatime(t);
                 }
             } catch (NoResultException n) {
-                em.persist(new Honeypot(null, localNow.plusSeconds(honeypotFirstBlockTime), ip, localNow));
+                em.persist(new Honeypot(null, localNow.plusSeconds(honeypotFirstBlockTime), ip, localNow, UUID.randomUUID()));
                 created = true;
             }
             em.getTransaction().commit();

@@ -20,8 +20,7 @@ import org.w3c.dom.Element;
  * AbstractRssFeed is a mostly complete implementation (includes DOM), and
  * recommend usage of @Feed for your implementations.
  *
- * @author: Andrew Bailey (praetor_alpha) praetoralpha 'at' gmail.com
- * @see libWebsiteTools.rss.entity.AbstractRssFeed
+ * @author alpha
  * @see libWebsiteTools.rss.RssServlet
  */
 public interface Feed extends Serializable {

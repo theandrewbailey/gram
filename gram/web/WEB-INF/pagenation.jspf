@@ -1,0 +1,14 @@
+<%@ page session="false" %><c:if test="${pagen_first != null}"><nav class="pagenation"><span class="pagen_label">pages:</span>
+<ul>
+<c:if test="${pagen_current > 2}"><g:categorizer category="${articleCategory}" page="${1}"><li class="pagen_newest"><a title="first page" href="${_section_url}"><h:local key="page_nation_newest"/></a></li>
+</g:categorizer></c:if>
+<c:if test="${pagen_current != 1}"><g:categorizer category="${articleCategory}" page="${pagen_current-1}"><li class="pagen_newer"><a title="previous page" href="${_section_url}"><h:local key="page_nation_newer"/></a></li>
+</g:categorizer></c:if>
+<c:forEach begin="${pagen_first}" end="${pagen_last}" var="num"><li class="pagen_number">
+    <c:choose><c:when test="${num eq pagen_current}"><span class="current">${num}</span></c:when>
+    <c:otherwise><g:categorizer category="${articleCategory}" page="${num}"><a class="pagen" href="${_section_url}">${num}</a></g:categorizer></c:otherwise></c:choose>
+</li></c:forEach>
+<c:if test="${pagen_current != pagen_count}"><g:categorizer category="${articleCategory}" page="${pagen_current+1}"><li class="pagen_older"><a title="next page" href="${_section_url}"><h:local key="page_nation_older"/></a></li>
+</g:categorizer></c:if>
+<c:if test="${pagen_current < pagen_count-1}"><g:categorizer category="${articleCategory}" page="${pagen_count}"><li class="pagen_oldest"><a title="last page" href="${_section_url}"><h:local key="page_nation_oldest"/></a></li>
+</g:categorizer></c:if></ul></nav></c:if>

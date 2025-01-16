@@ -12,9 +12,10 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import libWebsiteTools.AllBeanAccess;
 import libWebsiteTools.BaseServlet;
 import org.w3c.dom.Document;
+import libWebsiteTools.Landlord;
+import libWebsiteTools.Tenant;
 
 @WebServlet(name = "Sitemap", description = "Provides a sitemap xml", urlPatterns = {"/sitemap.xml"})
 public class SitemapServlet extends BaseServlet {
@@ -29,8 +30,8 @@ public class SitemapServlet extends BaseServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        AllBeanAccess beans = (AllBeanAccess) request.getAttribute(AllBeanAccess.class.getCanonicalName());
-        SiteMapper mapper = beans.getMapper();
+        Tenant ten = Landlord.getTenant(request);
+        SiteMapper mapper = ten.getMapper();
         Document siteMap = mapper.getSiteMap();
         DOMSource DOMsrc = new DOMSource(siteMap);
         StringWriter write = new StringWriter(1000000);

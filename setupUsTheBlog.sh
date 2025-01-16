@@ -11,24 +11,16 @@ readonly u="\033[4m" # underlined text
 readonly databaseHost="localhost"
 readonly databasePort="5432"
 
-readonly postgresJdbcJarVersion="42.7.4"
+readonly postgresJdbcJarVersion="42.7.5"
 readonly postgresJdbcJar="postgresql-${postgresJdbcJarVersion}.jar"
 
 readonly payaraVersion="6.2023.3"
 readonly payaraDir="payara6"
 readonly payaraZip="payara-web-${payaraVersion}.zip"
 
-readonly brOs="linux"
-readonly brArch="$(arch)"
-readonly brVersion="1.17.0"
-
-readonly zstdOs="linux"
-readonly zstdArch="amd64"
-readonly zstdVersion="1.5.6-6"
-readonly zstdJar="zstd-jni-${zstdVersion}-${zstdOs}_${zstdArch}.jar"
-
-readonly toiletDirectory="$HOME/toilet"
+readonly gramDirectory="$HOME/gram"
 readonly currentDir=$(pwd)
+readonly threads=$(nproc)
 
 function errorAndExit(){ # message, error code
 	echo -e "$r$1$n" >&2
@@ -45,39 +37,27 @@ function initializeVars(){
 	declare -g development=False
 	declare -g skipDatabase=False
 	declare -g hostname="$(hostname -I | cut -d' ' -f1)"
-	if [[ -d "$HOME/$payaraDir/glassfish/domains/" ]]; then
-		while [[ true ]]; do
-			declare -g portBase=$(($(shuf -i 100-654 -n 1)*100))
-			declare -g payaraDomain="toiletPayara-$portBase"
-			if [[ ! -d "$HOME/$payaraDir/glassfish/domains/$payaraDomain" ]]; then
-				break
-			fi
-		done
-	else
-		declare -g portBase=$(($(shuf -i 100-654 -n 1)*100))
-		declare -g payaraDomain="toiletPayara-$portBase"
-	fi
 }
 initializeVars
 
-while getopts 'hdsr:l:n:p:b:' opt; do case "$opt" in
+while getopts 'hvsr:l:n:p:b:a:' opt; do case "$opt" in
 h)
 	initializeVars # reset defaults to clear any argument changes
 	columns=$(tput cols)
 	echo -e "${b}NAME$n
-	setupUsTheBlog.sh - Setup an instance of Toilet Blog Engine with Postgres and Payara.
+	setupUsTheBlog.sh - Setup an instance of Gram Blog Engine with Postgres and Payara.
 
 ${b}SYNOPSIS$n
 	setupUsTheBlog.sh [options...]
 
 ${b}DESCRIPTION$n
-	Run this script from the directory where the compiled toilet.war is. This script downloads everything else needed to set up an instance of Toilet with Postgres and Payara. It also builds zopfli and brotli (if not available) and puts them on path to use.
+	Run this script from the directory where the compiled gram.war is. This script downloads everything else needed to set up an instance of Gram with Postgres and Payara. It also builds zopfli and brotli (if not available) and puts them on path to use.
 
 ${b}OPTIONS$n
 	$b-h$n
 		Show this and exit.
 
-	$b-d$n
+	$b-v$n
 		Set up server in development mode. This will not deploy code.
 
 	$b-s$n
@@ -89,14 +69,17 @@ ${b}OPTIONS$n
 	$b-l$n ${i}string$n
 		Postgres database password for role.
 
-	$b-n$n ${i}string$n
-		Payara domain name.
-
 	$b-p$n ${i}string$n
 		Payara master domain password.
 
+	$b-n$n ${i}string$n
+		Payara domain name. Must be specified with ${i}-b$n to be valid.
+
 	$b-b$n ${i}integer$n
-		Base port for Payara domain.
+		Base port for Payara domain. Must be specified with ${i}-n$n to be valid.
+
+	$b-a$n ${i}string$n
+		Create an additional blog on the given domain name. This must be run in a separate command after initial setup.
 
 ${b}EXIT STATUS$n
 	0	if everything happened as expected according to defaults and arguments
@@ -107,11 +90,6 @@ ${b}ENVIRONMENT$n
 		psql
 		shuf
 		unzip
-
-	To build zopfli and brotli:
-		git
-		gcc
-		cmake
 
 ${b}EXAMPLES$n
 
@@ -124,19 +102,21 @@ ${b}CAVEATS$n
 	exit 0
 ;; s)
 	skipDatabase=True
-;; d)
+;; v)
 	development=True
 ;; r)
 	databaseRole="$OPTARG"
 ;; l)
 	databasePass="$OPTARG"
 ;; n)
-	payaraDomain="$OPTARG"
+	declare -g payaraDomain="$OPTARG"
 ;; p)
 	payaraPass="$OPTARG"
 ;; b)
 	validateIntegerOrExit "$OPTARG" "-b"
-	portBase="$OPTARG"
+	declare -g portBase="$OPTARG"
+;; a)
+	declare -g additionalDomain="$OPTARG"
 ;; \?)
 	errorAndExit "Bad option: $opt" 64
 ;; esac done
@@ -158,6 +138,25 @@ function checkArgsEnv(){
 		if [[ -z "$databaseRole" ]] || [[ -z "$databasePass" ]]; then
 			errorAndExit "If you're skipping database setup, database role and password must be provided." 1
 		fi
+		if [[ -n "$additionalDomain" ]]; then
+			errorAndExit "You can't skip database setup when you're trying to setup another database. Go back to logic school." 1
+		fi
+	fi
+	if [[ -n "$portBase" ]] || [[ -n "$payaraDomain" ]]; then
+	if [[ -d "$HOME/$payaraDir/glassfish/domains/" ]]; then
+		while [[ true ]]; do
+			declare -g portBase=$(($(shuf -i 100-654 -n 1)*100))
+			declare -g payaraDomain="gramPayara-$portBase"
+			if [[ ! -d "$HOME/$payaraDir/glassfish/domains/$payaraDomain" ]]; then
+				break
+			fi
+		done
+	fi fi
+	if [[ -z "$portBase" ]]; then
+		declare -g portBase=$(($(shuf -i 100-654 -n 1)*100))
+	fi
+	if [[ -z "$payaraDomain" ]]; then
+		declare -g payaraDomain="gramPayara-$portBase"
 	fi
 }
 checkArgsEnv
@@ -173,8 +172,15 @@ function download(){ # https://download, directory
 }
 
 function downloadLibraries(){
-	local cmv="0.23.0" # commonmark version
-	slfv="2.0.16" # slf4j version
+	local cmv="0.24.0" # commonmark version
+	local slfv="2.0.16" # slf4j version
+	local brOs="linux"
+	local brArch="$(arch)"
+	local brVersion="1.18.0"
+	local zstdOs="linux"
+	local zstdArch="amd64"
+	local zstdVersion="1.5.6-9"
+
 	local -a libraries=("https://jdbc.postgresql.org/download/$postgresJdbcJar" 
 "https://nexus.payara.fish/repository/payara-community/fish/payara/distributions/payara-web/${payaraVersion}/${payaraZip}")
 	if [ $development = True ] ; then
@@ -193,13 +199,13 @@ function downloadLibraries(){
 "https://repo1.maven.org/maven2/org/commonmark/commonmark-ext-image-attributes/${cmv}/commonmark-ext-image-attributes-${cmv}.jar" 
 "https://repo1.maven.org/maven2/org/commonmark/commonmark-ext-task-list-items/${cmv}/commonmark-ext-task-list-items-${cmv}.jar" 
 "https://repo1.maven.org/maven2/org/commonmark/commonmark-ext-yaml-front-matter/${cmv}/commonmark-ext-yaml-front-matter-${cmv}.jar" 
-"https://repo1.maven.org/maven2/com/github/luben/zstd-jni/${zstdVersion}/${zstdJar}" 
+"https://repo1.maven.org/maven2/com/github/luben/zstd-jni/${zstdVersion}/zstd-jni-${zstdVersion}-${zstdOs}_${zstdArch}.jar" 
 "https://repo1.maven.org/maven2/com/aayushatharva/brotli4j/brotli4j/${brVersion}/brotli4j-${brVersion}.jar" 
 "https://repo1.maven.org/maven2/com/aayushatharva/brotli4j/service/${brVersion}/service-${brVersion}.jar" 
 "https://repo1.maven.org/maven2/com/aayushatharva/brotli4j/native-${brOs}-${brArch}/${brVersion}/native-${brOs}-${brArch}-${brVersion}.jar")
 	fi
 	for lib in "${libraries[@]}"; do
-		download "$lib" "$toiletDirectory"
+		download "$lib" "$gramDirectory"
 	done
 }
 
@@ -212,7 +218,7 @@ function setupDb(){
 		return
 	fi
 	if [[ -z "$databaseRole" ]]; then
-		databaseRole="toiletPostgres-$portBase"
+		databaseRole="gramPostgres-$portBase"
 	fi
 	if [[ -z "$databasePass" ]]; then
 		createPassword 20
@@ -223,19 +229,18 @@ function setupDb(){
 CREATE DATABASE \"$databaseRole\" WITH OWNER \"$databaseRole\" ENCODING UTF8;
 \c \"$databaseRole\"
 CREATE EXTENSION pg_trgm;">postgresSetup${portBase}.sql
-	echo "Enter your sudo password to create Postgres user and database."
+	echo "Enter your sudo password to create Postgres user and database: $databaseRole"
 	sudo -u postgres psql -f "postgresSetup${portBase}.sql"
 	rm "postgresSetup${portBase}.sql"
 }
 
 function setupPayara(){
-	readonly threads=$(nproc)
-	cd "$toiletDirectory"
+	cd "$gramDirectory"
 
 	# unzip payara
 	if [[ ! -d "$HOME/$payaraDir" ]]; then
 		cd "$HOME"
-		unzip -qq "$toiletDirectory/$payaraZip"
+		unzip -qq "$gramDirectory/$payaraZip"
 		if [[ -d "$HOME/$payaraDir/glassfish/domains/domain1" ]]; then
 			rm -rf "$HOME/$payaraDir/glassfish/domains/domain1"
 		fi
@@ -243,11 +248,11 @@ function setupPayara(){
 
 	# copy postgres JDBC driver JAR into payara
 	cd "$HOME/$payaraDir"
-	if [[ ! -f "$toiletDirectory/$postgresJdbcJar" ]]; then
+	if [[ ! -f "$gramDirectory/$postgresJdbcJar" ]]; then
 		errorAndExit "Can't find ${postgresJdbcJar}" 1
 	fi
 	if [[ ! -f "glassfish/lib/$postgresJdbcJar" ]]; then
-		cp --reflink=auto "$toiletDirectory/$postgresJdbcJar" "glassfish/lib/$postgresJdbcJar"
+		cp --reflink=auto "$gramDirectory/$postgresJdbcJar" "glassfish/lib/$postgresJdbcJar"
 	fi
 	if [[ ! -f "glassfish/lib/jsr107-repackaged.jar" ]]; then
 		cp --reflink=auto "glassfish/modules/jsr107-repackaged.jar" "glassfish/lib/jsr107-repackaged.jar"
@@ -291,54 +296,93 @@ AS_ADMIN_MASTERPASSWORD=$payaraPass
 		# set thread pools, timeouts, upload limits, ciphers, disable server, x-powered-by, x-frame-options headers
 		./asadmin set resources.managed-executor-service.concurrent/__defaultManagedExecutorService.maximum-pool-size=$threads resources.managed-executor-service.concurrent/__defaultManagedExecutorService.core-pool-size=$threads configs.config.server-config.thread-pools.thread-pool.http-thread-pool.min-thread-pool-size=$threads configs.config.server-config.thread-pools.thread-pool.http-thread-pool.max-thread-pool-size=$threads configs.config.server-config.thread-pools.thread-pool.admin-thread-pool.min-thread-pool-size=2 configs.config.server-config.thread-pools.thread-pool.admin-thread-pool.max-thread-pool-size=2 configs.config.server-config.network-config.transports.transport.tcp.acceptor-threads=2  configs.config.server-config.network-config.transports.transport.tcp.read-timeout-millis=10000 configs.config.server-config.network-config.transports.transport.tcp.write-timeout-millis=10000 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.connection-upload-timeout-millis=30000 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.request-timeout-seconds=30 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.timeout-seconds=30 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.upload-timeout-enabled=true configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.connection-upload-timeout-millis=30000 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.request-timeout-seconds=30 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.timeout-seconds=30 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.upload-timeout-enabled=true configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.max-form-post-size-bytes=999999999 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.max-post-size-bytes=999999999 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.max-form-post-size-bytes=999999999 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.max-post-size-bytes=999999999 configs.config.server-config.network-config.protocols.protocol.http-listener-2.ssl.ssl3-tls-ciphers=+TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,+TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,+TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,+TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.xpowered-by=false configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.xpowered-by=false configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.server-header=false configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.server-header=false configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.xframe-options=false configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.xframe-options=false
 		# create database connection info
-		./asadmin create-jdbc-connection-pool --datasourceclassname=org.postgresql.ds.PGSimpleDataSource --steadypoolsize=$threads --maxpoolsize=$threads --maxwait=0 --ping --description "Connection to Postgres database $databaseRole" --property serverName=${databaseHost}:port=${databasePort}:user=${databaseRole}:password=${databasePass} "toilet/default"
-		./asadmin create-jdbc-resource --connectionpoolid "toilet/default" --description "Connection Pool to Postgres database $databaseRole" "java/toilet/default"
+		setupDatabaseConnection "default" "$databaseHost" "$databasePort" "$databaseRole" "$databasePass"
 		# restart DAS to effect all changes (like heap size)
-		./asadmin restart-domain $payaraDomain
+		if [ $development = False ] ; then
+			./asadmin restart-domain $payaraDomain
+		else
+			./asadmin stop-domain $payaraDomain
+		fi
 	fi
 }
 
-function setupToilet(){
+function setupDatabaseConnection(){ # jdbcName, dbHost, dbPort, dbUser, dbPass
+	./asadmin create-jdbc-connection-pool --datasourceclassname=org.postgresql.ds.PGSimpleDataSource --steadypoolsize=$threads --maxpoolsize=$threads --maxwait=0 --ping --description "Connection to Postgres database $4" --property serverName=${2}:port=${3}:user=${4}:password=${5} "gram/$1"
+	./asadmin create-jdbc-resource --connectionpoolid "gram/$1" --description "Connection Pool to Postgres database $4 for domain $1" "java/gram/$1"
+}
+
+function setupGram(){
 	if [ $development = False ]; then
-		if [[ ! -f "$currentDir/toilet.war" ]]; then
-			echo "Can't deploy because toilet.war was not found."
+		cd "$HOME/$payaraDir/glassfish/bin"
+		if [[ ! -f "$currentDir/gram.war" ]]; then
+			echo "Can't deploy because gram.war was not found."
 		fi
 		# deploy war
-		./asadmin deploy "$currentDir/toilet.war"
+		./asadmin deploy "$currentDir/gram.war"
 		# set default app
-		./asadmin set configs.config.server-config.http-service.virtual-server.server.default-web-module=toilet
+		./asadmin set configs.config.server-config.http-service.virtual-server.server.default-web-module=gram
 
 		# visit homepage to prime blog
 		wget --no-check-certificate -O - "https://$hostname:$((portBase+81))" > /dev/null
 
 		# set backup directory
 		export PGPASSWORD="$databasePass"
-		psql -h "localhost" -U "$databaseRole" -d "$databaseRole" -c "INSERT INTO tools.localization (localecode,key,value) VALUES ('', 'site_backup', '$toiletDirectory');"
+		psql -h "localhost" -U "$databaseRole" -d "$databaseRole" -c "INSERT INTO tools.localization (localecode,key,value) VALUES ('', 'site_backup', '$gramDirectory');"
 	fi
 }
 
-downloadLibraries
-setupDb
-setupPayara
-setupToilet
+if [[ -z "$additionalDomain" ]]; then
+	downloadLibraries
+	setupDb
+	setupPayara
 
-if [ $development = False ] ; then
-	summary="Postgres username: $databaseRole
+	if [ $development = False ] ; then
+		summary="Postgres username: $databaseRole
 Postgres password: $databasePass
 Payara username: $AS_ADMIN_USER
 Payara password: $payaraPass
 Payara admin console is at https://$hostname:$AS_ADMIN_PORT
 Blog homepage is at https://$hostname:$((portBase+81))"
-else
-	summary="Postgres username: $databaseRole
+	else
+		summary="Postgres username: $databaseRole
 Postgres password: $databasePass
 Payara username: $AS_ADMIN_USER
 Payara password: $payaraPass
 Payara admin console is at http://$hostname:$AS_ADMIN_PORT"
+	fi
+
+	cd "$gramDirectory"
+	echo "$summary">>passwords.txt
+	setupGram
+else
+	export AS_ADMIN_HOST="localhost"
+	export AS_ADMIN_PASSWORDFILE="$HOME/$payaraDir/passwords.txt"
+	if [[ -z "$payaraDomain" ]]; then
+		cd "$HOME/$payaraDir/glassfish/domains"
+		domains=(*)
+		payaraDomain="${domains[0]}"
+		portBase=${payaraDomain#*-}
+	fi
+	export AS_ADMIN_USER="$payaraDomain"
+	if [[ -z "$portBase" ]]; then
+		errorAndExit "Can't determine base port for Payara domain." 1
+	fi
+	export AS_ADMIN_PORT=$((portBase+48))
+	databaseRole="gramPostgres-$(shuf -i 100000000-999999999 -n 1)"
+	setupDb
+	cd "$HOME/$payaraDir/glassfish/bin"
+	domainStatus=$(./asadmin list-domains)
+	if [[ $domainStatus == *"$payaraDomain not running"* ]]; then
+		./asadmin start-domain "$payaraDomain"
+	fi
+	setupDatabaseConnection "$additionalDomain" "$databaseHost" "$databasePort" "$databaseRole" "$databasePass"
+	summary="Additional database created for a blog on domain $additionalDomain
+Postgres username: $databaseRole
+Postgres password: $databasePass"
+	cd "$gramDirectory"
+	echo "$summary">>passwords.txt
 fi
 
-cd "$toiletDirectory"
-echo "$summary">passwords.txt
 echo -e "
 ${r}SAVE THESE SOMEWHERE! These will be important later!$n"
 echo "$summary"

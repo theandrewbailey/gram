@@ -17,7 +17,9 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import libWebsiteTools.security.HashUtil;
+import libWebsiteTools.security.SecurityRepo;
 import libWebsiteTools.tag.AbstractInput;
+import libWebsiteTools.Tenant;
 
 /**
  *
@@ -62,16 +64,28 @@ public class FileUtil {
         return files;
     }
 
+    public static Fileupload loadFile(Tenant ten, String filename, String type, InputStream filedata) throws IOException {
+        Fileupload f = null;
+        if (null == ten.getFile().get(filename)) {
+            f = new Fileupload(filename, OffsetDateTime.now());
+            f.setFiledata(FileUtil.getByteArray(filedata));
+            f.setEtag(HashUtil.getSHA256Hash(f.getFiledata()));
+            f.setMimetype(type);
+            f.setUrl(BaseFileServlet.getImmutableURL(ten.getImeadValue(SecurityRepo.BASE_URL), f));
+        }
+        return f;
+    }
+
     public static byte[] runProcess(String command, byte[] stdin, int expectedOutputSize) throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream(expectedOutputSize);
-                ByteArrayOutputStream error = new ByteArrayOutputStream(4000);
+        ByteArrayOutputStream error = new ByteArrayOutputStream(4000);
         Process encoder = Runtime.getRuntime().exec(command);
         if (null != stdin) {
             try (OutputStream out = encoder.getOutputStream()) {
                 out.write(stdin);
             }
         }
-        LOG.log(Level.INFO, "running command: {0}", command);
+        LOG.log(Level.FINE, "running command: {0}", command);
         while (true) {
             try {
                 try (InputStream input = encoder.getInputStream()) {

@@ -12,10 +12,11 @@ import jakarta.servlet.jsp.JspException;
 import jakarta.servlet.jsp.JspWriter;
 import jakarta.servlet.jsp.PageContext;
 import jakarta.servlet.jsp.tagext.SimpleTagSupport;
-import libWebsiteTools.AllBeanAccess;
 import libWebsiteTools.security.SecurityRepo;
 import libWebsiteTools.rss.Feed;
 import libWebsiteTools.rss.DynamicFeed;
+import libWebsiteTools.Landlord;
+import libWebsiteTools.Tenant;
 
 /**
  * puts <meta> and <link> tags on pages.
@@ -88,10 +89,10 @@ public class HtmlMeta extends SimpleTagSupport {
     public void doTag() throws JspException, IOException {
         JspWriter output = getJspContext().getOut();
         HttpServletRequest req = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest());
-        AllBeanAccess beans = (AllBeanAccess) req.getAttribute(AllBeanAccess.class.getCanonicalName());
+        Tenant ten = Landlord.getTenant(req);
         output.println(String.format("<meta charset=\"%s\"/>", ((PageContext) getJspContext()).getResponse().getCharacterEncoding()));
         Object baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepo.BASE_URL);
-        if (null != baseURL) {
+        if (null != baseURL && !baseURL.toString().isEmpty()) {
             output.println(String.format("<base href=\"%s\"/>", baseURL.toString()));
         }
         try {
@@ -112,11 +113,11 @@ public class HtmlMeta extends SimpleTagSupport {
             }
         } catch (NullPointerException n) {
         }
-        for (Feed feed : beans.getFeeds().getAll(null)) {
+        for (Feed feed : ten.getFeeds().getAll(null)) {
             if (feed instanceof DynamicFeed) {
                 for (Map.Entry<String, String> entry : ((DynamicFeed) feed).getFeedURLs(req).entrySet()) {
                     output.println(String.format("<link rel=\"alternate\" href=\"%srss/%s\" title=\"%s\" type=\"%s\">",
-                            beans.getImeadValue(SecurityRepo.BASE_URL), entry.getKey(), entry.getValue(), feed.getMimeType().toString()));
+                            ten.getImeadValue(SecurityRepo.BASE_URL), entry.getKey(), entry.getValue(), feed.getMimeType().toString()));
                 }
             }
         }

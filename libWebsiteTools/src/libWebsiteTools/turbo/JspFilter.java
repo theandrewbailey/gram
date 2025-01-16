@@ -13,7 +13,6 @@ import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.core.HttpHeaders;
-import libWebsiteTools.AllBeanAccess;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.imead.LocalizedStringNotFoundException;
 import libWebsiteTools.rss.FeedBucket;
@@ -21,7 +20,8 @@ import libWebsiteTools.security.SecurityRepo;
 import libWebsiteTools.tag.HtmlMeta;
 import libWebsiteTools.tag.HtmlScript;
 import libWebsiteTools.tag.HtmlTime;
-import libWebsiteTools.tag.StyleSheet;
+import libWebsiteTools.Landlord;
+import libWebsiteTools.Tenant;
 
 /**
  *
@@ -41,29 +41,29 @@ public class JspFilter implements Filter {
         HttpHeaders.ACCEPT_ENCODING, HttpHeaders.ACCEPT_LANGUAGE});
 //    private static final String CSP_TEMPLATE = "default-src 'self'; img-src 'self' data:; font-src data:; object-src 'none'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'; upgrade-insecure-requests; script-src %s; style-src %s; report-uri %sreport; report-to cspend;";
     private static final String CSP_TEMPLATE = "default-src 'self'; img-src 'self' data:; font-src data:; object-src 'none'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'; upgrade-insecure-requests; script-src %s; style-src %s; report-uri %sreport;";
-    private static final String REPORTING_TEMPLATE = "cspend=\"%sreport\"";
+//    private static final String REPORTING_TEMPLATE = "cspend=\"%sreport\"";
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletRequest req = ((HttpServletRequest) request);
         HttpServletResponse res = (HttpServletResponse) response;
-        AllBeanAccess beans = (AllBeanAccess) req.getAttribute(AllBeanAccess.class.getCanonicalName());
-        Locale primaryLocale = Local.resolveLocales(beans.getImead(), req).get(0);
+        Tenant ten = Landlord.getTenant(req);
+        Locale primaryLocale = Local.resolveLocales(ten.getImead(), req).get(0);
         if (Locale.ROOT.equals(primaryLocale)) {
             primaryLocale = Locale.getDefault();
         }
         request.setAttribute(PRIMARY_LOCALE_PARAM, primaryLocale);
-        HtmlMeta.addNameTag(req, "viewport", beans.getImeadValue("site_viewport"));
-        HtmlMeta.addLink(req, "shortcut icon", beans.getImeadValue("site_favicon"));
+        HtmlMeta.addNameTag(req, "viewport", ten.getImeadValue("site_viewport"));
+        HtmlMeta.addLink(req, "shortcut icon", ten.getImeadValue("site_favicon"));
         try {
-            String icon = beans.getImeadValue("site_appleTouchIcon");
+            String icon = ten.getImeadValue("site_appleTouchIcon");
             if (null != icon) {
-                HtmlMeta.addLink(req, "apple-touch-icon", beans.getFile().getFileMetadata(Arrays.asList(icon)).get(0).getUrl());
+                HtmlMeta.addLink(req, "apple-touch-icon", ten.getFile().getFileMetadata(Arrays.asList(icon)).get(0).getUrl());
             }
         } catch (Exception x) {
         }
         try {
-            String theme = beans.getImeadValue("site_themeColor");
+            String theme = ten.getImeadValue("site_themeColor");
             if (null != theme) {
                 HtmlMeta.addNameTag(req, "theme-color", theme);
             }
@@ -72,38 +72,38 @@ public class JspFilter implements Filter {
         res.setHeader("Accept-Ranges", "none");
         res.setHeader(HttpHeaders.VARY, VARY_HEADER);
         res.setHeader(HttpHeaders.CONTENT_LANGUAGE, primaryLocale.toLanguageTag());
-        if (null != beans.getImeadValue(FEATURE_POLICY)) {
-            res.setHeader("Feature-Policy", beans.getImeadValue(FEATURE_POLICY));
+        if (null != ten.getImeadValue(FEATURE_POLICY)) {
+            res.setHeader("Feature-Policy", ten.getImeadValue(FEATURE_POLICY));
         }
-        if (null != beans.getImeadValue(PERMISSIONS_POLICY)) {
-            res.setHeader("Permissions-Policy", beans.getImeadValue(PERMISSIONS_POLICY));
+        if (null != ten.getImeadValue(PERMISSIONS_POLICY)) {
+            res.setHeader("Permissions-Policy", ten.getImeadValue(PERMISSIONS_POLICY));
         }
-        if (null != beans.getImeadValue(REFERRER_POLICY)) {
-            res.setHeader("Referrer-Policy", beans.getImeadValue(REFERRER_POLICY));
+        if (null != ten.getImeadValue(REFERRER_POLICY)) {
+            res.setHeader("Referrer-Policy", ten.getImeadValue(REFERRER_POLICY));
         }
         // unnecessary for modern browsers
         //res.setHeader("X-Frame-Options", "SAMEORIGIN");
         //res.setHeader("X-Xss-Protection", "1; mode=block");
         if (null == request.getAttribute(HtmlTime.FORMAT_VAR)) {
             try {
-                request.setAttribute(HtmlTime.FORMAT_VAR, beans.getImead().getLocal(HtmlTime.SITE_DATEFORMAT_LONG, Local.resolveLocales(beans.getImead(), (HttpServletRequest) request)));
+                request.setAttribute(HtmlTime.FORMAT_VAR, ten.getImead().getLocal(HtmlTime.SITE_DATEFORMAT_LONG, Local.resolveLocales(ten.getImead(), (HttpServletRequest) request)));
             } catch (LocalizedStringNotFoundException lx) {
                 request.setAttribute(HtmlTime.FORMAT_VAR, FeedBucket.TIME_FORMAT);
             }
         }
-        PageCache cache = beans.getGlobalCache().getCache(req, res);
+        PageCache cache = ten.getGlobalCache().getCache(req, res);
         CachedPage page = capturePage(chain, req, res);
         if (null != cache) {
-            cache.put(PageCache.getLookup(beans.getImead(), req), page);
+            cache.put(PageCache.getLookup(ten.getImead(), req), page);
         }
         res.flushBuffer();
     }
 
     private CachedPage capturePage(FilterChain chain, HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
-        AllBeanAccess beans = (AllBeanAccess) req.getAttribute(AllBeanAccess.class.getCanonicalName());
+        Tenant ten = Landlord.getTenant(req);
         String etag = res.getHeader(HttpHeaders.ETAG);
         if (null == etag) {
-            etag = PageCache.getETag(beans.getImead(), req);
+            etag = PageCache.getETag(ten.getImead(), req);
             res.setHeader(HttpHeaders.ETAG, etag);
         }
         RequestTimer.getFrontTime(req);
@@ -120,15 +120,15 @@ public class JspFilter implements Filter {
                 scriptHashes = "'none'";
             }
 //            String scriptHashes = "'self'";
-            String csp = String.format(CSP_TEMPLATE, scriptHashes, stylesheetHashes, beans.getImeadValue(SecurityRepo.BASE_URL));
+            String csp = String.format(CSP_TEMPLATE, scriptHashes, stylesheetHashes, ten.getImeadValue(SecurityRepo.BASE_URL));
             res.setHeader(CONTENT_SECURITY_POLICY, csp);
-//            res.setHeader(REPORTING_ENDPOINTS, String.format(REPORTING_TEMPLATE, beans.getImeadValue(SecurityRepo.BASE_URL)));
+//            res.setHeader(REPORTING_ENDPOINTS, String.format(REPORTING_TEMPLATE, ten.getImeadValue(SecurityRepo.BASE_URL)));
             wrap.flushBuffer();
             byte[] responseBytes = wrap.getOutputStream().getResult();
             res.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(req, Boolean.FALSE));
             res.setContentLength(responseBytes.length);
             wrap.getOutputStream().setResult(res, responseBytes);
-            return new CachedPage(res, responseBytes, PageCache.getLookup(beans.getImead(), req));
+            return new CachedPage(res, responseBytes, PageCache.getLookup(ten.getImead(), req));
         }
     }
 }

@@ -8,14 +8,14 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 /**
- * represents a channel or subsection of an Rss feed shouldn't need to extend
- * unless you are adding a namespace to the feed
+ * Represents a channel or subsection of an Rss feed. You shouldn't need to
+ * extend unless you are adding a namespace to the feed
  *
- * @author: Andrew Bailey (praetor_alpha) praetoralpha 'at' gmail.com
+ * @author alpha
  */
 public class RssChannel implements Serializable, Publishable {
 
-    public final String generator = "praetor_alpha's libRssServlet v2.0";
+    public final String generator = "Gram/libWebsiteTools v11.0";
     protected final String docs = "http://cyber.law.harvard.edu/tech/rss";
     private final String[] namesOfDays = new String[]{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
