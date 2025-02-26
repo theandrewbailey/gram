@@ -30,7 +30,7 @@ import libWebsiteTools.UUIDConverter;
     @NamedQuery(name = "Fileupload.count", query = "SELECT COUNT(f) FROM Fileupload f"),
     @NamedQuery(name = "Filemetadata.findAll", query = "SELECT" + Fileupload.METADATA_CONSTRUCTOR + "FROM Fileupload f ORDER BY f.filename"),
     @NamedQuery(name = "Filemetadata.findByFilenames", query = "SELECT" + Fileupload.METADATA_CONSTRUCTOR + "FROM Fileupload f WHERE f.filename in :filenames ORDER BY f.filename"),
-    @NamedQuery(name = "Filemetadata.searchByFilenames", query = "SELECT" + Fileupload.METADATA_CONSTRUCTOR + "FROM Fileupload f WHERE f.filename like CONCAT('%',:term,'%') ORDER BY f.filename")})
+    @NamedQuery(name = "Filemetadata.search", query = "SELECT" + Fileupload.METADATA_CONSTRUCTOR + "FROM Fileupload f WHERE f.filename like CONCAT('%',:term,'%') OR f.url like CONCAT('%',:term,'%') ORDER BY f.filename")})
 public class Fileupload implements Serializable {
 
     public static final String METADATA_CONSTRUCTOR = " new libWebsiteTools.file.Fileupload(f.filename,f.atime,f.etag,f.mimetype,f.url,f.datasize,f.gzipsize,f.brsize,f.zstdsize,f.uuid) ";

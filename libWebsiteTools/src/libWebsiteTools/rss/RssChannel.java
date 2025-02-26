@@ -15,7 +15,7 @@ import org.w3c.dom.Element;
  */
 public class RssChannel implements Serializable, Publishable {
 
-    public static final String GENERATOR = "Gram/libWebsiteTools v11.0";
+    public static final String GENERATOR = "Gram/libWebsiteTools v11.1";
     public static final String COUNT_ATTRIBUTE = "itemCount";
     protected final String docs = "http://cyber.law.harvard.edu/tech/rss";
     private final String[] namesOfDays = new String[]{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
@@ -49,7 +49,7 @@ public class RssChannel implements Serializable, Publishable {
 
     private OffsetDateTime pubDate;
     private OffsetDateTime lastBuildDate;
-    private Integer ttl = 720;            // semi-daily
+    private Integer ttl = 1400;         // about daily
     private boolean[] skipHours = new boolean[24];
     private boolean[] skipDays = new boolean[7];
     private int limit = 0;

@@ -111,7 +111,7 @@ public class AdminImeadServlet extends AdminServlet {
                             && !HashUtil.ARGON2_ENCODING_PATTERN.matcher(l.getValue()).matches()) {
                         if (null != previousValue && !HashUtil.ARGON2_ENCODING_PATTERN.matcher(previousValue).matches() && previousValue.equals(l.getValue())) {
                             errors.add(l.getLocalizationPK());
-                            request.setAttribute(CoronerServlet.ERROR_MESSAGE_PARAM, ten.getImead().getLocal("error_adminadmin", Local.resolveLocales(ten.getImead(), request)));
+                            request.setAttribute(GramServlet.ERROR_MESSAGE_PARAM, ten.getImead().getLocal("error_adminadmin", Local.resolveLocales(ten.getImead(), request)));
                         }
                         l.setValue(HashUtil.getArgon2Hash(argon2_parameters, l.getValue()));
                     }

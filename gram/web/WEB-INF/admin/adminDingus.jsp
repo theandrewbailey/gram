@@ -7,5 +7,4 @@
 </form>
 <article><p>&nbsp;</p></article>
 <iframe name="articlePreview" class="resizeable"></iframe>
-</main>
-<%@ include file="/WEB-INF/foot.jspf" %>
+</main><h:javascript/></body></html>

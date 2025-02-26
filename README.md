@@ -72,7 +72,8 @@ Security is important!
 		* site_healthCommands
 			* These programs are called on the health check page (see `admin_health`), with their outputs shown.
 	1. Click Save and start blogging!
-		* Tip: upload all your images first before writing your post, and write the post in a text editor of your choice, then copy+paste.
+		* WARNING: sessions expire after 1 hour, and you can't save unpublished blog posts. Instead, write your magnum opus blog post in some other text editor of your choice, then copy+paste the text into Gram.
+		* Tip: upload all your images first before publishing your post.
 1. To start Payara again after a reboot, run `~/payara6/glassfish/bin/asadmin start-domain gramPayara-xxxxx` where `gramPayara-xxxxx` is the Payara username that the script gave you. (You kept that info, right? I told you it's important!)
 1. To setup another blog on the same server, an additional database must be created and registered as a JDBC resource (named "java/gram/`domain.name`") in Payara.
 	1. Run `setupUsTheBlog.sh -a domain.name`

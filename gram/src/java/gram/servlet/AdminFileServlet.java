@@ -42,12 +42,19 @@ public class AdminFileServlet extends AdminServlet {
         GramTenant ten = GramLandlord.getTenant(request);
         String del = AbstractInput.getParameter(request, "action");
         if (del != null) {
-            Fileupload deleted = ten.getFile().delete(del.split("\\|")[1]);
-            String[] split = splitDirectoryAndName(deleted.getFilename());
-            request.setAttribute("opened_dir", split[0]);
-            ten.getFile().evict();
-            ten.getGlobalCache().clear();
+            String filename = del.split("\\|")[1];
+            try {
+                Fileupload toDelete = ten.getFile().search(filename, 1).get(0);
+                Fileupload deleted = ten.getFile().delete(toDelete.getFilename());
+                String[] split = splitDirectoryAndName(deleted.getFilename());
+                request.setAttribute("opened_dir", split[0]);
+            } catch (ArrayIndexOutOfBoundsException d) {
+                request.setAttribute(GramServlet.ERROR_MESSAGE_PARAM, "Can't find file to delete: " + FileServlet.getNameFromURL(filename));
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            }
         }
+        ten.getFile().evict();
+        ten.getGlobalCache().clear();
         showFileList(request, response, ten.getFile().getFileMetadata(null));
     }
 

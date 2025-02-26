@@ -86,10 +86,11 @@ html,body,blockquote,button,div,span,article,section,header,figure,figcaption,fo
   padding: 0.0rem;
 }input,textarea,select,input[type="submit"],button{
   font-family: "Microsoft Sans Serif", sans-serif;
-  resize: none;
   border-width: 2px;
   margin: 0rem 0.2rem 0.2rem 0rem;
   padding:  0.1rem 0.1rem 0.1rem 0.1rem;
+}textarea{
+  resize: vertical;
 }input[type="submit"],button{
   border-style: outset;
   padding:  0.2rem 1.0rem 0.2rem 1.0rem;
@@ -98,7 +99,7 @@ html,body,blockquote,button,div,span,article,section,header,figure,figcaption,fo
   outline-offset: -4px;
 }.commentForm{
   margin: 2.0rem 0.0rem 0.0rem 0.0rem;
-}.commentForm>fieldset>textarea{
+}.commentForm>fieldset>textarea,textarea.articleText{
   width: 100%;
   box-sizing: border-box;
 }.pagenation{

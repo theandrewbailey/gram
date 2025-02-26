@@ -34,6 +34,9 @@ import gram.tag.Categorizer;
 import libWebsiteTools.rss.Feed;
 import libWebsiteTools.rss.DynamicFeed;
 import gram.bean.GramTenant;
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ArticleRss implements DynamicFeed {
@@ -45,16 +48,18 @@ public class ArticleRss implements DynamicFeed {
     public ArticleRss() {
     }
 
-    public Document createFeed(GramTenant ten, Integer numEntries, String catName) {
+    public Document createFeed(GramTenant ten, List<Locale> locales, String catName, Integer numEntries) {
         RssChannel entries = new RssChannel(null == catName
-                ? ten.getImead().getValue(GramServlet.SITE_TITLE)
-                : ten.getImead().getValue(GramServlet.SITE_TITLE) + " - " + catName,
-                ten.getImeadValue(SecurityRepo.BASE_URL), ten.getImead().getValue(GramServlet.TAGLINE));
+                ? ten.getImead().getLocal(GramServlet.SITE_TITLE, locales)
+                : ten.getImead().getLocal(GramServlet.SITE_TITLE, locales) + " - " + catName,
+                ten.getImeadValue(SecurityRepo.BASE_URL), ten.getImead().getLocal(GramServlet.TAGLINE, locales));
         entries.setWebMaster(ten.getImeadValue(Feed.MASTER));
         entries.setManagingEditor(entries.getWebMaster());
         entries.setLanguage(ten.getImeadValue(Feed.LANGUAGE));
         entries.setCopyright(ten.getImeadValue(Feed.COPYRIGHT));
         List<Article> articles = ten.getArts().search(new Section(catName), numEntries);
+        List<Duration> timings = new ArrayList<>(articles.size() + 1);
+        OffsetDateTime lastTime = OffsetDateTime.now();
         for (Article art : articles) {
             String text = art.getPostedhtml();
             GramRssItem i = new GramRssItem(text);
@@ -76,6 +81,12 @@ public class ArticleRss implements DynamicFeed {
             if (art.getComments()) {
                 i.setComments(i.getLink() + "#comments");
             }
+            timings.add(Duration.between(art.getPosted(), lastTime).abs());
+            lastTime = art.getPosted();
+        }
+        if (articles.size() >= Integer.parseInt(ten.getImeadValue(POSTS_PER_PAGE))) {
+            Double average = timings.stream().mapToLong((t) -> t.toMinutes()).average().getAsDouble() * 0.4;
+            entries.setTtl(average.intValue());
         }
         return Feed.refreshFeed(Arrays.asList(entries));
     }
@@ -120,15 +131,15 @@ public class ArticleRss implements DynamicFeed {
     public Feed doHead(HttpServletRequest req, HttpServletResponse res) {
         if (null == req.getAttribute(NAME)) {
             GramTenant ten = GramLandlord.getTenant(req);
+            List<Locale> resolvedLocales = Local.resolveLocales(ten.getImead(), req);
             Object name = req.getAttribute(RssServlet.class.getSimpleName());
             Matcher regex = NAME_PATTERN.matcher(name.toString());
             regex.find();
             String category = (regex.group(1) != null && !regex.group(1).isEmpty())
                     ? regex.group(1) : null;
             try {
-                Document XML = createFeed(ten,
-                        Integer.parseInt(ten.getImeadValue(POSTS_PER_PAGE)) * Integer.parseInt(ten.getImeadValue(PAGES_AROUND_CURRENT)),
-                        category);
+                Document XML = createFeed(ten, resolvedLocales, category,
+                        Integer.parseInt(ten.getImeadValue(POSTS_PER_PAGE)) * Integer.parseInt(ten.getImeadValue(PAGES_AROUND_CURRENT)));
                 DOMSource DOMsrc = new DOMSource(XML);
                 StringWriter holder = new StringWriter(100000);
                 StreamResult str = new StreamResult(holder);

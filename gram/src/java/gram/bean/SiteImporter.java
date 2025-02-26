@@ -140,7 +140,7 @@ public class SiteImporter {
                                 fileUploads.add(incomingFile);
                             }
                             synchronized (fileUploads) {
-                                if (fileUploads.size() > 10) {
+                                if (fileUploads.size() > Runtime.getRuntime().availableProcessors() * 8) {
                                     ten.getFile().upsert(fileUploads);
                                     fileUploads.clear();
                                 }

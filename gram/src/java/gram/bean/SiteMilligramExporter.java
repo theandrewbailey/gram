@@ -82,9 +82,6 @@ public class SiteMilligramExporter {
             tasks.add(ten.getExec().submit(() -> {
                 getLocale(ten, "", hclient, rateLimiter, zip);
             }));
-            tasks.add(ten.getExec().submit(() -> {
-                getFeeds(ten, hclient, rateLimiter, zip);
-            }));
             List<Locale> locales = new ArrayList<>(ten.getImead().getLocales());
             locales.remove(Locale.ROOT);
             for (Locale l : locales) {
@@ -98,35 +95,25 @@ public class SiteMilligramExporter {
         }
     }
 
-    private static Queue<CompletableFuture> getFeeds(GramTenant ten, HttpClient hclient, Semaphore rateLimiter, ZipOutputStream zip) {
-        final BlockingQueue<CompletableFuture> subtasks = new LinkedBlockingQueue<>();
-        String baseURL = ten.getImeadValue(SecurityRepo.BASE_URL);
-        subtasks.add(milligramAddPageToZip(ten, "", hclient, rateLimiter, zip, "rss/" + ArticleRss.NAME, baseURL + "rss/" + ArticleRss.NAME));
-        subtasks.add(milligramAddPageToZip(ten, "", hclient, rateLimiter, zip, "rss/" + CommentRss.NAME, baseURL + "rss/" + CommentRss.NAME));
-        for (Section category : ten.getCategories().getAll(null)) {
-            subtasks.add(milligramAddPageToZip(ten, "", hclient, rateLimiter, zip, "rss/" + category.getName() + ArticleRss.NAME, baseURL + "rss/" + category.getName() + ArticleRss.NAME));
-        }
-        for (Article a : ten.getArts().getAll(null)) {
-            if (null != a.getComments() && a.getComments()) {
-                String feedURL = "rss/Comments" + a.getArticleid() + ".rss";
-                subtasks.add(milligramAddPageToZip(ten, "", hclient, rateLimiter, zip, feedURL, baseURL + feedURL));
-            }
-        }
-        UtilStatic.join(subtasks);
-        return subtasks;
-    }
-
     private static Queue<CompletableFuture> getLocale(GramTenant ten, String locale, HttpClient hclient, Semaphore rateLimiter, ZipOutputStream zip) {
         final BlockingQueue<CompletableFuture> subtasks = new LinkedBlockingQueue<>();
         subtasks.addAll(getAllPagesOfCategory(ten, locale, null, hclient, rateLimiter, zip));
         // Repository.processArchive() causes thread deadlock (I think)
+        String baseURL = ten.getImeadValue(SecurityRepo.BASE_URL);
+        subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + "rss/" + ArticleRss.NAME, baseURL + "rss/" + ArticleRss.NAME));
+        subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + "rss/" + CommentRss.NAME, baseURL + "rss/" + CommentRss.NAME));
         for (Article a : ten.getArts().getAll(null)) {
-            String url = ArticleUrl.getUrl(ten.getImeadValue(SecurityRepo.BASE_URL) + locale, a, null);
+            String url = ArticleUrl.getUrl(baseURL + locale, a, null);
             String zipPath = ArticleUrl.getUrl(locale, a, null);
             subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, zipPath, url));
+            if (null != a.getComments() && a.getComments()) {
+                String feedURL = locale + "rss/Comments" + a.getArticleid() + ".rss";
+                subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, feedURL, baseURL + feedURL));
+            }
         }
         for (Section category : ten.getCategories().getAll(null)) {
             subtasks.addAll(getAllPagesOfCategory(ten, locale, category.getName(), hclient, rateLimiter, zip));
+            subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + "rss/" + category.getName() + ArticleRss.NAME, baseURL + "rss/" + category.getName() + ArticleRss.NAME));
         }
         for (int e : ERROR_CODES) {
             subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + e + ".html", ten.getImeadValue(SecurityRepo.BASE_URL) + locale + "coroner/" + e));

@@ -1,7 +1,5 @@
 package gram.rss;
 
-import static gram.CategoryFetcher.PAGES_AROUND_CURRENT;
-import static gram.CategoryFetcher.POSTS_PER_PAGE;
 import gram.bean.GramLandlord;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -39,6 +37,8 @@ import gram.tag.Categorizer;
 import libWebsiteTools.rss.Feed;
 import libWebsiteTools.rss.DynamicFeed;
 import gram.bean.GramTenant;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 
 public class CommentRss implements DynamicFeed {
 
@@ -49,26 +49,31 @@ public class CommentRss implements DynamicFeed {
     public CommentRss() {
     }
 
-    public Document createFeed(GramTenant ten, Object articleId) {
+    public Document createFeed(GramTenant ten, List<Locale> locales, Object articleId) {
         RssChannel entries;
         if (null == articleId) {
-            entries = createChannel(ten, ten.getComms().getAll(Integer.parseInt(ten.getImeadValue(POSTS_PER_PAGE)) * Integer.parseInt(ten.getImeadValue(PAGES_AROUND_CURRENT))));
+            entries = createChannel(ten, locales, ten.getComms().getAll(Integer.parseInt(ten.getImeadValue(gram.CategoryFetcher.POSTS_PER_PAGE)) * Integer.parseInt(ten.getImeadValue(gram.CategoryFetcher.PAGES_AROUND_CURRENT))));
         } else {
-            Article art = ten.getArts().get(Integer.parseInt(articleId.toString()));
+            Article art = ten.getArts().get(Integer.valueOf(articleId.toString()));
             List<Comment> lComments = new ArrayList<>(art.getCommentCollection());
             Collections.reverse(lComments);
-            entries = createChannel(ten, lComments);
+            entries = createChannel(ten, locales, lComments);
             entries.setTitle(art.getArticletitle() + " - Comments");
-            entries.setDescription("from " + ten.getImead().getValue(GramServlet.SITE_TITLE));
+            entries.setDescription("from " + ten.getImead().getLocal(GramServlet.SITE_TITLE, locales));
+            if (!art.getComments()) {
+                entries.setTtl(525600); // 1 year
+            }
         }
         return Feed.refreshFeed(Arrays.asList(entries));
     }
 
-    public RssChannel createChannel(GramTenant ten, Collection<Comment> lComments) {
-        RssChannel entries = new RssChannel(ten.getImead().getValue(GramServlet.SITE_TITLE) + " - Comments", ten.getImeadValue(SecurityRepo.BASE_URL), ten.getImead().getValue(GramServlet.TAGLINE));
+    public RssChannel createChannel(GramTenant ten, List<Locale> locales, Collection<Comment> lComments) {
+        RssChannel entries = new RssChannel(ten.getImead().getLocal(GramServlet.SITE_TITLE, locales) + " - Comments", ten.getImeadValue(SecurityRepo.BASE_URL), ten.getImead().getLocal(GramServlet.TAGLINE, locales));
         entries.setWebMaster(ten.getImeadValue(Feed.MASTER));
         entries.setManagingEditor(entries.getWebMaster());
         entries.setLanguage(ten.getImeadValue(Feed.LANGUAGE));
+        List<Duration> timings = new ArrayList<>(lComments.size() + 1);
+        OffsetDateTime lastTime = OffsetDateTime.now();
         for (Comment c : lComments) {
             RssItem i = new RssItem(c.getPostedhtml());
             entries.addItem(i);
@@ -81,6 +86,12 @@ public class CommentRss implements DynamicFeed {
             if (c.getArticleid().getComments()) {
                 i.setComments(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepo.BASE_URL), c.getArticleid(), "comments"));
             }
+            timings.add(Duration.between(c.getPosted(), lastTime).abs());
+            lastTime = c.getPosted();
+        }
+        if (lComments.size() >= Integer.parseInt(ten.getImeadValue(gram.CategoryFetcher.POSTS_PER_PAGE))) {
+            Double average = timings.stream().mapToLong((t) -> t.toMinutes()).average().getAsDouble() * 0.4;
+            entries.setTtl(average.intValue());
         }
         return entries;
     }
@@ -126,6 +137,7 @@ public class CommentRss implements DynamicFeed {
     public Feed doHead(HttpServletRequest req, HttpServletResponse res) {
         if (null == req.getAttribute(NAME)) {
             GramTenant ten = GramLandlord.getTenant(req);
+            List<Locale> resolvedLocales = Local.resolveLocales(ten.getImead(), req);
             Object name = req.getAttribute(RssServlet.class.getSimpleName());
             Matcher regex = NAME_PATTERN.matcher(name.toString());
             String group = regex.find() ? regex.group(1) : null;
@@ -133,9 +145,9 @@ public class CommentRss implements DynamicFeed {
                 if (null != group && group.isEmpty()) {
                     group = null;
                 } else {
-                    Integer.parseInt(group);
+                    Integer.valueOf(group);
                 }
-                Document XML = createFeed(ten, group);
+                Document XML = createFeed(ten, resolvedLocales, group);
                 DOMSource DOMsrc = new DOMSource(XML);
                 StringWriter holder = new StringWriter(10000);
                 StreamResult str = new StreamResult(holder);

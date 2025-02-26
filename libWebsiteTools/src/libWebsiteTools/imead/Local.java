@@ -53,12 +53,15 @@ public class Local extends SimpleTagSupport {
      *
      * @param req
      * @param imead
-     * @return locales
+     * @return locales or Default and ROOT if req is null
      * @see OVERRIDE_LOCALE_PARAM
      * @see LOCALE_PARAM
      */
     @SuppressWarnings("unchecked")
     public static List<Locale> resolveLocales(IMEADHolder imead, HttpServletRequest req) {
+        if (null == req) {
+            return List.of(Locale.getDefault(), Locale.ROOT);
+        }
         List<Locale> out = (List<Locale>) req.getAttribute(LOCALE_PARAM);
         if (null == out) {
             Collection<Locale> locales = imead.getLocales();
@@ -90,7 +93,7 @@ public class Local extends SimpleTagSupport {
                 lset.add(Locale.getDefault());
             }
             lset.add(Locale.ROOT);
-            out = new ArrayList<>(lset);
+            out = List.copyOf(lset);
             req.setAttribute(LOCALE_PARAM, out);
         }
         return out;

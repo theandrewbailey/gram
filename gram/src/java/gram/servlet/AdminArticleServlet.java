@@ -78,7 +78,7 @@ public class AdminArticleServlet extends AdminServlet {
                 || !validator.reset(art.getPostedname()).matches()
                 || !validator.reset(art.getPostedmarkdown()).matches()
                 || (null != art.getSectionid() && !validator.reset(art.getSectionid().getName()).matches())) {
-            request.setAttribute(CoronerServlet.ERROR_MESSAGE_PARAM, ten.getImead().getLocal("page_patternMismatch", Local.resolveLocales(ten.getImead(), request)));
+            request.setAttribute(GramServlet.ERROR_MESSAGE_PARAM, ten.getImead().getLocal("page_patternMismatch", Local.resolveLocales(ten.getImead(), request)));
             AdminArticleServlet.displayArticleEdit(ten, request, response, art);
             return;
         }

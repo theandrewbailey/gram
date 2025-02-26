@@ -67,7 +67,7 @@ public class FileDatabase implements FileRepository {
     @Override
     public List<Fileupload> search(Object term, Integer limit) {
         try (EntityManager em = PU.createEntityManager()) {
-            return em.createNamedQuery("Filemetadata.searchByFilenames", Fileupload.class).setParameter("term", term).getResultList();
+            return em.createNamedQuery("Filemetadata.search", Fileupload.class).setParameter("term", term).getResultList();
         } catch (NoResultException n) {
             return null;
         }

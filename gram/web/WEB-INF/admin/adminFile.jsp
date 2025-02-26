@@ -17,7 +17,7 @@
     <tr class="secondmin" id="${con.uuid}"><td><a href="${con.url}" target="_blank" rel="noopener" class="nocache">${con.filename}</a></td>
     <td><h:filesize length="${con.datasize}"/></td>
     <td><a href="file/${dir.key}${con.filename}" target="_blank" rel="noopener" class="nocache"><h:time datetime="${con.atime}" pattern="yyyy-MM-dd h:mm a" /></a></td>
-    <td>${con.mimetype}&nbsp;<h:button type="submit" name="action" value="delete|${dir.key}${con.filename}"><h:local key="page_delete"/></h:button></td></tr>
+    <td>${con.mimetype}&nbsp;<h:button type="submit" name="action" value="delete|${con.url}"><h:local key="page_delete"/></h:button></td></tr>
     </c:forEach></table></details></c:forEach>
 </form>
 </main>
