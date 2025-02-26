@@ -19,29 +19,31 @@ import libWebsiteTools.security.SecurityRepo;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.turbo.RequestTimer;
 import libWebsiteTools.tag.HtmlMeta;
-import gram.IndexFetcher;
+import gram.CategoryFetcher;
 import gram.bean.GramLandlord;
 import gram.bean.database.Article;
 import gram.tag.Categorizer;
 import gram.bean.GramTenant;
+import java.util.List;
+import java.util.Locale;
 
 @WebServlet(name = "IndexServlet", description = "Gets all the posts of a single group, defaults to Home", urlPatterns = {"/index/*", "/index.html", "/index", "/"})
 public class IndexServlet extends GramServlet {
 
     public static final String HOME_JSP = "/WEB-INF/category.jsp";
 
-    private IndexFetcher getIndexFetcher(HttpServletRequest req) {
-        IndexFetcher f = (IndexFetcher) req.getAttribute(IndexFetcher.class.getCanonicalName());
+    private CategoryFetcher getCategoryFetcher(HttpServletRequest req) {
+        CategoryFetcher f = (CategoryFetcher) req.getAttribute(CategoryFetcher.class.getCanonicalName());
         if (null == f) {
             Instant start = Instant.now();
             GramTenant ten = GramLandlord.getTenant(req);
-            String URI = req.getRequestURI();
-            if (URI.startsWith(getServletContext().getContextPath())) {
-                URI = URI.substring(getServletContext().getContextPath().length());
+            String URL = req.getRequestURI();
+            if (URL.startsWith(getServletContext().getContextPath())) {
+                URL = URL.substring(getServletContext().getContextPath().length());
             }
-            f = new IndexFetcher(ten, URI);
+            f = new CategoryFetcher(ten, URL);
+            req.setAttribute(CategoryFetcher.class.getCanonicalName(), f);
             RequestTimer.addTiming(req, "query", Duration.between(start, Instant.now()));
-            req.setAttribute(IndexFetcher.class.getCanonicalName(), f);
         }
         return f;
     }
@@ -50,23 +52,25 @@ public class IndexServlet extends GramServlet {
     protected long getLastModified(HttpServletRequest request) {
         OffsetDateTime latest = OffsetDateTime.of(2000, 1, 1, 1, 1, 1, 1, ZoneOffset.UTC);
         try {
-            IndexFetcher f = getIndexFetcher(request);
+            CategoryFetcher f = getCategoryFetcher(request);
             for (Article a : f.getArticles()) {
                 if (a.getModified().isAfter(latest)) {
                     latest = a.getModified();
                 }
             }
-        } catch (NumberFormatException n) {
+        } catch (IllegalArgumentException n) {
         }
         return latest.toInstant().toEpochMilli();
     }
 
     @Override
     protected void doHead(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        IndexFetcher f = getIndexFetcher(request);
-        Collection<Article> articles = f.getArticles();
-        if (articles.isEmpty()) {
-            request.setAttribute(IndexFetcher.class.getCanonicalName(), null);
+//        GramTenant ten = GramLandlord.getTenant(request);
+        try {
+            CategoryFetcher f = getCategoryFetcher(request);
+            f.getArticles();
+        } catch (IllegalArgumentException gp) {
+            request.setAttribute(CategoryFetcher.class.getCanonicalName(), null);
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
@@ -74,82 +78,89 @@ public class IndexServlet extends GramServlet {
         String etag = request.getAttribute(HttpHeaders.ETAG).toString();
         response.setHeader(HttpHeaders.ETAG, etag);
         if (etag.equals(ifNoneMatch)) {
-            request.setAttribute(IndexFetcher.class.getCanonicalName(), null);
+            request.setAttribute(CategoryFetcher.class.getCanonicalName(), null);
             response.sendError(HttpServletResponse.SC_NOT_MODIFIED);
-            return;
+//            return;
         }
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         GramTenant ten = GramLandlord.getTenant(request);
+        List<Locale> resolvedLocales = Local.resolveLocales(ten.getImead(), request);
         if (ten.isFirstTime()) {
             String url = AdminImeadServlet.class.getAnnotation(WebServlet.class).urlPatterns()[0];
             request.getRequestDispatcher(url).forward(request, response);
             return;
         }
         doHead(request, response);
-        IndexFetcher f = getIndexFetcher(request);
-        if (null != f && !response.isCommitted()) {
-            Collection<Article> articles = f.getArticles();
-            articles.stream().limit(2).forEach((art) -> {
-                art.setSummary(art.getSummary().replaceAll(" loading=\"lazy\"", ""));
-            });
-            // dont bother if there is only 1 page total
-            if (f.getCount() > 1) {
-                request.setAttribute("pagen_first", f.getFirst());
-                request.setAttribute("pagen_last", f.getLast());
-                request.setAttribute("pagen_current", f.getPage());
-                request.setAttribute("pagen_count", f.getCount());
-            } else if (null == f.getSection() && 0 == ten.getArts().count(null)) {
-                String message = MessageFormat.format(ten.getImead().getLocal("page_noPosts", Local.resolveLocales(ten.getImead(), request)), new Object[]{request.getAttribute(SecurityRepo.BASE_URL).toString() + "adminLogin"});
-                request.setAttribute(CoronerServlet.ERROR_MESSAGE_PARAM, message);
-                request.getServletContext().getRequestDispatcher(CoronerServlet.ERROR_JSP).forward(request, response);
-                return;
-            } else if (HttpServletResponse.SC_NOT_FOUND == response.getStatus()) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            if (null != f.getSection()) {
-                request.setAttribute("curGroup", f.getSection().getName());
-                request.setAttribute("title", f.getSection().getName());
-            }
-            request.setAttribute("articles", articles);
-            request.setAttribute("articleCategory", f.getSection());
-            request.setAttribute("index", true);
-            for (Article art : f.getArticles()) {
-                if (null != art.getImageurl()) {
-                    HtmlMeta.addPropertyTag(request, "og:image", art.getImageurl());
-                    break;
+        if (!response.isCommitted()) {
+            CategoryFetcher f = getCategoryFetcher(request);
+            if (null != f) {
+                Collection<Article> articles = f.getArticles();
+                articles.stream().limit(2).forEach((art) -> {
+                    art.setSummary(art.getSummary().replaceAll(" loading=\"lazy\"", ""));
+                });
+                // dont bother if there is only 1 page total
+                if (f.getPageCount() > 1) {
+                    request.setAttribute("pagen_first", f.getFirstPage());
+                    request.setAttribute("pagen_last", f.getLastPage());
+                    request.setAttribute("pagen_current", f.getCurrentPage());
+                    request.setAttribute("pagen_count", f.getPageCount());
+                } else if ((null == f.getCategory() || null == f.getCategory().getSectionid()) && 0 == ten.getArts().count(null)) {
+                    String message = MessageFormat.format(ten.getImead().getLocal("page_noPosts", resolvedLocales), new Object[]{request.getAttribute(SecurityRepo.BASE_URL).toString() + "adminLogin"});
+                    request.setAttribute(CoronerServlet.ERROR_MESSAGE_PARAM, message);
+                    request.getServletContext().getRequestDispatcher(CoronerServlet.ERROR_JSP).forward(request, response);
+                    return;
+                } else if (HttpServletResponse.SC_NOT_FOUND == response.getStatus()) {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return;
                 }
-            }
+                if (null != f.getCategory()) {
+                    request.setAttribute("curGroup", f.getCategory().getName());
+                    request.setAttribute("title", f.getCategory().getName());
+                }
+                request.setAttribute("articles", articles);
+                request.setAttribute("articleCategory", f.getCategory());
+                request.setAttribute("index", true);
 
-            StringBuilder description = new StringBuilder(70).append(ten.getImead().getLocal(GramServlet.SITE_TITLE, Local.resolveLocales(ten.getImead(), request)));
-            if (null == f.getSection() && 1 != f.getPage()) {
-                description.append(", all categories, page ").append(f.getPage());
-            } else if (null != f.getSection()) {
-                description.append(", ").append(f.getSection()).append(" category, page ").append(f.getPage());
-            } else {
-                description.append(", ").append(ten.getImead().getLocal(GramServlet.TAGLINE, Local.resolveLocales(ten.getImead(), request)));
-            }
+                StringBuilder description = new StringBuilder(70).append(ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales));
+                if (null == f.getCategory() && 1 != f.getCurrentPage()) {
+                    description.append(", all categories, page ").append(f.getCurrentPage());
+                } else if (null != f.getCategory()) {
+                    description.append(", ").append(f.getCategory()).append(" category, page ").append(f.getCurrentPage());
+                } else {
+                    description.append(", ").append(ten.getImead().getLocal(GramServlet.TAGLINE, resolvedLocales));
+                }
 
-            HtmlMeta.addPropertyTag(request, "og:description", description.toString());
-            HtmlMeta.addPropertyTag(request, "og:site_name", ten.getImead().getLocal(GramServlet.SITE_TITLE, Local.resolveLocales(ten.getImead(), request)));
-            HtmlMeta.addPropertyTag(request, "og:type", "website");
-            HtmlMeta.addNameTag(request, "description", description.toString());
-            HtmlMeta.addLink(request, "canonical", Categorizer.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), f.getSection().getName(), f.getPage()));
-            JsonArrayBuilder itemList = Json.createArrayBuilder();
-            itemList.add(HtmlMeta.getLDBreadcrumb(ten.getImead().getLocal("page_title", Local.resolveLocales(ten.getImead(), request)), 1, request.getAttribute(SecurityRepo.BASE_URL).toString()));
-            if (null == f.getSection() && 1 == f.getPage() && null == request.getAttribute(Local.OVERRIDE_LOCALE_PARAM)) {
-                JsonObjectBuilder potentialAction = Json.createObjectBuilder().add("@type", "SearchAction").add("target", ten.getImeadValue(SecurityRepo.BASE_URL) + "search?searchTerm={search_term_string}").add("query-input", "required name=search_term_string");
-                JsonObjectBuilder search = Json.createObjectBuilder().add("@context", "https://schema.org").add("@type", "WebSite").add("url", ten.getImeadValue(SecurityRepo.BASE_URL)).add("potentialAction", potentialAction.build());
-                HtmlMeta.addLDJSON(request, search.build().toString());
-            } else if (null != f.getSection()) {
-                itemList.add(HtmlMeta.getLDBreadcrumb(f.getSection().getName(), 2, Categorizer.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), f.getSection().getName(), null)));
+                HtmlMeta.addNameTag(request, "description", description.toString());
+                if (null == request.getParameter("milligram")) {
+                    String catName = null != f.getCategory() ? f.getCategory().getName() : ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales);
+                    String catNameNull = null != f.getCategory() ? f.getCategory().getName() : null;
+                    HtmlMeta.addLink(request, "canonical", Categorizer.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), catNameNull, f.getCurrentPage()));
+                    for (Article art : f.getArticles()) {
+                        if (null != art.getImageurl()) {
+                            HtmlMeta.addPropertyTag(request, "og:image", art.getImageurl());
+                            break;
+                        }
+                    }
+                    HtmlMeta.addPropertyTag(request, "og:description", description.toString());
+                    HtmlMeta.addPropertyTag(request, "og:site_name", ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales));
+                    HtmlMeta.addPropertyTag(request, "og:type", "website");
+                    JsonArrayBuilder itemList = Json.createArrayBuilder();
+                    itemList.add(HtmlMeta.getLDBreadcrumb(ten.getImead().getLocal("page_title", resolvedLocales), 1, request.getAttribute(SecurityRepo.BASE_URL).toString()));
+                    if (null == f.getCategory() && 1 == f.getCurrentPage() && null == request.getAttribute(Local.OVERRIDE_LOCALE_PARAM)) {
+                        JsonObjectBuilder potentialAction = Json.createObjectBuilder().add("@type", "SearchAction").add("target", ten.getImeadValue(SecurityRepo.BASE_URL) + "search?searchTerm={search_term_string}").add("query-input", "required name=search_term_string");
+                        JsonObjectBuilder search = Json.createObjectBuilder().add("@context", "https://schema.org").add("@type", "WebSite").add("url", ten.getImeadValue(SecurityRepo.BASE_URL)).add("potentialAction", potentialAction.build());
+                        HtmlMeta.addLDJSON(request, search.build().toString());
+                    } else if (null != f.getCategory() && null != catNameNull) {
+                        itemList.add(HtmlMeta.getLDBreadcrumb(catName, 2, Categorizer.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), catNameNull, null)));
+                    }
+                    JsonObjectBuilder breadcrumbs = Json.createObjectBuilder().add("@context", "https://schema.org").add("@type", "BreadcrumbList").add("itemListElement", itemList.build());
+                    HtmlMeta.addLDJSON(request, breadcrumbs.build().toString());
+                }
+                request.getServletContext().getRequestDispatcher(HOME_JSP).forward(request, response);
             }
-            JsonObjectBuilder breadcrumbs = Json.createObjectBuilder().add("@context", "https://schema.org").add("@type", "BreadcrumbList").add("itemListElement", itemList.build());
-            HtmlMeta.addLDJSON(request, breadcrumbs.build().toString());
-            request.getServletContext().getRequestDispatcher(HOME_JSP).forward(request, response);
         }
     }
 }

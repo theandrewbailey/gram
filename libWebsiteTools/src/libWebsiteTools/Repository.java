@@ -48,6 +48,12 @@ public interface Repository<Entity> {
     public List<Entity> search(Object term, Integer limit);
 
     /**
+     * Perform any of re-index operation necessary for search.
+     */
+    public default void refreshSearch() {
+    }
+
+    /**
      * Delete a single entity.
      *
      * @param id the primary key of the desired entity.

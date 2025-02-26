@@ -23,6 +23,10 @@ public final class UtilStatic {
     public static final String JSON_OUT = "/WEB-INF/jsonOut.jsp";
     private static final Logger LOG = Logger.getLogger(UtilStatic.class.getName());
 
+    public UtilStatic() {
+        throw new UnsupportedOperationException("You cannot instantiate this class");
+    }
+
     /**
      * reads a properties file, and returns a properties object
      *
@@ -66,10 +70,6 @@ public final class UtilStatic {
             }
         }
         return locals;
-    }
-
-    public UtilStatic() {
-        throw new UnsupportedOperationException("You cannot instantiate this class");
     }
 
     /**

@@ -67,7 +67,7 @@ public class SecurityRepo implements Repository<Exceptionevent> {
     }
 
     public void logException(HttpServletRequest req, String title, String desc, Throwable t) {
-        LOG.log(Level.FINEST, "Saving exception");
+        LOG.log(Level.FINE, "Saving exception");
         if (title == null && req != null) {
             title = getIP(req) + ' ' + req.getMethod() + ' ' + req.getRequestURI();
         } else if (title == null && t != null) {

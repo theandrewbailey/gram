@@ -12,23 +12,19 @@ import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
 import libWebsiteTools.Repository;
-import libWebsiteTools.imead.IMEADHolder;
 import gram.UtilStatic;
-import gram.bean.ArticleRepository;
 
 /**
  *
  * @author alpha
  */
-public class SectionDatabase implements Repository<Section> {
+public class CategoryDatabase implements Repository<Section> {
 
     private final EntityManagerFactory gramPU;
-    private final IMEADHolder imead;
     private List<Section> allSections;
 
-    public SectionDatabase(EntityManagerFactory emf, IMEADHolder imead) {
+    public CategoryDatabase(EntityManagerFactory emf) {
         this.gramPU = emf;
-        this.imead = imead;
     }
 
     @Override
@@ -42,7 +38,7 @@ public class SectionDatabase implements Repository<Section> {
             if (id instanceof Integer) {
                 return em.find(Section.class, id);
             } else if (id instanceof String) {
-                return em.createNamedQuery("Section.findByName", Section.class).setParameter("name", id).getSingleResult();
+                return em.createNamedQuery("Category.findByName", Section.class).setParameter("name", id).getSingleResult();
             }
         } catch (NoResultException n) {
             return null;
@@ -68,17 +64,16 @@ public class SectionDatabase implements Repository<Section> {
     @SuppressWarnings("unchecked")
     public List<Section> getAll(Integer limit) {
         if (null == allSections) {
-//            Article empty = new Article();
             List<Object[]> sectionsByArticlesPosted;
             try (EntityManager em = gramPU.createEntityManager()) {
-                sectionsByArticlesPosted = em.createNamedQuery("Section.byArticlesPosted").getResultList();
+                sectionsByArticlesPosted = em.createNamedQuery("Category.byArticlesPosted").getResultList();
             }
             try {
                 double now = OffsetDateTime.now().toInstant().toEpochMilli();
                 TreeMap<Double, Section> popularity = new TreeMap<>();
                 for (Object[] data : sectionsByArticlesPosted) {
                     Section section = (Section) data[0];
-                    if (section.getName().equals(imead.getValue(ArticleRepository.DEFAULT_CATEGORY))) {
+                    if (null == section.getName()) {
                         continue;
                     }
                     double years = (now - ((OffsetDateTime) data[1]).toInstant().toEpochMilli()) / 31536000000.0;
@@ -86,11 +81,6 @@ public class SectionDatabase implements Repository<Section> {
                     // score = average posts per year since category first started
                     double score = UtilStatic.score(points, years, 1.8);
                     popularity.put(score, section);
-//                    List<Article> articles = new ArrayList<>(section.getArticleCollection().size());
-//                    for (int i = 0; i < section.getArticleCollection().size(); i++) {
-//                        articles.add(empty);
-//                    }
-//                    section.setArticleCollection(articles);
                 }
                 allSections = new ArrayList<>(popularity.values());
                 Collections.reverse(allSections);
@@ -102,6 +92,7 @@ public class SectionDatabase implements Repository<Section> {
     }
 
     /**
+     * Return number of sections in DB. Does not include empty/default section.
      *
      * @param term ignored
      * @return
@@ -109,8 +100,7 @@ public class SectionDatabase implements Repository<Section> {
     @Override
     public Long count(Object term) {
         try (EntityManager em = gramPU.createEntityManager()) {
-            TypedQuery<Long> qn = null == term ? em.createNamedQuery("Article.count", Long.class)
-                    : em.createNamedQuery("Article.countBySection", Long.class).setParameter("section", term);
+            TypedQuery<Long> qn = em.createNamedQuery("Category.count", Long.class);
             Long output = qn.getSingleResult();
             return output;
         }
@@ -121,16 +111,16 @@ public class SectionDatabase implements Repository<Section> {
         try (EntityManager em = gramPU.createEntityManager()) {
             if (transaction) {
                 em.getTransaction().begin();
-                em.createNamedQuery("Section.findAll", Section.class).getResultStream().forEach(operation);
+                em.createNamedQuery("Category.findAll", Section.class).getResultStream().forEach(operation);
                 em.getTransaction().commit();
             } else {
-                em.createNamedQuery("Section.findAll", Section.class).getResultStream().forEach(operation);
+                em.createNamedQuery("Category.findAll", Section.class).getResultStream().forEach(operation);
             }
         }
     }
 
     @Override
-    public SectionDatabase evict() {
+    public CategoryDatabase evict() {
         gramPU.getCache().evict(Section.class);
         allSections = null;
         return this;

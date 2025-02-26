@@ -288,6 +288,8 @@ AS_ADMIN_MASTERPASSWORD=$payaraPass
 			sed -i "s/<servlet-class>org.glassfish.wasp.servlet.JspServlet<\/servlet-class>/<servlet-class>org.glassfish.wasp.servlet.JspServlet<\/servlet-class><init-param><param-name>development<\/param-name><param-value>false<\/param-value><\/init-param><init-param><param-name>genStrAsCharArray<\/param-name><param-value>true<\/param-value><\/init-param>/" "../domains/$payaraDomain/config/default-web.xml"
 			# enable remote admin
 			./asadmin enable-secure-admin
+		else
+			asadmin set-log-levels gram=FINER:libWebsiteTools=FINER
 		fi
 		# set heap size, disable hazelcast
 		./asadmin delete-jvm-options '-Xmx512m'
@@ -307,7 +309,7 @@ AS_ADMIN_MASTERPASSWORD=$payaraPass
 }
 
 function setupDatabaseConnection(){ # jdbcName, dbHost, dbPort, dbUser, dbPass
-	./asadmin create-jdbc-connection-pool --datasourceclassname=org.postgresql.ds.PGSimpleDataSource --steadypoolsize=$threads --maxpoolsize=$threads --maxwait=0 --ping --description "Connection to Postgres database $4" --property serverName=${2}:port=${3}:user=${4}:password=${5} "gram/$1"
+	./asadmin create-jdbc-connection-pool --datasourceclassname=org.postgresql.ds.PGSimpleDataSource --steadypoolsize=$threads --maxpoolsize=$threads --maxwait=0 --nontransactionalconnections=true --ping --description "Connection to Postgres database $4" --property serverName=${2}:port=${3}:user=${4}:password=${5} "gram/$1"
 	./asadmin create-jdbc-resource --connectionpoolid "gram/$1" --description "Connection Pool to Postgres database $4 for domain $1" "java/gram/$1"
 }
 

@@ -1,5 +1,6 @@
 package gram.bean.database;
 
+import gram.CategoryFetcher;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Query;
@@ -10,8 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import libWebsiteTools.imead.IMEADHolder;
-import gram.bean.ArticleRepository;
+import jakarta.persistence.TypedQuery;
 
 /**
  *
@@ -19,74 +19,101 @@ import gram.bean.ArticleRepository;
  */
 public class PostgresArticleDatabase extends ArticleDatabase {
 
-    private final Map<String, List<Article>> searchCache = Collections.synchronizedMap(new LinkedHashMap<>(100));
+    private final Map<String, List<Article>> articleCache = Collections.synchronizedMap(new LinkedHashMap<>(100));
+    private final Map<String, List<Article>> suggestionCache = Collections.synchronizedMap(new LinkedHashMap<>(100));
 
-    public PostgresArticleDatabase(EntityManagerFactory emf, IMEADHolder imead) {
-        super(emf, imead);
+    public PostgresArticleDatabase(EntityManagerFactory emf) {
+        super(emf);
     }
 
     @Override
     public ArticleRepository evict() {
-        searchCache.clear();
+        articleCache.clear();
         return super.evict();
     }
 
     /**
      *
      * @param term if string, search articles on this string. if Article with
-     * suggestion field populated, will return search term suggestions.
+     * suggestion field populated, will return search term suggestions. If
+     * CategoryFetcher or Section, will return articles in that Section (passed
+     * to ArticleDatabase.search).
      * @param limit
-     * @return
+     * @return List of Article
      */
     @SuppressWarnings("unchecked")
     @Override
     public List<Article> search(Object term, Integer limit) {
         if (null == term) {
-            throw new IllegalArgumentException("No search term provided");
+            throw new IllegalArgumentException("No search term provided.");
         }
-        if (term instanceof Article art) {
-            if (null == art.getSuggestion()) {
-                throw new IllegalArgumentException("No search suggestion provided");
-            }
-            List<String> suggestions = new ArrayList<>();
-            try (EntityManager em = gramPU.createEntityManager()) {
-                Query q = em.createNativeQuery("SELECT word, similarity(?1, word) FROM gram.articlewords WHERE (word % ?1) = TRUE ORDER BY similarity DESC");
-                List results = q.setParameter(1, art.getSuggestion()).setMaxResults(limit).getResultList();
-                Iterator iter = results.iterator();
-                while (iter.hasNext()) {
-                    Object[] row = (Object[]) iter.next();
-                    if (1 == limit) {
-                        Float sim = (Float) row[1];
-                        if (0.4f < sim) {
-                            suggestions.add(row[0].toString());
-                            break;
-                        }
-                    } else {
-                        Float sim = (Float) row[1];
-                        if (0.3f < sim) {
-                            suggestions.add(row[0].toString());
+        if (term instanceof CategoryFetcher) {
+            return super.search(term, limit);
+        } else if (term instanceof Section) {
+            return super.search(term, limit);
+        } else if (term instanceof Article art) {
+            if (null != art.getSuggestion()) {
+                if (suggestionCache.containsKey(art.getSuggestion())) {
+                    return suggestionCache.get(art.getSuggestion());
+                }
+                List<String> suggestions = new ArrayList<>();
+                try (EntityManager em = gramPU.createEntityManager()) {
+                    Query q = em.createNativeQuery("SELECT word, similarity(?1, word) FROM gram.articlewords WHERE (word % ?1) = TRUE ORDER BY similarity DESC");
+                    List results = q.setParameter(1, art.getSuggestion()).setMaxResults(limit).getResultList();
+                    Iterator iter = results.iterator();
+                    while (iter.hasNext()) {
+                        Object[] row = (Object[]) iter.next();
+                        if (1 == limit) {
+                            Float sim = (Float) row[1];
+                            if (0.4f < sim) {
+                                suggestions.add(row[0].toString());
+                                break;
+                            }
+                        } else {
+                            Float sim = (Float) row[1];
+                            if (0.3f < sim) {
+                                suggestions.add(row[0].toString());
+                            }
                         }
                     }
+                    List<Article> artResults = suggestions.stream().map((suggestion) -> new Article().setSuggestion(suggestion)).toList();
+                    suggestionCache.put(art.getSuggestion(), List.copyOf(artResults));
+                    return artResults;
+                } catch (NoSuchElementException | NullPointerException n) {
+                    return null;
                 }
-                return suggestions.stream().map((suggestion) -> new Article().setSuggestion(suggestion)).toList();
-            } catch (NoSuchElementException | NullPointerException n) {
+            } else if (null != art.getUrl()) {
+                if (suggestionCache.containsKey(art.getUrl())) {
+                    return suggestionCache.get(art.getUrl());
+                }
+                try (EntityManager em = gramPU.createEntityManager()) {
+                    TypedQuery<Article> q = em.createQuery("SELECT a FROM Article a WHERE a.postedmarkdown LIKE :url ORDER BY a.posted DESC", Article.class)
+                            .setParameter("url", "%" + art.getUrl() + "%");
+                    if (null != limit) {
+                        q.setMaxResults(limit);
+                    }
+                    suggestionCache.put(art.getUrl(), List.copyOf(q.getResultList()));
+                    return q.getResultList();
+                } catch (NoSuchElementException | NullPointerException n) {
+                    return null;
+                }
             }
-            return null;
+            throw new IllegalArgumentException("No search term provided");
         } else {
-            if (searchCache.containsKey(term.toString())) {
-                return searchCache.get(term.toString());
+            if (articleCache.containsKey(term.toString())) {
+                return articleCache.get(term.toString());
             }
             try (EntityManager em = gramPU.createEntityManager()) {
-                Query q = em.createNativeQuery("SELECT r.* FROM gram.article r, websearch_to_tsquery(?1) query WHERE query @@ r.searchindexdata ORDER BY ts_rank_cd(r.searchindexdata, query) DESC, r.posted", Article.class);
+                Query q = em.createNativeQuery("SELECT r.* FROM gram.article r join gram.articlesearchindex s on r.articleid=s.articleid, websearch_to_tsquery(?1) query WHERE query @@ s.searchindexdata ORDER BY ts_rank_cd(s.searchindexdata, query) DESC, r.posted", Article.class);
                 q.setParameter(1, term);
                 if (null != limit) {
                     q.setMaxResults(limit);
                 }
-                if (60 < searchCache.size()) {
-                    searchCache.remove(searchCache.keySet().iterator().next());
+                if (60 < articleCache.size()) {
+                    articleCache.remove(articleCache.keySet().iterator().next());
                 }
                 // cache immutable list to prevent unintended changes
-                searchCache.put(term.toString(), List.copyOf(q.getResultList()));
+                articleCache.put(term.toString(), List.copyOf(q.getResultList()));
                 return q.getResultList();
             }
         }
@@ -97,6 +124,7 @@ public class PostgresArticleDatabase extends ArticleDatabase {
         try (EntityManager em = gramPU.createEntityManager()) {
             em.getTransaction().begin();
             em.createNativeQuery("REFRESH MATERIALIZED VIEW gram.articlewords").executeUpdate();
+            em.createNativeQuery("REFRESH MATERIALIZED VIEW gram.articlesearchindex").executeUpdate();
             em.createNativeQuery("ANALYZE gram.articlewords").executeUpdate();
             em.getTransaction().commit();
         }

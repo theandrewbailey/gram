@@ -1,10 +1,11 @@
 package gram.tag;
 
+import gram.CategoryFetcher;
+import static gram.CategoryFetcher.POSTS_PER_PAGE;
 import gram.bean.GramLandlord;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.jsp.JspException;
 import jakarta.servlet.jsp.PageContext;
@@ -15,38 +16,37 @@ import gram.bean.database.Section;
 
 public class RecentArticles extends SimpleTagSupport {
 
-    private Integer number = 10;
+    private Integer number;
     private Section section;
     private String var = "_article";
 
     @Override
     @SuppressWarnings("unchecked")
     public void doTag() throws JspException, IOException {
-        List<Integer> excludes = null;
-        List<Article> articles = null;
         HttpServletRequest req = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest());
-        try {
-            articles = (List<Article>) req.getAttribute("articles");
-            excludes = articles.stream().mapToInt((t) -> {
-                return t.getArticleid();
-            }).boxed().collect(Collectors.toList());
-        } catch (NullPointerException x) {
-            if (null == articles) {
-                articles = new ArrayList<>();
-                req.setAttribute("articles", articles);
-            }
-        }
         GramTenant ten = GramLandlord.getTenant(req);
-//        Instant start = Instant.now();
-        List<Article> latest = ten.getArts().getBySection(null != section ? section.getName() : null, 1, number, excludes);
-        if (2 > latest.size()) {
-            latest = ten.getArts().getBySection(null != section ? section.getName() : null, 1, number, null);
+        if (null == number) {
+            number = Integer.valueOf(ten.getImeadValue(POSTS_PER_PAGE));
         }
-//        RequestTimer.addTiming(req, "recent-" + category, Duration.between(start, Instant.now()));
+        List<Article> excludes = null;
+        try {
+            excludes = (List<Article>) req.getAttribute("articles");
+        } catch (NullPointerException x) {
+        }
+        if (null == excludes) {
+            excludes = new ArrayList<>();
+            req.setAttribute("articles", excludes);
+        }
+        String sectionName = null != section ? section.getName() : null;
+        String sectionURL = Categorizer.getUrl("/", sectionName, null);
+        List<Article> latest = ten.getArts().search(new CategoryFetcher(ten, sectionURL).without(excludes), number);
+        if (2 > latest.size()) {
+            latest = ten.getArts().search(new CategoryFetcher(ten, sectionURL), number);
+        }
         for (Article e : latest) {
             getJspContext().setAttribute(getVar(), e);
             getJspBody().invoke(null);
-            articles.add(e);
+            excludes.add(e);
         }
     }
 

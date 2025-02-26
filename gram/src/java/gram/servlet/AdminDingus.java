@@ -20,7 +20,8 @@ import gram.bean.database.Article;
 @WebServlet(name = "AdminDingus", description = "Show a commonmark dingus", urlPatterns = {"/adminDingus"})
 public class AdminDingus extends AdminServlet {
 
-    public static final String ADMIN_DINGUS = "/WEB-INF/adminDingus.jsp";
+    public static final String ADMIN_DINGUS = "/WEB-INF/admin/adminDingus.jsp";
+    public static final String ADMIN_DINGUS_IFRAME = "/WEB-INF/admin/adminDingusIframe.jsp";
 
     @Override
     public AdminPermission[] getRequiredPermissions() {
@@ -41,8 +42,8 @@ public class AdminDingus extends AdminServlet {
             art.setPostedmarkdown(markdown);
             new ArticleProcessor(GramLandlord.getTenant(request), art).call();
             request.setAttribute(Article.class.getSimpleName(), art);
-            request.setAttribute("rawHtml", UtilStatic.htmlFormat(art.getPostedhtml(), false, false, true));
+            art.setSummary(UtilStatic.htmlFormat(art.getPostedhtml(), false, false, true));
         }
-        request.getRequestDispatcher(ADMIN_DINGUS).forward(request, response);
+        request.getRequestDispatcher(ADMIN_DINGUS_IFRAME).forward(request, response);
     }
 }

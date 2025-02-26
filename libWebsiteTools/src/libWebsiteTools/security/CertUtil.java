@@ -52,6 +52,24 @@ public class CertUtil {
     private static final String SCT_EXTENSION = "1.3.6.1.4.1.11129.2.4.2";
     private X509Certificate subject;
     private Date certExpDate;
+    private KeyStore customCerts;
+
+    public CertUtil(Certificate[] certs) {
+        try {
+            customCerts = KeyStore.getInstance(KeyStore.getDefaultType());
+            customCerts.load(null, null);
+            for (Certificate c : certs) {
+                if (c instanceof X509Certificate) {
+                    X509Certificate x509 = (X509Certificate) c;
+                    CERTIFICATE_STORE.add(x509.getSubjectX500Principal(), x509);
+                    customCerts.setEntry(x509.getSubjectX500Principal().getName(), new KeyStore.TrustedCertificateEntry(c), null);
+                }
+            }
+            addStore(getTrustStore(), CERTIFICATE_STORE);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
 
     /**
      * open keystores on instantiation
@@ -82,20 +100,23 @@ public class CertUtil {
                     LOG.log(Level.SEVERE, "Can't add certificate to keystore: " + aliasName, ex);
                 }
             }
-            KeyStore authStore = getTrustStore();
-            Enumeration<String> aliases = authStore.aliases();
-            while (aliases.hasMoreElements()) {
-                try {
-                    KeyStore.Entry entry = authStore.getEntry(aliases.nextElement(), null);
-                    X509Certificate cert = (X509Certificate) ((KeyStore.TrustedCertificateEntry) entry).getTrustedCertificate();
-                    CERTIFICATE_STORE.add(cert.getSubjectX500Principal(), cert);
-                } catch (RuntimeException ex) {
-                }
-            }
+            addStore(getTrustStore(), CERTIFICATE_STORE);
         } catch (NoSuchAlgorithmException ex) {
             throw new JVMNotSupportedError(ex);
         } catch (UnrecoverableEntryException | KeyStoreException ex) {
             throw new RuntimeException("Something went wrong with your keystore.", ex);
+        }
+    }
+
+    public static void addStore(KeyStore keys, MultivaluedHashMap<X500Principal, X509Certificate> store) throws KeyStoreException {
+        Enumeration<String> aliases = keys.aliases();
+        while (aliases.hasMoreElements()) {
+            try {
+                KeyStore.Entry entry = keys.getEntry(aliases.nextElement(), null);
+                X509Certificate cert = (X509Certificate) ((KeyStore.TrustedCertificateEntry) entry).getTrustedCertificate();
+                store.add(cert.getSubjectX500Principal(), cert);
+            } catch (Exception ex) {
+            }
         }
     }
 
@@ -198,8 +219,15 @@ public class CertUtil {
      */
     public List<CertPath<X509Certificate>> getServerCertificateChain(String certificateName) {
         try {
-            KeyStore.PrivateKeyEntry ksent = (KeyStore.PrivateKeyEntry) getServerKeystore().getEntry(certificateName, new KeyStore.PasswordProtection(System.getProperty("javax.net.ssl.keyStorePassword").toCharArray()));
-            X509Certificate subCert = (X509Certificate) ksent.getCertificate();
+            X509Certificate subCert;
+            if (null != customCerts) {
+                KeyStore.TrustedCertificateEntry ent = (KeyStore.TrustedCertificateEntry) customCerts.getEntry(certificateName, null);
+                subCert = (X509Certificate) ent.getTrustedCertificate();
+            } else {
+                KeyStore store = getServerKeystore();
+                KeyStore.PrivateKeyEntry ksent = (KeyStore.PrivateKeyEntry) store.getEntry(certificateName, new KeyStore.PasswordProtection(System.getProperty("javax.net.ssl.keyStorePassword").toCharArray()));
+                subCert = (X509Certificate) ksent.getCertificate();
+            }
             return new ArrayList<>(getChain(subCert, null));
         } catch (NoSuchAlgorithmException | UnrecoverableEntryException | KeyStoreException ex) {
             throw new RuntimeException(ex);

@@ -2,7 +2,7 @@
 <aside class="noPrint">
     <div class="side_top"><h:local key="page_sideTop"/></div>
     <nav><h1><h:local key="page_topics" /></h1><ul><g:categorizer>
-        <li id="${_section_uuid}"><c:choose><c:when test="${_section_name == curGroup}">${_section_name}</c:when><c:otherwise><a href="${_section_url}">${_section_name}</a></c:otherwise></c:choose></li></g:categorizer>
+        <li id="${_category_uuid}"><c:choose><c:when test="${_category_name == curGroup}">${_category_name}</c:when><c:otherwise><a href="${_category_url}">${_category_name}</a></c:otherwise></c:choose></li></g:categorizer>
     </ul></nav><h:localVar key="page_patternMismatch" var="patternMismatch"/><h:localVar key="page_valueMissing" var="valueMissing"/>
     <c:if test="${!milligram}"><form class="search" action="search" method="GET" accept-charset="UTF-8">
         <input type="search" name="searchTerm" size="20" required="required" data-valuemissing="${valueMissing}" data-patternmismatch="${patternMismatch}" aria-label="Search" autocomplete="off"/>

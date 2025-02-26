@@ -10,14 +10,15 @@
     </c:forEach>
     <c:set scope="page" var="Subject" value="Subject"/>
     <c:forEach items="${certPaths}" var="certPath"><details class="certpath">
-        <summary><h:local key="page_health_cert_path"><h:param object="${certInfo.get(certPath.getCertificates().get(certPath.getCertificates().size()-1)).get(Subject)}"/><h:param>${fn:substringBefore(((certPath.getExpiration().getTime() - $_LIBWEBSITETOOLS_REQUEST_START_TIME.toInstant().toEpochMilli()) / 86400000),".")}</h:param></h:local></summary><c:forEach items="${certPath.getCertificates()}" var="cert">
-        <details class="secondmin"><summary><h:local key="page_health_cert"><h:param object="${certInfo.get(cert).get(Subject)}"/><h:param object="${certInfo.get(cert).daysUntilExpiration}"/></h:local></summary>
+        <summary><h:local key="page_health_cert_path"><h:param object="${certPath.getRootSubject()}"/><h:param>${certPath.getChainExpirationDays()}</h:param></h:local></summary>
+        <ul><c:forEach items="${certPath.getCertificates()}" var="cert"><li>
+        <details class="secondmin" open="true"><summary><h:local key="page_health_cert"><h:param object="${certInfo.get(cert).get(Subject)}"/><h:param object="${certPath.getCertExpirationDays(cert)}"/></h:local></summary>
             <table><c:forEach items="${certInfo.get(cert)}" var="info">
-                <tr class="secondmin"><td class="secondmin">${info.key}</td><td>${info.value}</td></tr></c:forEach>
-        </table></details>
-    </c:forEach></details></c:forEach>
+                <tr><td>${info.key}</td><td>${info.value}</td></tr></c:forEach>
+        </table></details></li>
+    </c:forEach></ul></details></c:forEach>
     <details class="performance"><summary>Server-Timings</summary><ul>
-    <c:forEach items="${performance.get()}" var="perf"><li><details class="perf"><summary>${perf.key}</summary>
+    <c:forEach items="${performance.get()}" var="perf"><li><details class="perf" open="true"><summary>${perf.key}</summary>
         <table><c:forEach items="${perf.value}" var="perfVal">
         <tr><td>${perfVal.key}</td><td>${perfVal.value}</td></tr></c:forEach></table>
     </details></li></c:forEach></ul></details>
@@ -36,4 +37,4 @@
     <td><h:filesize length="${file.datasize}"/></td><td>${file.mimetype}</td><td><h:time datetime="${file.atime}" pattern="yyyy-MM-dd h:mm a" /></td></tr></c:forEach></table>
     </details>
 </main>
-<%@ include file="/WEB-INF/adminFoot.jspf" %>
+<%@ include file="/WEB-INF/admin/adminFoot.jspf" %>

@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.postgresql.util.PGobject;
 
 /**
+ * Because Eclipselink doesn't quite support UUIDs yet.
  *
  * @author alpha
  */

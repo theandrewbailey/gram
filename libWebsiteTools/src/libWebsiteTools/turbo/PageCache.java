@@ -99,12 +99,6 @@ public class PageCache implements Cache<String, CachedPage> {
                 return null;
             }
             if (cc.isPrivate()) {
-                /*PageCache privateCache = (PageCache) req.getSession().getAttribute(PageCache.class.getCanonicalName());
-            if (null == privateCache) {
-                privateCache = new PageCache(100);
-                req.getSession().setAttribute(PageCache.class.getCanonicalName(), privateCache);
-            }
-            return privateCache;*/
                 return null;
             }
             return this;

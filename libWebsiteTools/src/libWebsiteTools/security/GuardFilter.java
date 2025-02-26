@@ -180,7 +180,7 @@ public class GuardFilter implements Filter {
      * Look up response from cache, and if found, write to response. Bypass with
      * nocache" URL query parameter.
      *
-     * @param beans
+     * @param ten
      * @param req
      * @param res
      * @return if something was found and written to response

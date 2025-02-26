@@ -104,7 +104,7 @@ public class RssServlet extends BaseServlet {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
-            LOG.log(Level.FINE, "RSS feed {0} requested, servicing", getRssName(request.getRequestURI()));
+            LOG.log(Level.FINEST, "RSS feed {0} requested, servicing", getRssName(request.getRequestURI()));
             Document XML = feed.preWrite(request, response);
             if (HttpServletResponse.SC_OK != response.getStatus()) {
                 response.sendError(response.getStatus());

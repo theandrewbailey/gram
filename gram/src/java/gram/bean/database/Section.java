@@ -18,6 +18,7 @@ import java.util.UUID;
 import libWebsiteTools.UUIDConverter;
 
 /**
+ * TODO: rename Section to Category
  *
  * @author alpha
  */
@@ -25,9 +26,10 @@ import libWebsiteTools.UUIDConverter;
 @Cacheable(true)
 @Table(name = "section", schema = "gram")
 @NamedQueries({
-    @NamedQuery(name = "Section.findAll", query = "SELECT s FROM Section s"),
-    @NamedQuery(name = "Section.findByName", query = "SELECT s FROM Section s WHERE s.name = :name"),
-    @NamedQuery(name = "Section.byArticlesPosted", query = "SELECT a.sectionid, min(a.posted), COUNT(a.sectionid.sectionid) FROM Article a GROUP BY a.sectionid ORDER BY min(a.posted)")})
+    @NamedQuery(name = "Category.findAll", query = "SELECT s FROM Section s"),
+    @NamedQuery(name = "Category.findByName", query = "SELECT s FROM Section s WHERE s.name = :name"),
+    @NamedQuery(name = "Category.count", query = "SELECT COUNT(s) FROM Section s"),
+    @NamedQuery(name = "Category.byArticlesPosted", query = "SELECT a.sectionid, min(a.posted), COUNT(a.sectionid.sectionid) FROM Article a GROUP BY a.sectionid ORDER BY min(a.posted)")})
 @SuppressWarnings("ValidPrimaryTableName")
 public class Section implements Serializable {
 
@@ -47,20 +49,23 @@ public class Section implements Serializable {
     @Convert(converter = UUIDConverter.class)
     @Column(name = "uuid", nullable = false, columnDefinition = "uuid")
     private UUID uuid;
-//    @OneToMany(cascade = CascadeType.ALL, mappedBy = "sectionid")
-//    private Collection<Article> articleCollection;
 
     public Section() {
         uuid = UUID.randomUUID();
     }
 
-    public Section(Integer sectionid) {
-        this.sectionid = sectionid;
+    public Section(Integer categoryid) {
+        this.sectionid = categoryid;
         uuid = UUID.randomUUID();
     }
 
-    public Section(Integer sectionid, String name, UUID uuid) {
-        this.sectionid = sectionid;
+    public Section(String name) {
+        this.name = name;
+        uuid = UUID.randomUUID();
+    }
+
+    public Section(Integer categoryid, String name, UUID uuid) {
+        this.sectionid = categoryid;
         this.name = name;
         this.uuid = uuid;
     }

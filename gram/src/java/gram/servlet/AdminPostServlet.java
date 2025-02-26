@@ -32,7 +32,7 @@ import gram.bean.GramTenant;
 @WebServlet(name = "adminPost", description = "Administer articles (and sometimes comments)", urlPatterns = {"/adminPost"})
 public class AdminPostServlet extends AdminServlet {
 
-    public static final String ADMIN_EDIT_POSTS = "/WEB-INF/adminEditPosts.jsp";
+    public static final String ADMIN_EDIT_POSTS = "/WEB-INF/admin/adminEditPosts.jsp";
 
     @Override
     public AdminPermission[] getRequiredPermissions() {
@@ -44,7 +44,7 @@ public class AdminPostServlet extends AdminServlet {
         GramTenant ten = GramLandlord.getTenant(request);
         Instant start = Instant.now();
         if (request.getParameter("deletecomment") != null) {      // delete comment
-            ten.getComms().delete(Integer.parseInt(request.getParameter("deletecomment")));
+            ten.getComms().delete(Integer.valueOf(request.getParameter("deletecomment")));
             ten.getArts().evict();
             ten.getGlobalCache().clear();
             RequestTimer.addTiming(request, "save", Duration.between(start, Instant.now()));
@@ -52,7 +52,7 @@ public class AdminPostServlet extends AdminServlet {
         } else if (request.getParameter("disablecomments") != null) {
             List<Article> articles = new ArrayList<>();
             for (String id : request.getParameterValues(AbstractInput.getIncomingHash(request, "selectedArticle"))) {
-                Article art = ten.getArts().get(Integer.parseInt(id));
+                Article art = ten.getArts().get(Integer.valueOf(id));
                 art.setComments(Boolean.FALSE);
                 articles.add(art);
             }
@@ -63,28 +63,10 @@ public class AdminPostServlet extends AdminServlet {
             response.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(request, Boolean.FALSE));
             response.sendRedirect(request.getAttribute(SecurityRepo.BASE_URL).toString());
         } else if (request.getParameter("rewrite") != null) {
-//            List<Fileupload> files = Collections.synchronizedList(new ArrayList<>(BackupDaemon.PROCESSING_CHUNK_SIZE * 2));
-//            ten.getFile().processArchive((file) -> {
-//                String url = BaseFileServlet.getImmutableURL(ten.getImeadValue(SecurityRepo.BASE_URL), file);
-//                if (!url.equals(file.getUrl())) {
-//                    file.setUrl(url);
-//                    files.add(file);
-//                }
-//                synchronized (files) {
-//                    if (files.size() > BackupDaemon.PROCESSING_CHUNK_SIZE) {
-//                        final List<Fileupload> fileChunk = new ArrayList<>(files);
-//                        ten.getFile().upsert(fileChunk);
-//                        files.clear();
-//                    }
-//                }
-//            }, false);
-//            if (!files.isEmpty()) {
-//                ten.getFile().upsert(files);
-//            }
             try {
                 Queue<Future<Article>> articleTasks = new ConcurrentLinkedQueue<>();
                 for (String id : request.getParameterValues(AbstractInput.getIncomingHash(request, "selectedArticle"))) {
-                    Article art = ten.getArts().get(Integer.parseInt(id));
+                    Article art = ten.getArts().get(Integer.valueOf(id));
                     art.setPostedhtml(null);
                     art.setImageurl(null);
                     articleTasks.add(ten.getExec().submit(new ArticleProcessor(ten, art)));

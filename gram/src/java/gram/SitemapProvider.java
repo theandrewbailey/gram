@@ -29,8 +29,8 @@ public class SitemapProvider implements Iterable<UrlMap> {
     public Iterator<UrlMap> iterator() {
         List<Article> entries = new ArrayList<>(ten.getArts().getAll(null));
         Collections.reverse(entries);
-        List<Section> sects = ten.getSects().getAll(null);
-        ArrayList<UrlMap> urlMap = new ArrayList<>(entries.size() + sects.size() + 10);
+        List<Section> categories = ten.getCategories().getAll(null);
+        ArrayList<UrlMap> urlMap = new ArrayList<>(entries.size() + categories.size() + 10);
         urlMap.add(new UrlMap(ten.getImeadValue(SecurityRepo.BASE_URL), null, ChangeFreq.daily, "0.7"));
         @SuppressWarnings("null")
         int maxArticleID = !entries.isEmpty() ? entries.get(entries.size() - 1).getArticleid() : 1;
@@ -57,15 +57,15 @@ public class SitemapProvider implements Iterable<UrlMap> {
             }
             urlMap.add(new UrlMap(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepo.BASE_URL), e, null), e.getModified(), freq, String.format("%.1f", difference)));
         }
-        for (Section s : sects) {
+        for (Section s : categories) {
             String name = s.getName();
-            IndexFetcher f = new IndexFetcher(ten, "/index/" + name);
+            CategoryFetcher f = new CategoryFetcher(ten, "/index/" + name);
             if (!name.isEmpty()) {
                 name = name + "/";
             }
-            int countTo = f.getCount();
-            if (f.getLast() > countTo) {
-                countTo = f.getLast();
+            int countTo = f.getPageCount();
+            if (f.getLastPage() > countTo) {
+                countTo = f.getLastPage();
             }
             for (int x = 1; x <= countTo; x++) {
                 float difference = 0.5f - (x / 10f);

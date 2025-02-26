@@ -1,5 +1,7 @@
 package gram.rss;
 
+import static gram.CategoryFetcher.PAGES_AROUND_CURRENT;
+import static gram.CategoryFetcher.POSTS_PER_PAGE;
 import gram.bean.GramLandlord;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -41,7 +43,6 @@ import gram.bean.GramTenant;
 public class CommentRss implements DynamicFeed {
 
     public static final String NAME = "Comments.rss";
-    private static final String COMMENT_COUNT = "site_rss_commentCount";
     private static final Logger LOG = Logger.getLogger(CommentRss.class.getName());
     private static final Pattern NAME_PATTERN = Pattern.compile("Comments(.*?)\\.rss");
 
@@ -51,7 +52,7 @@ public class CommentRss implements DynamicFeed {
     public Document createFeed(GramTenant ten, Object articleId) {
         RssChannel entries;
         if (null == articleId) {
-            entries = createChannel(ten, ten.getComms().getAll(Integer.valueOf(ten.getImeadValue(COMMENT_COUNT))));
+            entries = createChannel(ten, ten.getComms().getAll(Integer.parseInt(ten.getImeadValue(POSTS_PER_PAGE)) * Integer.parseInt(ten.getImeadValue(PAGES_AROUND_CURRENT))));
         } else {
             Article art = ten.getArts().get(Integer.parseInt(articleId.toString()));
             List<Comment> lComments = new ArrayList<>(art.getCommentCollection());
@@ -97,9 +98,9 @@ public class CommentRss implements DynamicFeed {
      */
     @Override
     public Map<String, String> getFeedURLs(HttpServletRequest req) {
-        Article art = (Article) req.getAttribute(Article.class.getSimpleName());
         HashMap<String, String> output = new HashMap<>();
         output.put(getName(), "All Comments");
+        Article art = (Article) req.getAttribute(Article.class.getSimpleName());
         if (null != art && null != art.getComments() && art.getComments()) {
             output.put("Comments" + art.getArticleid() + ".rss", art.getArticletitle() + " Comments");
         }
@@ -128,10 +129,12 @@ public class CommentRss implements DynamicFeed {
             Object name = req.getAttribute(RssServlet.class.getSimpleName());
             Matcher regex = NAME_PATTERN.matcher(name.toString());
             String group = regex.find() ? regex.group(1) : null;
-            if (null != group && group.isEmpty()) {
-                group = null;
-            }
             try {
+                if (null != group && group.isEmpty()) {
+                    group = null;
+                } else {
+                    Integer.parseInt(group);
+                }
                 Document XML = createFeed(ten, group);
                 DOMSource DOMsrc = new DOMSource(XML);
                 StringWriter holder = new StringWriter(10000);
@@ -147,6 +150,9 @@ public class CommentRss implements DynamicFeed {
                 if (etag.equals(req.getHeader(HttpHeaders.IF_NONE_MATCH))) {
                     res.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
                 }
+            } catch (NumberFormatException nx) {
+                res.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                return null;
             } catch (TransformerException ex) {
                 LOG.log(Level.SEVERE, "Coment feed will not be available due to an XML transformation error.", ex);
                 return null;

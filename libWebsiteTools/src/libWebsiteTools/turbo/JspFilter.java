@@ -96,7 +96,10 @@ public class JspFilter implements Filter {
         if (null != cache) {
             cache.put(PageCache.getLookup(ten.getImead(), req), page);
         }
-        res.flushBuffer();
+        try {
+            res.flushBuffer();
+        } catch (IOException ie) {
+        }
     }
 
     private CachedPage capturePage(FilterChain chain, HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {

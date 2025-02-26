@@ -71,8 +71,8 @@ public class Comment implements Serializable {
     public Comment() {
     }
 
-    public Comment(Integer commentid) {
-        this.commentid = commentid;
+    public Comment(UUID uuid) {
+        this.uuid = uuid;
     }
 
     public Comment(Integer commentid, OffsetDateTime posted, String postedhtml, String postedname, UUID uuid) {

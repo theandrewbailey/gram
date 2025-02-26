@@ -10,11 +10,12 @@ import jakarta.servlet.http.HttpServletResponse;
 import libWebsiteTools.security.GuardFilter;
 import libWebsiteTools.tag.AbstractInput;
 import gram.bean.GramTenant;
+import libWebsiteTools.security.SecurityRepo;
 
 @WebServlet(name = "AdminLoginServlet", description = "Show the login page", urlPatterns = {"/adminLogin"})
 public class AdminLoginServlet extends AdminServlet {
 
-    public static final String ADMIN_LOGIN_PAGE = "/WEB-INF/adminLogin.jsp";
+    public static final String ADMIN_LOGIN_PAGE = "/WEB-INF/admin/adminLogin.jsp";
 
     @Override
     public AdminPermission[] getRequiredPermissions() {
@@ -56,7 +57,7 @@ public class AdminLoginServlet extends AdminServlet {
                 request.getRequestDispatcher(per.getUrl()).forward(request, response);
             } else {
                 ten.getError().logException(request, "Bad Login", "Tried to access restricted area. Login not recognized: " + answer, null);
-                request.getSession().setAttribute(AdminPermission.class.getCanonicalName(), null);
+                request.getSession().setAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + AdminPermission.class.getCanonicalName(), null);
                 request.setAttribute(GuardFilter.HANDLED_ERROR, true);
                 request.getRequestDispatcher(IndexServlet.class.getAnnotation(WebServlet.class).urlPatterns()[0]).forward(request, response);
             }

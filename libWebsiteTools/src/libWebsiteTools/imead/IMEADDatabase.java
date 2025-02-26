@@ -8,7 +8,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.logging.Logger;
 import libWebsiteTools.security.HashUtil;
 
 /**
@@ -17,7 +16,6 @@ import libWebsiteTools.security.HashUtil;
  */
 public class IMEADDatabase extends IMEADHolder {
 
-    private static final Logger LOG = Logger.getLogger(IMEADDatabase.class.getName());
     protected final EntityManagerFactory PU;
 
     public IMEADDatabase(EntityManagerFactory PU) {
@@ -30,13 +28,11 @@ public class IMEADDatabase extends IMEADHolder {
      */
     @Override
     public IMEADHolder evict() {
-        LOG.entering(IMEADHolder.class.getName(), "evict");
         PU.getCache().evict(Localization.class);
         localizedHash = HashUtil.getSHA256Hash(localizedCache.toString());
         patterns.clear();
         filteredCache.clear();
         localizedCache = Collections.unmodifiableMap(getProperties());
-        LOG.exiting(IMEADHolder.class.getName(), "evict");
         return this;
     }
 

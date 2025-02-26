@@ -1,5 +1,7 @@
 package gram.rss;
 
+import static gram.CategoryFetcher.PAGES_AROUND_CURRENT;
+import static gram.CategoryFetcher.POSTS_PER_PAGE;
 import gram.bean.GramLandlord;
 import java.io.StringWriter;
 import java.util.Arrays;
@@ -32,27 +34,28 @@ import gram.tag.Categorizer;
 import libWebsiteTools.rss.Feed;
 import libWebsiteTools.rss.DynamicFeed;
 import gram.bean.GramTenant;
+import java.util.List;
 
 public class ArticleRss implements DynamicFeed {
 
     public static final String NAME = "Articles.rss";
-    public static final String ARTICLE_COUNT = "site_rss_articleCount";
     private static final Logger LOG = Logger.getLogger(Article.class.getName());
     private static final Pattern NAME_PATTERN = Pattern.compile("(.*?)Articles\\.rss");
 
     public ArticleRss() {
     }
 
-    public Document createFeed(GramTenant ten, Integer numEntries, String category) {
-        RssChannel entries = new RssChannel(null == category
+    public Document createFeed(GramTenant ten, Integer numEntries, String catName) {
+        RssChannel entries = new RssChannel(null == catName
                 ? ten.getImead().getValue(GramServlet.SITE_TITLE)
-                : ten.getImead().getValue(GramServlet.SITE_TITLE) + " - " + category,
+                : ten.getImead().getValue(GramServlet.SITE_TITLE) + " - " + catName,
                 ten.getImeadValue(SecurityRepo.BASE_URL), ten.getImead().getValue(GramServlet.TAGLINE));
         entries.setWebMaster(ten.getImeadValue(Feed.MASTER));
         entries.setManagingEditor(entries.getWebMaster());
         entries.setLanguage(ten.getImeadValue(Feed.LANGUAGE));
         entries.setCopyright(ten.getImeadValue(Feed.COPYRIGHT));
-        for (Article art : ten.getArts().getBySection(category, 1, numEntries, null)) {
+        List<Article> articles = ten.getArts().search(new Section(catName), numEntries);
+        for (Article art : articles) {
             String text = art.getPostedhtml();
             GramRssItem i = new GramRssItem(text);
             entries.addItem(i);
@@ -67,7 +70,9 @@ public class ArticleRss implements DynamicFeed {
             i.setMetadescription(art.getDescription());
             i.setSummary(art.getSummary());
             i.setImageURL(art.getImageurl());
-            i.addCategory(art.getSectionid().getName(), Categorizer.getUrl(ten.getImeadValue(SecurityRepo.BASE_URL), category, null));
+            if (null != art.getSectionid()) {
+                i.addCategory(art.getSectionid().getName(), Categorizer.getUrl(ten.getImeadValue(SecurityRepo.BASE_URL), catName, null));
+            }
             if (art.getComments()) {
                 i.setComments(i.getLink() + "#comments");
             }
@@ -90,8 +95,8 @@ public class ArticleRss implements DynamicFeed {
         Map<String, String> urls = new LinkedHashMap<>();
         urls.put(getName(), "All articles");
         GramTenant ten = GramLandlord.getTenant(req);
-        for (Section cat : ten.getSects().getAll(null)) {
-            urls.put(cat.getName() + getName(), cat.getName() + " articles");
+        for (Section category : ten.getCategories().getAll(null)) {
+            urls.put(category.getName() + getName(), category.getName() + " articles");
         }
         return urls;
     }
@@ -121,7 +126,9 @@ public class ArticleRss implements DynamicFeed {
             String category = (regex.group(1) != null && !regex.group(1).isEmpty())
                     ? regex.group(1) : null;
             try {
-                Document XML = createFeed(ten, Integer.valueOf(ten.getImeadValue(ARTICLE_COUNT)), category);
+                Document XML = createFeed(ten,
+                        Integer.parseInt(ten.getImeadValue(POSTS_PER_PAGE)) * Integer.parseInt(ten.getImeadValue(PAGES_AROUND_CURRENT)),
+                        category);
                 DOMSource DOMsrc = new DOMSource(XML);
                 StringWriter holder = new StringWriter(100000);
                 StreamResult str = new StreamResult(holder);

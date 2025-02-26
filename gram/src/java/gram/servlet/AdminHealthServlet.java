@@ -17,7 +17,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import libWebsiteTools.turbo.CachedPage;
 import libWebsiteTools.file.FileUtil;
 import libWebsiteTools.file.Fileupload;
@@ -30,11 +29,25 @@ import libWebsiteTools.security.SecurityRepo;
 import libWebsiteTools.tag.AbstractInput;
 import libWebsiteTools.turbo.RequestTimes;
 import gram.UtilStatic;
+import gram.bean.SiteExporter;
 import gram.bean.GramLandlord;
 import gram.bean.database.Article;
 import gram.bean.database.Comment;
 import gram.rss.ErrorRss;
 import gram.bean.GramTenant;
+import gram.bean.SiteMilligramExporter;
+import jakarta.ejb.EJB;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.Certificate;
+import java.util.concurrent.ForkJoinPool;
+import javax.net.ssl.SSLContext;
+import libWebsiteTools.Landlord;
 
 /**
  *
@@ -44,7 +57,9 @@ import gram.bean.GramTenant;
 public class AdminHealthServlet extends AdminServlet {
 
     public static final String HEALTH_COMMANDS = "site_healthCommands";
-    public static final String ADMIN_HEALTH = "/WEB-INF/adminHealth.jsp";
+    public static final String ADMIN_HEALTH = "/WEB-INF/admin/adminHealth.jsp";
+    @EJB
+    private Landlord landlord; // so that reload can call init() to instantiate other new tenants
 
     @Override
     public AdminPermission[] getRequiredPermissions() {
@@ -56,9 +71,10 @@ public class AdminHealthServlet extends AdminServlet {
         GramTenant ten = GramLandlord.getTenant(request);
         String action = AbstractInput.getParameter(request, "action");
         if ("reload".equals(action)) {
+            landlord.init();
             ten.reset();
             ten.isFirstTime();
-            ten.getExec().submit(ten.getBackup());
+            ten.getExec().submit(new SiteExporter(ten));
             request.getSession().invalidate();
             response.setHeader("Clear-Site-Data", "*");
             response.sendRedirect(request.getAttribute(SecurityRepo.BASE_URL).toString());
@@ -73,7 +89,7 @@ public class AdminHealthServlet extends AdminServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         GramTenant ten = GramLandlord.getTenant(request);
         request.setAttribute("processes", ten.getExec().submit(() -> {
-            LinkedHashMap<String, Future< String>> processes = new LinkedHashMap<>();
+            LinkedHashMap<String, Future<String>> processes = new LinkedHashMap<>();
             for (String command : ten.getImeadValue(HEALTH_COMMANDS).split("\n")) {
                 processes.put(command, ten.getExec().submit(() -> {
                     Instant start = Instant.now();
@@ -167,28 +183,53 @@ public class AdminHealthServlet extends AdminServlet {
             return out;
         }));
         Map<X509Certificate, LinkedHashMap> certInfo = new HashMap<>();
+        request.setAttribute("certInfo", certInfo);
+        List<CertPath<X509Certificate>> certPaths = null;
         if (null != ten.getImeadValue(GuardFilter.CERTIFICATE_NAME)) {
             try {
                 CertUtil certUtil = ten.getError().getCerts();
-                List<CertPath<X509Certificate>> certPaths = certUtil.getServerCertificateChain(ten.getImeadValue(GuardFilter.CERTIFICATE_NAME));
-                for (CertPath<X509Certificate> path : certPaths) {
-                    for (X509Certificate x509 : path.getCertificates()) {
-                        LinkedHashMap<String, String> cert = CertUtil.formatCert(x509);
-                        OffsetDateTime localNow = RequestTimer.getStartTime(request);
-                        Long days = (x509.getNotAfter().getTime() - localNow.toInstant().toEpochMilli()) / 86400000;
-                        if (null != cert) {
-                            cert.put("daysUntilExpiration", days.toString());
-                            certInfo.put(x509, cert);
-                        }
-                    }
-                }
-                request.setAttribute("certPaths", certPaths);
+                certPaths = getCertInfos(certInfo, certUtil.getServerCertificateChain(ten.getImeadValue(GuardFilter.CERTIFICATE_NAME)));
             } catch (RuntimeException x) {
-                ten.getError().logException(request, "Certificate error", "building certificate chain", x);
+//                ten.getError().logException(request, "Certificate error", "building certificate chain", x);
             }
         }
-        request.setAttribute("certInfo", certInfo);
+        if (null == certPaths) {
+            try {
+                HttpClient.Builder hbuilder = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).executor(new ForkJoinPool());
+                try {
+                    SSLContext sx = SSLContext.getInstance("TLS");
+                    sx.init(null, SiteMilligramExporter.TRUST_ALL, new SecureRandom());
+                    hbuilder.sslContext(sx);
+                } catch (KeyManagementException | NoSuchAlgorithmException gx) {
+                    throw new RuntimeException(gx);
+                }
+                HttpClient hclient = hbuilder.build();
+                URI url = new URI(ten.getImeadValue(SecurityRepo.BASE_URL));
+                HttpRequest hreq = HttpRequest.newBuilder(url).GET().build();
+                HttpResponse<String> hres = hclient.send(hreq, HttpResponse.BodyHandlers.ofString());
+                Certificate[] certs = hres.sslSession().get().getPeerCertificates();
+                X509Certificate primaryCert = (X509Certificate) certs[0];
+                certPaths = getCertInfos(certInfo,
+                        new CertUtil(certs).getServerCertificateChain(primaryCert.getSubjectX500Principal().getName()));
+            } catch (Exception x) {
+            }
+        }
+        if (null != certPaths) {
+            request.setAttribute("certPaths", certPaths);
+        }
         request.setAttribute("locales", Local.resolveLocales(ten.getImead(), request));
         request.getRequestDispatcher(ADMIN_HEALTH).forward(request, response);
+    }
+
+    public static List<CertPath<X509Certificate>> getCertInfos(Map<X509Certificate, LinkedHashMap> certInfo, List<CertPath<X509Certificate>> certPaths) {
+        for (CertPath<X509Certificate> path : certPaths) {
+            for (X509Certificate x509 : path.getCertificates()) {
+                LinkedHashMap<String, String> cert = CertUtil.formatCert(x509);
+                if (null != cert) {
+                    certInfo.put(x509, cert);
+                }
+            }
+        }
+        return certPaths;
     }
 }

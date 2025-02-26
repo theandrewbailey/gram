@@ -1,10 +1,9 @@
 package gram.bean;
 
+import gram.bean.database.PostgresGramTenant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
@@ -19,16 +18,17 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NameClassPair;
 import javax.naming.NamingException;
-import jakarta.persistence.EntityManagerFactory;
 import jakarta.servlet.http.HttpServletRequest;
 import javax.sql.DataSource;
 import jakarta.ws.rs.core.HttpHeaders;
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
 import java.util.Map;
-import org.eclipse.persistence.jpa.PersistenceProvider;
+import java.util.concurrent.ConcurrentHashMap;
 import libWebsiteTools.Landlord;
 
 /**
- * Easy way to ensure static functions have access to requisite bean classes.
+ * Singleton EJB that stores tenants for running blogs.
  *
  * @author alpha
  */
@@ -39,11 +39,9 @@ import libWebsiteTools.Landlord;
 public class GramLandlord implements Landlord {
 
     private static final String DEFAULT_DATASOURCE = "java/gram/default";
-    private final HashMap<String, GramTenant> tenants = new HashMap<>();
+    private final Map<String, GramTenant> tenants = new ConcurrentHashMap<>();
     @Resource
     private ManagedExecutorService defaultExec;
-//    @PersistenceUnit
-//    private EntityManagerFactory defaultPU;
 
     @Override
     public GramTenant setTenant(HttpServletRequest req) {
@@ -63,33 +61,54 @@ public class GramLandlord implements Landlord {
         return (GramTenant) req.getAttribute(libWebsiteTools.Tenant.class.getCanonicalName());
     }
 
-    @PreDestroy
-    private void cleanup() {
-        for (GramTenant ten : tenants.values()) {
-            ten.destroy();
+    private GramTenant instantiateTenant(String jndi, DataSource s) {
+        try {
+            DatabaseMetaData metaData = s.getConnection().getMetaData();
+            switch (metaData.getDatabaseProductName()) {
+                case "PostgreSQL":
+                    return new PostgresGramTenant(jndi, s, defaultExec);
+            }
+        } catch (SQLException ex) {
         }
-        tenants.clear();
+        throw new RuntimeException("JNDI resource " + jndi + " can't be used. Verify this connection works, rename this resource, or implement support for it.");
     }
 
     @PostConstruct
-    @SuppressWarnings("unused")
-    private void init() {
-        cleanup();
-//        tenants.put(DEFAULT_DATASOURCE, new PostgresGramTenant(defaultPU, defaultExec));
-        PersistenceProvider pp = new PersistenceProvider();
-        Map<String, DataSource> dataSources = traverseContext(null, "");
-        for (Map.Entry<String, DataSource> pair : dataSources.entrySet()) try {
+    @Override
+    public void init() {
+        Map<String, GramTenant> newTenants = new HashMap<>();
+        for (Map.Entry<String, DataSource> pair : traverseContext(null, "").entrySet()) {
             String jndi = pair.getKey();
             if (jndi.startsWith("java/gram/")) {
-                DataSource s = pair.getValue();
-                GramUnitInfo info = new GramUnitInfo(jndi, s);
-                EntityManagerFactory emf = pp.createContainerEntityManagerFactory(info, new HashMap<>());
-                GramTenant ten = new PostgresGramTenant(emf, defaultExec);
-                tenants.put(DEFAULT_DATASOURCE.equals(jndi)
-                        ? DEFAULT_DATASOURCE : jndi.replaceFirst("java/gram/", ""), ten);
+                String dsName = DEFAULT_DATASOURCE.equals(jndi)
+                        ? DEFAULT_DATASOURCE : jndi.replaceFirst("java/gram/", "");
+                if (tenants.containsKey(dsName)) {
+                    newTenants.put(dsName, tenants.get(dsName));
+                    continue;
+                }
+                newTenants.put(dsName, instantiateTenant(jndi, pair.getValue()));
             }
-        } catch (RuntimeException rx) {
-            Logger.getLogger(GramLandlord.class.getName()).log(Level.SEVERE, "Can't initialize beans for " + pair.getKey(), rx);
+        }
+        synchronized (tenants) {
+            for (Map.Entry<String, GramTenant> e : tenants.entrySet()) {
+                if (!newTenants.containsKey(e.getKey())) {
+                    e.getValue().destroy();
+                    tenants.remove(e.getKey());
+                }
+            }
+            tenants.clear();
+            tenants.putAll(newTenants);
+        }
+    }
+
+    @PreDestroy
+    @Override
+    public void cleanup() {
+        synchronized (tenants) {
+            for (GramTenant ten : tenants.values()) {
+                ten.destroy();
+            }
+            tenants.clear();
         }
     }
 
@@ -142,7 +161,7 @@ public class GramLandlord implements Landlord {
     @SuppressWarnings("unused")
     private void nightly() {
         for (GramTenant ten : tenants.values()) {
-            ten.getBackup().run();
+            new SiteExporter(ten).run();
             ten.getError().evict();
         }
     }

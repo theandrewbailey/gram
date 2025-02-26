@@ -56,4 +56,4 @@
     </form>
 </c:if>
 </main>
-<%@ include file="/WEB-INF/adminFoot.jspf" %>
+<%@ include file="/WEB-INF/admin/adminFoot.jspf" %>

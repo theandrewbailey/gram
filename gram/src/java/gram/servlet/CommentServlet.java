@@ -23,7 +23,7 @@ import libWebsiteTools.turbo.PageCache;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.tag.AbstractInput;
 import libWebsiteTools.tag.HtmlMeta;
-import gram.IndexFetcher;
+import gram.CategoryFetcher;
 import gram.UtilStatic;
 import gram.bean.GramLandlord;
 import gram.bean.database.Article;
@@ -50,7 +50,7 @@ public class CommentServlet extends GramServlet {
         boolean spamSuspected = (request.getSession(false) == null || request.getSession().isNew()) && request.getParameter("referer") == null;
         try {
             Instant start = Instant.now();
-            Article art = IndexFetcher.getArticleFromURI(ten, request.getRequestURI());
+            Article art = ArticleServlet.getArticleFromURL(ten, request.getRequestURI());
             RequestTimer.addTiming(request, "query", Duration.between(start, Instant.now()));
             request.setAttribute(Article.class.getCanonicalName(), art);
             return spamSuspected ? art.getModified().toInstant().toEpochMilli() - 10000 : art.getModified().toInstant().toEpochMilli();
@@ -67,7 +67,7 @@ public class CommentServlet extends GramServlet {
         if (null == art) {
             try {
                 Instant start = Instant.now();
-                art = IndexFetcher.getArticleFromURI(ten, request.getRequestURI());
+                art = ArticleServlet.getArticleFromURL(ten, request.getRequestURI());
                 RequestTimer.addTiming(request, "query", Duration.between(start, Instant.now()));
                 request.setAttribute(Article.class.getCanonicalName(), art);
             } catch (RuntimeException ex) {
@@ -144,8 +144,7 @@ public class CommentServlet extends GramServlet {
                 return;
             }
         }
-        Comment newComment = new Comment();
-        newComment.setUuid(UUID.randomUUID());
+        Comment newComment = new Comment(UUID.randomUUID());
         newComment.setPostedhtml(UtilStatic.htmlFormat(postText, false, true, true));
         newComment.setPostedname(UtilStatic.htmlFormat(postName, false, false, true));
         if (!validator.reset(postName).matches()
@@ -154,7 +153,7 @@ public class CommentServlet extends GramServlet {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        Article art = IndexFetcher.getArticleFromURI(ten, request.getRequestURI());
+        Article art = ArticleServlet.getArticleFromURL(ten, request.getRequestURI());
         // prevent posting from old page
         String postRequest = AbstractInput.getParameter(request, "original-request-time");
         if (null != postRequest) {
@@ -174,7 +173,7 @@ public class CommentServlet extends GramServlet {
         ten.getComms().upsert(Arrays.asList(newComment));
         request.getSession().setAttribute("LastPostedName", postName);
         RequestTimer.addTiming(request, "save", Duration.between(start, Instant.now()));
-        Article refreshedArt = IndexFetcher.getArticleFromURI(ten, request.getRequestURI());
+        Article refreshedArt = ArticleServlet.getArticleFromURL(ten, request.getRequestURI());
         request.setAttribute(Article.class.getCanonicalName(), refreshedArt);
         ten.getExec().submit(() -> {
             PageCache global = ten.getGlobalCache();

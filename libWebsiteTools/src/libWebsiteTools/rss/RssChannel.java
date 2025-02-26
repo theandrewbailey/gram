@@ -15,7 +15,8 @@ import org.w3c.dom.Element;
  */
 public class RssChannel implements Serializable, Publishable {
 
-    public final String generator = "Gram/libWebsiteTools v11.0";
+    public static final String GENERATOR = "Gram/libWebsiteTools v11.0";
+    public static final String COUNT_ATTRIBUTE = "itemCount";
     protected final String docs = "http://cyber.law.harvard.edu/tech/rss";
     private final String[] namesOfDays = new String[]{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
@@ -273,6 +274,7 @@ public class RssChannel implements Serializable, Publishable {
         for (RssItem item : items) {
             item.publish(chan);
         }
+        chan.setAttribute(COUNT_ATTRIBUTE, Integer.toString(items.size()));
         return chan;
     }
 
@@ -364,7 +366,7 @@ public class RssChannel implements Serializable, Publishable {
      * @return the generator
      */
     public String getGenerator() {
-        return generator;
+        return GENERATOR;
     }
 
     /**

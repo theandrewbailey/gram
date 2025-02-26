@@ -10,4 +10,4 @@
 </form>
 <p><a href="mg" class="nocache"><h:local key="page_downloadMilligram"/></a></p>
 </main>
-<%@ include file="/WEB-INF/adminFoot.jspf" %>
+<%@ include file="/WEB-INF/admin/adminFoot.jspf" %>

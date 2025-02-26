@@ -20,6 +20,7 @@ import java.util.concurrent.Future;
 import libWebsiteTools.JVMNotSupportedError;
 import libWebsiteTools.turbo.RequestTimer;
 import gram.bean.GramTenant;
+import libWebsiteTools.security.SecurityRepo;
 
 /**
  * Servlets that require a login to use must extend this class. Also provides
@@ -106,12 +107,12 @@ public abstract class AdminServlet extends GramServlet {
                 }
             }
         } catch (InterruptedException | ExecutionException ex) {
-            sess.removeAttribute(AdminPermission.class.getCanonicalName());
+            sess.removeAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + AdminPermission.class.getCanonicalName());
             throw new RuntimeException("Something went wrong while verifying passwords.", ex);
         } finally {
             RequestTimer.addTiming(req, "authorize", Duration.between(start, Instant.now()));
         }
-        sess.removeAttribute(AdminPermission.class.getCanonicalName());
+        sess.removeAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + AdminPermission.class.getCanonicalName());
         return null;
     }
 

@@ -11,6 +11,7 @@ public class Button extends AbstractInput {
     private String type;
     private String action;
     private String method;
+    private String target;
 
     @Override
     public StringBuilder createTag() {
@@ -35,6 +36,9 @@ public class Button extends AbstractInput {
         }
         if (null != getTitle()) {
             out.append("\" title=\"").append(getTitle());
+        }
+        if (null != getTarget()) {
+            out.append("\" formtarget=\"").append(getTarget());
         }
         if (null != getValue()) {
             out.append("\" value=\"").append(getValue());
@@ -80,4 +84,11 @@ public class Button extends AbstractInput {
         this.method = method;
     }
 
+    public String getTarget() {
+        return target;
+    }
+
+    public void setTarget(String target) {
+        this.target = target;
+    }
 }

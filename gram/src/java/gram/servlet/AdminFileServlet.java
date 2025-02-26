@@ -24,7 +24,7 @@ import gram.bean.GramTenant;
 @WebServlet(name = "adminFile", description = "Performs admin stuff on file uploads", urlPatterns = {"/adminFile"})
 public class AdminFileServlet extends AdminServlet {
 
-    public static final String ADMIN_FILE = "/WEB-INF/adminFile.jsp";
+    public static final String ADMIN_FILE = "/WEB-INF/admin/adminFile.jsp";
 
     @Override
     public AdminPermission[] getRequiredPermissions() {

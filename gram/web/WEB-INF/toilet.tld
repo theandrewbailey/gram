@@ -8,6 +8,13 @@
     <tag-class>gram.tag.Categorizer</tag-class>
     <body-content>scriptless</body-content>
     <attribute>
+      <description>article to get category from</description>
+      <name>article</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>gram.bean.database.Article</type>
+    </attribute>
+    <attribute>
       <description>a single category</description>
       <name>category</name>
       <required>false</required>

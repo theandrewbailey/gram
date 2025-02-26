@@ -39,14 +39,14 @@ public class Markdowner {
 
     public static String getMarkdown(String html) {
         // TODO: find library to convert HTML to proper markdown, pass through HTML for now
-        LOG.log(Level.FINEST, "HTML (not) converted to markdown");
+        LOG.log(Level.FINER, "HTML (not) converted to markdown");
         return html;
     }
 
     public static String getHtml(String markdown) {
         Node n = COMMONMARK_PARSER.parse(markdown);
         String html = COMMONMARK_HTML_RENDERER.render(n);
-        LOG.log(Level.FINEST, "converted markdown to HTML");
+        LOG.log(Level.FINER, "converted markdown to HTML");
         return html;
     }
 }

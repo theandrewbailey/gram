@@ -11,6 +11,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.concurrent.Callable;
 import libWebsiteTools.security.HashUtil;
+import libWebsiteTools.security.SecurityRepo;
 
 /**
  * Defines the permissions used to administer the site. A password is associated
@@ -31,12 +32,14 @@ public interface AdminPermission {
     }
 
     default AdminPermission authenticate(HttpServletRequest req) {
-        req.getSession().setAttribute(AdminPermission.class.getCanonicalName(), this);
+        GramTenant ten = GramLandlord.getTenant(req);
+        req.getSession().setAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + AdminPermission.class.getCanonicalName(), this);
         return this;
     }
 
     default boolean isAuthenticated(HttpServletRequest req) {
-        return this.equals(req.getSession().getAttribute(AdminPermission.class.getCanonicalName()));
+        GramTenant ten = GramLandlord.getTenant(req);
+        return this.equals(req.getSession().getAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + AdminPermission.class.getCanonicalName()));
     }
 
     public static enum Password implements AdminPermission {

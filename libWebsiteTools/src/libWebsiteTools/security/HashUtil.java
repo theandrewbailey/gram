@@ -18,9 +18,13 @@ import libWebsiteTools.JVMNotSupportedError;
  *
  * @author alpha
  */
-public abstract class HashUtil {
+public final class HashUtil {
 
     public static final Pattern ARGON2_ENCODING_PATTERN = Pattern.compile("^\\$(?<type>\\w*?)\\$v=(?<v>\\d*?)\\$m=(?<m>\\d*?),t=(?<t>\\d*?),p=(?<p>\\d*?)\\$(?<salt>[A-Za-z0-9\\+\\/\\=]*?)\\$(?<hash>[A-Za-z0-9\\+\\/\\=]*?)$");
+
+    public HashUtil() {
+        throw new UnsupportedOperationException("You cannot instantiate this class");
+    }
 
     /**
      * @return SHA-256 MessageDigest

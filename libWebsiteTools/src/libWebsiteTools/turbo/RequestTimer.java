@@ -79,7 +79,9 @@ public class RequestTimer implements ServletRequestListener {
         addTiming(req, "total", getElapsed(getStartTime(req)));
         Map<String, Duration> timings = getTimings(req);
         for (Map.Entry<String, Duration> timing : timings.entrySet()) {
-            parts.add(timing.getKey() + String.format(";dur=%.3f", timing.getValue().toNanos() / 1000000.0));
+            if (null != timing.getValue()) {
+                parts.add(timing.getKey() + String.format(";dur=%.3f", timing.getValue().toNanos() / 1000000.0));
+            }
         }
         timings.put(cached ? "hit" : "miss", null);
         return String.join(", ", parts);

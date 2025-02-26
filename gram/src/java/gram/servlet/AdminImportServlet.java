@@ -1,6 +1,7 @@
 package gram.servlet;
 
 import gram.AdminPermission;
+import gram.bean.SiteImporter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.ZipInputStream;
@@ -15,14 +16,14 @@ import libWebsiteTools.security.GuardFilter;
 import libWebsiteTools.turbo.RequestTimer;
 import libWebsiteTools.security.SecurityRepo;
 import libWebsiteTools.tag.AbstractInput;
-import gram.bean.BackupDaemon;
+import gram.bean.SiteExporter;
 import gram.bean.GramLandlord;
 import gram.bean.GramTenant;
 
 @WebServlet(name = "AdminImportServlet", description = "Download the entire site as a zip. Insert articles, comments, and files via zip file upload", urlPatterns = {"/adminImport", "/*/adminImport", "/adminExport"})
 public class AdminImportServlet extends AdminServlet {
 
-    public static final String ADMIN_IMPORT_EXPORT = "/WEB-INF/adminImportExport.jsp";
+    public static final String ADMIN_IMPORT_EXPORT = "/WEB-INF/admin/adminImportExport.jsp";
 
     @Override
     public AdminPermission[] getRequiredPermissions() {
@@ -32,9 +33,10 @@ public class AdminImportServlet extends AdminServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         GramTenant ten = GramLandlord.getTenant(request);
-        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + ten.getBackup().getZipName());
+        SiteExporter backup = new SiteExporter(ten);
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + backup.getArchiveName("zip"));
         response.setContentType("application/zip");
-        ten.getBackup().createZip(response.getOutputStream(), Arrays.asList(BackupDaemon.BackupTypes.values()));
+        backup.writeZip(response.getOutputStream(), Arrays.asList(SiteExporter.BackupTypes.values()));
     }
 
     @Override
@@ -44,7 +46,7 @@ public class AdminImportServlet extends AdminServlet {
             Part p = AbstractInput.getPart(request, "zip");
             InputStream i = p.getInputStream();
             ZipInputStream zip = new ZipInputStream(i);
-            ten.getBackup().restoreFromZip(zip);
+            new SiteImporter(ten).restoreFromZip(zip);
             request.getSession().invalidate();
             response.setHeader("Clear-Site-Data", "*");
             response.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(request, Boolean.FALSE));

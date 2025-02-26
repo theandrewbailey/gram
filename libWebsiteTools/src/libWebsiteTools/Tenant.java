@@ -3,7 +3,7 @@ package libWebsiteTools;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import libWebsiteTools.file.FileRepository;
 import libWebsiteTools.imead.IMEADHolder;
-import libWebsiteTools.rss.FeedBucket;
+import libWebsiteTools.rss.Feed;
 import libWebsiteTools.security.SecurityRepo;
 import libWebsiteTools.sitemap.SiteMapper;
 import libWebsiteTools.turbo.CachedPage;
@@ -31,7 +31,7 @@ public interface Tenant {
         return getImead().getValue(key);
     }
 
-    public FeedBucket getFeeds();
+    public Repository<Feed> getFeeds();
 
     public SiteMapper getMapper();
 

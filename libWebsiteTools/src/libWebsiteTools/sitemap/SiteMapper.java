@@ -21,8 +21,9 @@ public class SiteMapper {
     private final Set<Iterable<UrlMap>> sources = Collections.synchronizedSet(new HashSet<>());
     private static final Logger LOG = Logger.getLogger(SiteMapper.class.getName());
 
-    public void addSource(Iterable<UrlMap> src) {
+    public SiteMapper addSource(Iterable<UrlMap> src) {
         sources.add(src);
+        return this;
     }
 
     public Document getSiteMap() {

@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jakarta.annotation.PreDestroy;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
@@ -110,7 +109,7 @@ public class FeedBucket implements Repository<Feed> {
                 feeds.put(feed.getName(), feed);
                 feed.postAdd();
             }
-            LOG.log(Level.FINEST, "Feed added, name: {0} class: {1}", new Object[]{feed.getName(), feed.getClass().getName()});
+            LOG.log(Level.FINER, "Feed added, name: {0} class: {1}", new Object[]{feed.getName(), feed.getClass().getName()});
         }
         return new ArrayList<>(entities);
     }
@@ -179,19 +178,7 @@ public class FeedBucket implements Repository<Feed> {
             feed.preRemove();
             feeds.remove(name.toString()).postRemove();
         }
-        LOG.log(Level.FINE, "Feed removed: {0}", name);
+        LOG.log(Level.FINER, "Feed removed: {0}", name);
         return feed;
-    }
-
-    @PreDestroy
-    @SuppressWarnings("unused")
-    private void destroy() {
-        for (String el : new ArrayList<>(feeds.keySet())) {
-            try {
-                delete(el);
-            } catch (Exception x) {
-            }
-        }
-        LOG.log(Level.FINE, "FeedBucket destroyed");
     }
 }

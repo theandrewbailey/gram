@@ -24,6 +24,7 @@ import libWebsiteTools.file.BaseFileServlet;
 import libWebsiteTools.file.Fileupload;
 import gram.bean.database.Article;
 import gram.tag.ArticleUrl;
+import jakarta.persistence.NoResultException;
 import java.util.UUID;
 
 /**
@@ -124,15 +125,20 @@ public class ArticleProcessor implements Callable<Article> {
                     String tempImageURL = URLDecoder.decode(origAttribs.get("src"), "UTF-8").replaceAll(ten.getImeadValue(SecurityRepo.BASE_URL), "");
                     Matcher stemmer = IMG_MULTIPLIER.matcher(tempImageURL);
                     if (stemmer.find() && null != ten.getImeadValue(FORMAT_PRIORITY)) {
-                        String name = BaseFileServlet.getNameFromURL(stemmer.group(1));
+                        String name = tempImageURL;
+                        try {
+                            name = BaseFileServlet.getNameFromURL(stemmer.group(1));
+                        } catch (NoResultException lp) {
+                        }
                         List<Fileupload> files = ten.getFile().search(name, null);
+                        String finalName = name;
                         for (String mime : ten.getImeadValue(FORMAT_PRIORITY).replaceAll("\r", "").split("\n")) {
                             List<String> srcset = new ArrayList<>();
                             files.stream().filter((Fileupload file) -> {
                                 if (mime.equals(file.getMimetype())) {
                                     Matcher sorter = IMG_MULTIPLIER.matcher(file.getFilename());
                                     if (sorter.find()) {
-                                        return name.equals(sorter.group(1));
+                                        return finalName.equals(sorter.group(1));
                                     }
                                 }
                                 return false;
@@ -219,7 +225,7 @@ public class ArticleProcessor implements Callable<Article> {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(fileUpload.getFiledata()));
             attributes.put("width", Integer.toString(image.getWidth()));
             attributes.put("height", Integer.toString(image.getHeight()));
-        } catch (IllegalArgumentException ia) {
+        } catch (NoResultException | IllegalArgumentException ia) {
             // file hasn't been uploaded, just guess something reasonable
             attributes.put("src", url);
             attributes.put("width", "960");

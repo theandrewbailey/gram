@@ -1,4 +1,4 @@
-package gram.bean;
+package gram.bean.database;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -11,8 +11,6 @@ import java.util.regex.Pattern;
 import libWebsiteTools.security.HashUtil;
 import libWebsiteTools.JVMNotSupportedError;
 import libWebsiteTools.Repository;
-import gram.bean.database.Article;
-import gram.bean.database.Comment;
 
 /**
  *
@@ -20,24 +18,7 @@ import gram.bean.database.Comment;
  */
 public interface ArticleRepository extends Repository<Article> {
 
-    public static final String DEFAULT_CATEGORY = "site_defaultCategory";
     public static final Pattern ARTICLE_TERM = Pattern.compile("(.+?)(?=(?: \\d.*)|(?:[:,] .*)|(?: \\(\\d+\\))|(?: \\()|(?: IX|IV|V?I{0,3})$)");
-
-    /**
-     *
-     * @param sect Section to get articles from, can be null
-     * @param page Get the nth page, can be null with perPage
-     * @param perPage How many articles per page, can be null with page
-     * @param exclude Don't include these articles (by ID), can be null
-     * @return A list that represents a single page of articles
-     */
-    public abstract List<Article> getBySection(String sect, Integer page, Integer perPage, List<Integer> exclude);
-
-    /**
-     * Perform any kind of re-index operation necessary for search. Needs done
-     * when any article is updated or changed.
-     */
-    public abstract void refreshSearch();
 
     /**
      * Try to guess an appropriate search term to retrieve similar articles.
@@ -59,17 +40,19 @@ public interface ArticleRepository extends Repository<Article> {
     }
 
     public static void updateArticleHash(Article art) {
-        art.setEtag(Base64.getEncoder().encodeToString(hashArticle(art, art.getCommentCollection(), art.getSectionid().getName())));
+        art.setEtag(Base64.getEncoder().encodeToString(hashArticle(art, art.getCommentCollection())));
         art.setModified(OffsetDateTime.now());
     }
 
-    public static byte[] hashArticle(Article e, Collection<Comment> comments, String sect) {
+    public static byte[] hashArticle(Article e, Collection<Comment> comments) {
         try {
             MessageDigest sha = HashUtil.getSHA256();
             sha.update(e.getArticletitle().getBytes("UTF-8"));
             sha.update(e.getPostedhtml().getBytes("UTF-8"));
-            sha.update(sect.getBytes("UTF-8"));
             sha.update(e.getPostedname().getBytes("UTF-8"));
+            if (null != e.getSectionid()) {
+                sha.update(e.getSectionid().getName().getBytes("UTF-8"));
+            }
             if (e.getDescription() != null) {
                 sha.update(e.getDescription().getBytes("UTF-8"));
             }

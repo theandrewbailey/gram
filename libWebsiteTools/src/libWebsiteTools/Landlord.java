@@ -12,10 +12,20 @@ import jakarta.servlet.http.HttpServletRequest;
 public interface Landlord {
 
     /**
+     * Initialize all tenants ahead of time.
+     */
+    public void init();
+
+    /**
+     * Close and destroy tenants.
+     */
+    public void cleanup();
+
+    /**
      *
-     * @param req Determine a bunch of beans for this request, and save them to
-     * it, such that getTenant(req) will return the same.
-     * @return a bunch of beans that will fulfill the given request.
+     * @param req Determine and set which tenant/datasource/repositories to use
+     * for this request, such that getTenant(req) will return the same.
+     * @return the tenant that will fulfill the given request.
      */
     public Tenant setTenant(HttpServletRequest req);
 

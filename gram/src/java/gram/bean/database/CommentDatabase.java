@@ -12,7 +12,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.TypedQuery;
 import libWebsiteTools.Repository;
-import gram.bean.ArticleRepository;
 
 /**
  *
@@ -47,7 +46,7 @@ public class CommentDatabase implements Repository<Comment> {
                 c.setArticleid(art);
                 em.persist(c);
                 out.add(c);
-                LOG.log(Level.FINEST, "Comment added");
+                LOG.log(Level.FINE, "Comment added");
                 updatedArticles.add(art.getArticleid());
             }
             em.getTransaction().commit();
@@ -82,7 +81,7 @@ public class CommentDatabase implements Repository<Comment> {
             Article e = c.getArticleid();
             em.remove(c);
             em.getTransaction().commit();
-            LOG.log(Level.FINEST, "Comment deleted");
+            LOG.log(Level.FINE, "Comment deleted");
             em.refresh(e);
             em.getTransaction().begin();
             ArticleRepository.updateArticleHash(e);
@@ -120,11 +119,10 @@ public class CommentDatabase implements Repository<Comment> {
      */
     @Override
     public Long count(Object term) {
-        LOG.log(Level.FINEST, "Counting comments");
         try (EntityManager em = gramPU.createEntityManager()) {
             TypedQuery<Long> qn = em.createNamedQuery("Comment.count", Long.class);
             Long output = qn.getSingleResult();
-            LOG.log(Level.FINEST, "Counted comments, got {0}", new Object[]{output});
+            LOG.log(Level.FINER, "Counted comments, got {0}", new Object[]{output});
             return output;
         }
     }

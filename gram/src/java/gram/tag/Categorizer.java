@@ -12,6 +12,11 @@ import libWebsiteTools.security.SecurityRepo;
 import libWebsiteTools.JVMNotSupportedError;
 import gram.bean.database.Section;
 import gram.bean.GramTenant;
+import gram.bean.database.Article;
+import gram.servlet.GramServlet;
+import java.util.List;
+import java.util.Locale;
+import libWebsiteTools.imead.Local;
 
 /**
  *
@@ -19,28 +24,42 @@ import gram.bean.GramTenant;
  */
 public class Categorizer extends SimpleTagSupport {
 
+    private Article article;
     private Section category;
     private Integer page;
 
     @Override
     public void doTag() throws JspException, IOException {
-        if (category != null) {
+        if (null != category) {
             execute(category);
             return;
         }
         HttpServletRequest req = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest());
         GramTenant ten = GramLandlord.getTenant(req);
-        for (Section sect : ten.getSects().getAll(null)) {
-            execute(sect);
+        if (null != article) {
+            if (null != article.getSectionid()) {
+                execute(article.getSectionid());
+            } else {
+                List<Locale> resolvedLocales = Local.resolveLocales(ten.getImead(), req);
+                Object baseURL = req.getAttribute(SecurityRepo.BASE_URL);
+                getJspContext().setAttribute("_category_url", getUrl(baseURL.toString(), null, page));
+                getJspContext().setAttribute("_category_name", ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales));
+                getJspContext().setAttribute("_category_uuid", "00000000-0000-0000-0000-000000000000");
+                getJspBody().invoke(null);
+            }
+            return;
+        }
+        for (Section cat : ten.getCategories().getAll(null)) {
+            execute(cat);
         }
     }
 
     private void execute(Section sect) throws JspException, IOException {
         Object baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepo.BASE_URL);
         if (null != baseURL) {
-            getJspContext().setAttribute("_section_url", getUrl(baseURL.toString(), sect.getName(), page));
-            getJspContext().setAttribute("_section_name", sect.getName());
-            getJspContext().setAttribute("_section_uuid", sect.getUuid());
+            getJspContext().setAttribute("_category_url", getUrl(baseURL.toString(), sect.getName(), page));
+            getJspContext().setAttribute("_category_name", sect.getName());
+            getJspContext().setAttribute("_category_uuid", sect.getUuid());
             getJspBody().invoke(null);
         }
     }
@@ -61,16 +80,14 @@ public class Categorizer extends SimpleTagSupport {
         return url.append(".html").toString();
     }
 
-    /**
-     * @param category the category to set
-     */
+    public void setArticle(Article article) {
+        this.article = article;
+    }
+
     public void setCategory(Section category) {
         this.category = category;
     }
 
-    /**
-     * @param page the page to set
-     */
     public void setPage(Integer page) {
         this.page = page;
     }
