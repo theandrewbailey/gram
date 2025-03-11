@@ -3,7 +3,7 @@
 <header><h1 id="article${Article.articleid}" data-href="<g:articleUrl article='${Article}' link='false'/>">${Article.articletitle}</h1></header>
 <c:out escapeXml="false" value="${Article.postedhtml}"/>
 <footer class="articleFooter reset"><h:local key="page_articleFooter"><h:param><h:time datetime="${Article.posted}" /></h:param>
-    <h:param><g:categorizer article="${Article}"><a href="${_category_url}" id="${_category_uuid}" target="_parent">${_category_name}</a></g:categorizer></h:param></h:local>${commentCount}
+    <h:param><g:categoryUrl category="${Article.sectionid}" text="${Article.sectionid.name}"/></h:param></h:local>${commentCount}
 </footer></article>
 <c:choose><c:when test="${milligram || null == commentForm}"><section id="comments"><c:forEach items="${Article.commentCollection}" var="comm" varStatus="status"><c:if test="${status.last}"><span id="last"></span></c:if>
 <article class="comment" id="${comm.uuid}"><c:out escapeXml="false" value="${comm.postedhtml}"/>
@@ -13,6 +13,6 @@
 </section></c:when><c:when test="${null != commentForm}"><iframe src="${commentForm}" id="comments" class="comments resizeable" title="${commentFormTitle}" width="100%" height="${600+(fn:length(Article.commentCollection)*200)}"></iframe></c:when></c:choose>
 <!-- ${seeAlsoTerm} -->
 <c:if test="${null != seeAlso}"><nav class="seeAlso"><h1><h:local key="page_mightLike"/></h1><ul>
-<c:forEach items="${seeAlso}" var="seeArticle"><c:choose><c:when test="${null == seeArticle.imageurl}"><li class="noFigure"><article class="article${seeArticle.articleid}"><a href="<g:articleUrl article="${seeArticle}" link="${false}"/>"><h1>${seeArticle.articletitle}</h1></a></article></li><!---->
-</c:when><c:otherwise><li class="withFigure"><c:out escapeXml="false" value="${seeArticle.summary}"/></li><!---->
+<c:forEach items="${seeAlso}" var="seeArticle"><c:choose><c:when test="${null == seeArticle.imageurl}"><li class="noFigure"><article class="article${seeArticle.articleid}"><a href="<g:articleUrl article="${seeArticle}" link="${false}"/>"><h1>${seeArticle.articletitle}</h1></a></article></li>
+</c:when><c:otherwise><li class="withFigure"><c:out escapeXml="false" value="${seeArticle.summary}"/></li>
 </c:otherwise></c:choose></c:forEach></ul></nav></c:if>

@@ -49,6 +49,7 @@ public class Section implements Serializable {
     @Convert(converter = UUIDConverter.class)
     @Column(name = "uuid", nullable = false, columnDefinition = "uuid")
     private UUID uuid;
+//    private String url;
 
     public Section() {
         uuid = UUID.randomUUID();
@@ -122,4 +123,11 @@ public class Section implements Serializable {
         return "gram.bean.database.Section[ sectionid=" + sectionid + " ]";
     }
 
+//    public String getUrl() {
+//        return url;
+//    }
+
+//    public void setUrl(String url) {
+//        this.url = url;
+//    }
 }

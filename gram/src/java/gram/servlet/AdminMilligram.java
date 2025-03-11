@@ -13,7 +13,6 @@ import java.time.format.DateTimeFormatter;
 import gram.bean.GramTenant;
 import gram.bean.GramLandlord;
 import gram.bean.SiteMilligramExporter;
-import jakarta.servlet.ServletOutputStream;
 
 /**
  *
@@ -32,7 +31,6 @@ public class AdminMilligram extends AdminServlet {
         GramTenant ten = GramLandlord.getTenant(request);
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + new SiteExporter(ten).getArchiveStem() + "_" + OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd'-ssg.zip'")));
         response.setContentType("application/zip");
-        ServletOutputStream ttr = response.getOutputStream();
-        new SiteMilligramExporter(ten).writeZip(ttr);
+        new SiteMilligramExporter(ten, response.getOutputStream()).run();
     }
 }

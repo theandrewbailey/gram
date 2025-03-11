@@ -24,6 +24,7 @@ import gram.bean.GramLandlord;
 import gram.bean.database.Article;
 import gram.tag.Categorizer;
 import gram.bean.GramTenant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -125,9 +126,9 @@ public class IndexServlet extends GramServlet {
                 request.setAttribute("index", true);
 
                 StringBuilder description = new StringBuilder(70).append(ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales));
-                if (null == f.getCategory() && 1 != f.getCurrentPage()) {
+                if ((null == f.getCategory() || null == f.getCategory().getName()) && 1 != f.getCurrentPage()) {
                     description.append(", all categories, page ").append(f.getCurrentPage());
-                } else if (null != f.getCategory()) {
+                } else if (null != f.getCategory() && null != f.getCategory().getName()) {
                     description.append(", ").append(f.getCategory()).append(" category, page ").append(f.getCurrentPage());
                 } else {
                     description.append(", ").append(ten.getImead().getLocal(GramServlet.TAGLINE, resolvedLocales));
@@ -137,7 +138,24 @@ public class IndexServlet extends GramServlet {
                 if (null == request.getParameter("milligram")) {
                     String catName = null != f.getCategory() ? f.getCategory().getName() : ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales);
                     String catNameNull = null != f.getCategory() ? f.getCategory().getName() : null;
-                    HtmlMeta.addLink(request, "canonical", Categorizer.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), catNameNull, f.getCurrentPage()));
+                    String canonical = Categorizer.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), catNameNull, f.getCurrentPage());
+                    HtmlMeta.addLink(request, "canonical", canonical);
+                    HashSet<Locale> locales = new HashSet<>(ten.getImead().getLocales());
+                    locales.add(Locale.getDefault());
+                    for (Locale l : locales) {
+                        if ("und".equals(l.toLanguageTag())) {
+                            continue;
+                        }
+                        String base = ten.getImeadValue(SecurityRepo.BASE_URL);
+                        if (l != Locale.getDefault() && !l.toLanguageTag().isEmpty()) {
+                            base += l.toLanguageTag() + "/";
+                        }
+                        String langUrl = Categorizer.getUrl(base, catNameNull, f.getCurrentPage());
+                        if (!langUrl.equals(canonical)) {
+                            HtmlMeta.addLocaleURL(request, l, langUrl);
+                        }
+                    }
+
                     for (Article art : f.getArticles()) {
                         if (null != art.getImageurl()) {
                             HtmlMeta.addPropertyTag(request, "og:image", art.getImageurl());

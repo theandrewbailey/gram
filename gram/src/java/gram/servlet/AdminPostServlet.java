@@ -69,6 +69,7 @@ public class AdminPostServlet extends AdminServlet {
                     Article art = ten.getArts().get(Integer.valueOf(id));
                     art.setPostedhtml(null);
                     art.setImageurl(null);
+                    art.setSummary(null);
                     articleTasks.add(ten.getExec().submit(new ArticleProcessor(ten, art)));
                 }
                 ten.getExec().submit(() -> {

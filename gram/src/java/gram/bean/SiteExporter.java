@@ -213,7 +213,7 @@ public class SiteExporter implements Runnable {
                     String name = l != Locale.ROOT ? "IMEAD-" + l.toLanguageTag() + ".properties" : "IMEAD.properties";
                     writeFile(master + name, localNow, propertiesContent.toString().getBytes("UTF-8"));
                 } catch (IOException ex) {
-                    ten.getError().logException(null, "Can't backup properties", "Can't backup properties for locale " + l.toLanguageTag(), ex);
+                    ten.getError().logException(null, "Can't backup properties", "Can't backup properties for locale " + l.toString(), ex);
                 }
             }
             return localeFiles;
@@ -284,7 +284,7 @@ public class SiteExporter implements Runnable {
                             String localeString = l != Locale.ROOT ? l.toLanguageTag() : "";
                             localeFiles.put(localeString, propertiesContent.toString());
                         } catch (IOException ex) {
-                            ten.getError().logException(null, "Can't backup properties", "Can't backup properties for locale " + l.toLanguageTag(), ex);
+                            ten.getError().logException(null, "Can't backup properties", "Can't backup properties for locale " + l.toString(), ex);
                         }
                     }
                     for (Map.Entry<String, String> locale : localeFiles.entrySet()) {

@@ -26,7 +26,6 @@ public abstract class AbstractInput extends SimpleTagSupport {
     public static final String DISABLE_REFERRER_CHECKING = "$_LIBWEBSITETOOLS_DISABLE_REQUEST_TOKEN_REFERRER_CHECKING";
     public static final String ORIGINAL_REQUEST_URL = "$_LIBWEBSITETOOLS_ORIGINAL_REQUEST_URL";
     public static final String LAST_CHECKBOX_ID = "$_LAST_CHECKBOX_ID";
-    // TODO: these should be merged somehow
     public static final String DEFAULT_PATTERN = "^[\\u000A\\u000D\\u0020-\\uFFFF\\u20000-\\u2FFFF]*$";
     public static final Pattern DEFAULT_REGEXP = Pattern.compile(DEFAULT_PATTERN);
 

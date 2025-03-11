@@ -6,8 +6,7 @@
 <html lang="${$_LIBIMEAD_PRIMARY_LOCALE.toLanguageTag()}" class="reset"><head>
 <h:stylesheet/><h:meta/>
 </head><body class="reset">
-<main><%@ include file="/WEB-INF/article.jspf" %>
-<hr/>
-<div class="indexPage"><c:out escapeXml="false" value="${Article.summary}"/></div>
-</main>
+<main><c:if test="${ERROR_MESSAGE != null}"><p class="error">${ERROR_MESSAGE}</p></c:if>
+<%@ include file="/WEB-INF/article.jspf" %>
+<hr/><div class="indexPage"><c:out escapeXml="false" value="${Article.summary}"/></div></main>
 <h:javascript/></body></html>

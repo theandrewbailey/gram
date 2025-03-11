@@ -9,17 +9,17 @@ import jakarta.servlet.jsp.PageContext;
 import jakarta.servlet.jsp.tagext.SimpleTagSupport;
 import libWebsiteTools.security.SecurityRepo;
 import libWebsiteTools.JVMNotSupportedError;
-import gram.bean.database.Article;
+import gram.bean.database.Section;
 
-public class ArticleUrl extends SimpleTagSupport {
+public class CategoryUrl extends SimpleTagSupport {
 
-    private Article article;
+    private Section category;
     private boolean link = true;
-    private String anchor;
     private String cssClass;
     private String target;
     private String text;
     private String id;
+    private Integer page;
 
     @Override
     public void doTag() throws JspException, IOException {
@@ -27,11 +27,12 @@ public class ArticleUrl extends SimpleTagSupport {
         if (link) {
             b.append("<a href=\"");
         }
-        b.append(getUrl(((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepo.BASE_URL).toString(), article, anchor));
+        String baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepo.BASE_URL).toString();
+        b.append(getUrl(baseURL, null != category.getSectionid() ? category.getName() : null, page));
         if (link && id != null) {
             b.append("\" id=\"").append(id);
         } else if (link) {
-            b.append("\" id=\"").append(article.getUuid());
+            b.append("\" id=\"").append(category.getUuid());
         }
         if (link && cssClass != null) {
             b.append("\" class=\"").append(cssClass);
@@ -40,35 +41,29 @@ public class ArticleUrl extends SimpleTagSupport {
             b.append("\" target=\"").append(target);
         }
         if (link) {
-            b.append("\">").append(text == null ? article.getArticletitle() : text).append("</a>");
+            b.append("\">").append(text == null ? category.getName() : text).append("</a>");
         }
         getJspContext().getOut().print(b.toString());
     }
 
-    public static String getUrl(String baseURL, Article article, String anchor) {
-        StringBuilder url = new StringBuilder(baseURL).append("article/").append(article.getArticleid()).append('/').append(getUrlArticleTitle(article)).append(".html");
-        if (null != anchor) {
-            url.append("#").append(anchor);
+    public static String getUrl(String baseURL, String category, Integer page) {
+        StringBuilder url = new StringBuilder(70).append(baseURL).append("index");
+        if (null != category && !category.isEmpty()) {
+            try {
+                String title = URLEncoder.encode(category, "UTF-8");
+                url.append('/').append(title);
+            } catch (UnsupportedEncodingException ex) {
+                throw new JVMNotSupportedError(ex);
+            }
         }
-        return url.toString();
-    }
-
-    private static String getUrlArticleTitle(Article article) {
-        try {
-            String title = null != article.getArticletitle() ? URLEncoder.encode(article.getArticletitle(), "UTF-8") : "";
-            title = title.replaceAll("%[0-9A-F]{2}", "").replace(":", "").replace("+", "-").replace("--", "-");
-            return title;
-        } catch (UnsupportedEncodingException ex) {
-            throw new JVMNotSupportedError(ex);
+        if (null != page && 1 != page) {
+            url.append('/').append(page);
         }
+        return url.append(".html").toString();
     }
 
-    public void setArticle(Article article) {
-        this.article = article;
-    }
-
-    public void setAnchor(String anchor) {
-        this.anchor = anchor;
+    public void setCategory(Section category) {
+        this.category = category;
     }
 
     public void setTarget(String target) {
@@ -89,5 +84,9 @@ public class ArticleUrl extends SimpleTagSupport {
 
     public void setCssClass(String cssClass) {
         this.cssClass = cssClass;
+    }
+
+    public void setPage(Integer page) {
+        this.page = page;
     }
 }

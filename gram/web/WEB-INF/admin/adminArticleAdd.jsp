@@ -9,14 +9,14 @@
     <h:textbox name="articletitle" label="Title: " maxLength="250" size="64" labelNextLine="false" value="${Article.articletitle}" required="true" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /><br/>
     <h:textbox name="description" label="Description: " maxLength="250" size="64" labelNextLine="false" value="${Article.description}" required="true" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /><br/>
     <h:textbox name="postedname" label="By: " maxLength="250" size="43" labelNextLine="false" value="${Article.postedname}" patternMismatch="${patternMismatch}" /><br/>
-    <h:textbox name="posted" label="Posted Date: " maxLength="50" size="32" labelNextLine="false" title="ala Fri, 21 Dec 2012 00:20:12 EDT" value="${formattedDate}" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /><br/>
+    <h:textbox name="posted" label="Posted Date: " maxLength="50" size="32" labelNextLine="false" title="ala Fri, 21 Dec 2012 00:20:12 EDT" value="${isNewArticle?\"\":formattedDate}" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /><br/>
     <h:textbox name="suggestion" label="Suggestion search term: " maxLength="250" size="43" labelNextLine="false" value="${Article.suggestion}" patternMismatch="${patternMismatch}" placeholder="${defaultSearchTerm}" /><br/>
     <h:checkbox name="comments" label="Commentable" checked="${Article.comments}" /><br/>
     <h:textarea name="postedmarkdown" length="100" height="20" label="Text (>64000):" styleClass="articleText" value="${Article.postedmarkdown}" required="true" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /><br/>
-    <button type="submit" name="action" value="Preview" formtarget="articlePreview"><h:local key="page_preview"/></button>
+    <button type="submit" name="action" value="Preview" formtarget="articlePreview" formaction="adminArticle?iframe"><h:local key="page_preview"/></button>
     <button type="submit" name="action" value="Add Article"><h:local key="page_articleAdd"/></button>
 </form>
 <article><p>&nbsp;</p></article>
-<iframe name="articlePreview" class="resizeable" ${iframeSrc}></iframe>
+<iframe name="articlePreview" class="resizeable" src="${iframeSrc}"></iframe>
 </main>
 <%@ include file="/WEB-INF/admin/adminFoot.jspf" %>

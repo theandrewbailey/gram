@@ -54,12 +54,12 @@ public class Categorizer extends SimpleTagSupport {
         }
     }
 
-    private void execute(Section sect) throws JspException, IOException {
+    private void execute(Section category) throws JspException, IOException {
         Object baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepo.BASE_URL);
         if (null != baseURL) {
-            getJspContext().setAttribute("_category_url", getUrl(baseURL.toString(), sect.getName(), page));
-            getJspContext().setAttribute("_category_name", sect.getName());
-            getJspContext().setAttribute("_category_uuid", sect.getUuid());
+            getJspContext().setAttribute("_category_url", getUrl(baseURL.toString(), category.getName(), page));
+            getJspContext().setAttribute("_category_name", category.getName());
+            getJspContext().setAttribute("_category_uuid", category.getUuid());
             getJspBody().invoke(null);
         }
     }

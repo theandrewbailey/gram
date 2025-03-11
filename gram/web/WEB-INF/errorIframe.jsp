@@ -3,7 +3,7 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="h" uri="uri:libwebsitetools:htmlTools" %>
 <%@ taglib prefix="g" uri="uri:gram" %><!DOCTYPE html>
-<html lang="${$_LIBIMEAD_PRIMARY_LOCALE.toLanguageTag()}" class="reset"><head>
+<html lang="${$_LIBIMEAD_PRIMARY_LOCALE}" class="reset"><head>
     <h:meta/>
     <h:localVar key="page_title"/><h:title siteTitle="${site_title}" pageTitle="${title}" siteTitleHide="${siteTitleHide}" />
 </head><body class="reset">

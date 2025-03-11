@@ -120,17 +120,17 @@ public class GuardFilter implements Filter {
         Locale selected = Local.resolveLocales(ten.getImead(), req).get(0);
         String servletPath = req.getServletPath();
         if (null != selected && !Locale.ROOT.equals(selected) && ten.getImead().getLocales().contains(selected)) {
-            req.setAttribute(SecurityRepo.BASE_URL, ten.getImeadValue(SecurityRepo.BASE_URL) + selected.toString() + "/");
-            String rootPath = "/" + selected.toString();
+            req.setAttribute(SecurityRepo.BASE_URL, ten.getImeadValue(SecurityRepo.BASE_URL) + selected.toLanguageTag() + "/");
+            String rootPath = "/" + selected.toLanguageTag();
             if (!servletPath.startsWith(rootPath + "/") && !servletPath.equals(rootPath)) {
-                forwardURL = req.getContextPath() + "/" + selected.toString() + req.getRequestURI().substring(req.getContextPath().length());
+                forwardURL = req.getContextPath() + "/" + selected.toLanguageTag() + req.getRequestURI().substring(req.getContextPath().length());
                 if (null != req.getQueryString()) {
                     forwardURL += "?" + req.getQueryString();
                 }
                 res.sendRedirect(forwardURL);
                 return;
             }
-            forwardURL = req.getRequestURI().substring(req.getContextPath().length() + selected.toString().length() + 1);
+            forwardURL = req.getRequestURI().substring(req.getContextPath().length() + selected.toLanguageTag().length() + 1);
             if (forwardURL.equals("")) {
                 forwardURL = "/";
             }
@@ -151,7 +151,7 @@ public class GuardFilter implements Filter {
                 ten.getError().logException(req, null, "HTTP " + res.getStatus(), null);
             }
             res.flushBuffer();
-        } catch (IOException | ServletException x) {
+        } catch (ServletException x) {
             LOG.log(Level.SEVERE, "Exception caught in GuardFilter", x);
             ten.getError().logException(req, null, null, x);
         }

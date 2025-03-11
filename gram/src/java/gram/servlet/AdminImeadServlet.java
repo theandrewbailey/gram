@@ -28,10 +28,10 @@ import gram.bean.GramLandlord;
 import gram.bean.GramTenant;
 import java.util.Collection;
 import libWebsiteTools.Markdowner;
-import libWebsiteTools.file.BaseFileServlet;
 import libWebsiteTools.file.FileCompressorJob;
 import libWebsiteTools.file.FileUtil;
 import libWebsiteTools.file.Fileupload;
+import libWebsiteTools.imead.LocalizedStringNotFoundException;
 
 /**
  *
@@ -41,6 +41,7 @@ import libWebsiteTools.file.Fileupload;
 public class AdminImeadServlet extends AdminServlet {
 
     public static final String ADMIN_IMEAD = "WEB-INF/admin/adminImead.jsp";
+    private static final String SITE_ARGON2_PARAMETERS = "site_argon2_parameters";
     private static final String ALLOWED_ORIGINS_TEMPLATE = "%s\n^https?://(?:10\\.[0-9]{1,3}\\.|192\\.168\\.)[0-9]{1,3}\\.[0-9]{1,3}(?::[0-9]{1,5})?(?:/.*)?$\n^https?://(?:[a-zA-Z]+\\.)+?google(?:\\.com)?(?:\\.[a-zA-Z]{2}){0,2}(?:$|/.*)\n^https?://(?:[a-zA-Z]+\\.)+?googleusercontent(?:\\.com)?(?:\\.[a-zA-Z]{2}){0,2}(?:$|/.*)\n^https?://(?:[a-zA-Z]+\\.)+?feedly\\.com(?:$|/.*)\n^https?://(?:[a-zA-Z]+\\.)+?slack\\.com(?:$|/.*)\n^https?://(?:[a-zA-Z]+\\.)+?bing\\.com(?:$|/.*)\n^https?://(?:[a-zA-Z]+\\.)+?yandex(?:\\.com)?(?:\\.[a-zA-Z]{2})?(?:/.*)?$\n^https?://images\\.rambler\\.ru(?:$|/.*)\n^https?://(?:[a-zA-Z]+\\.)+?yahoo(?:\\.com)?(?:\\.[a-zA-Z]{2})?(?:/.*)?$\n^https?://(?:[a-zA-Z]+\\.)+?duckduckgo\\.com(?:$|/.*)\n^https?://(?:[a-zA-Z]+\\.)+?baidu\\.com(?:$|/.*)";
 
     @Override
@@ -94,7 +95,6 @@ public class AdminImeadServlet extends AdminServlet {
         GramTenant ten = GramLandlord.getTenant(request);
         Instant start = Instant.now();
         boolean initialFirstTime = ten.isFirstTime();
-        String initialURL = ten.getImeadValue(SecurityRepo.BASE_URL);
         // save things
         String action = AbstractInput.getParameter(request, "action");
         if (null == action) {
@@ -103,9 +103,13 @@ public class AdminImeadServlet extends AdminServlet {
             ArrayList<Localization> overrides = new ArrayList<>();
             HashSet<LocalizationPK> errors = new HashSet<>();
             request.setAttribute("ERRORS", errors);
-            String argon2_parameters = ten.getImeadValue("site_argon2_parameters");
+            String argon2_parameters = ten.getImeadValue(SITE_ARGON2_PARAMETERS);
             for (Localization l : new LocalizationRetriever(request)) {
-                String previousValue = ten.getImead().getLocal(l.getLocalizationPK().getKey(), l.getLocalizationPK().getLocalecode());
+                String previousValue = null;
+                try {
+                    previousValue = ten.getImead().getLocal(l.getLocalizationPK().getKey(), l.getLocalizationPK().getLocalecode());
+                } catch (LocalizedStringNotFoundException g) {
+                }
                 if (!l.getValue().equals(previousValue)) {
                     if (l.getLocalizationPK().getKey().startsWith("admin_")
                             && !HashUtil.ARGON2_ENCODING_PATTERN.matcher(l.getValue()).matches()) {
@@ -130,11 +134,6 @@ public class AdminImeadServlet extends AdminServlet {
             ten.getImead().delete(new LocalizationPK(params[2], params[1]));
         }
         ten.reset();
-        if (!ten.getImeadValue(SecurityRepo.BASE_URL).equals(initialURL)) {
-            ten.getFile().processArchive((t) -> {
-                t.setUrl(BaseFileServlet.getImmutableURL(ten.getImeadValue(SecurityRepo.BASE_URL), t));
-            }, true);
-        }
         RequestTimer.addTiming(request, "save", Duration.between(start, Instant.now()));
         if (initialFirstTime && !ten.isFirstTime()) {
             request.getSession().invalidate();
@@ -183,7 +182,7 @@ public class AdminImeadServlet extends AdminServlet {
     public static void showProperties(GramTenant ten, HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         Map<Locale, List<Localization>> imeadProperties = new HashMap<>();
         for (Localization L : ten.getImead().getAll(null)) {
-            Locale locale = Locale.forLanguageTag(L.getLocalizationPK().getLocalecode());
+            Locale locale = new Locale(L.getLocalizationPK().getLocalecode());
             if (!imeadProperties.containsKey(locale)) {
                 imeadProperties.put(locale, new ArrayList<>());
             }
@@ -202,7 +201,7 @@ public class AdminImeadServlet extends AdminServlet {
         request.setAttribute("imeadProperties", imeadProperties);
         List<String> locales = new ArrayList<>();
         for (Locale l : ten.getImead().getLocales()) {
-            locales.add(l.toString());
+            locales.add(l.toLanguageTag());
         }
         request.setAttribute("locales", locales);
         request.getRequestDispatcher(ADMIN_IMEAD).forward(request, response);

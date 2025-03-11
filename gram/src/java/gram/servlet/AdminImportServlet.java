@@ -46,7 +46,7 @@ public class AdminImportServlet extends AdminServlet {
             Part p = AbstractInput.getPart(request, "zip");
             InputStream i = p.getInputStream();
             ZipInputStream zip = new ZipInputStream(i);
-            new SiteImporter(ten).restoreFromZip(zip);
+            new SiteImporter(ten, zip).run();
             request.getSession().invalidate();
             response.setHeader("Clear-Site-Data", "*");
             response.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(request, Boolean.FALSE));

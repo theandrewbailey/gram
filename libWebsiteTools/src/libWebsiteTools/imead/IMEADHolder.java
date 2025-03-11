@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IllformedLocaleException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -12,7 +13,6 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import java.util.Map.Entry;
 import libWebsiteTools.Repository;
 
 /**
@@ -33,29 +33,6 @@ public abstract class IMEADHolder implements Repository<Localization> {
         throw new UnsupportedOperationException();
     }
 
-    public Map<String, String> filter(String regex, List<Locale> locales) {
-        if (filteredCache.containsKey(regex) && filteredCache.get(regex).containsKey(locales.get(0))) {
-            return filteredCache.get(regex).get(locales.get(0));
-        }
-        HashMap<String, String> hits = new HashMap<>();
-        for (Locale l : locales) {
-            for (Entry e : localizedCache.get(l).entrySet()) {
-                if (e.getKey().toString().matches(regex) && !hits.containsKey(e.getKey().toString())) {
-                    hits.put(e.getKey().toString(), e.getValue().toString());
-                }
-            }
-        }
-        Map<Locale, Map<String, String>> regexCache;
-        if (filteredCache.containsKey(regex)) {
-            regexCache = filteredCache.get(regex);
-        } else {
-            regexCache = new HashMap<>();
-            filteredCache.put(regex, regexCache);
-        }
-        regexCache.put(locales.get(0), hits);
-        return hits;
-    }
-
     /**
      * load all properties from DB
      *
@@ -64,7 +41,17 @@ public abstract class IMEADHolder implements Repository<Localization> {
     public Map<Locale, Properties> getProperties() {
         Map<Locale, Properties> output = new HashMap<>();
         for (Localization l : getAll(null)) {
-            Locale local = Locale.forLanguageTag(null != l.getLocalizationPK().getLocalecode() ? l.getLocalizationPK().getLocalecode() : "");
+            Locale local;
+            if (l.getLocalizationPK().getLocalecode().startsWith("x-")) {
+                String sub = l.getLocalizationPK().getLocalecode().substring(2);
+                try {
+                    local = new Locale.Builder().setExtension(Locale.PRIVATE_USE_EXTENSION, sub).build();
+                } catch (IllformedLocaleException m) {
+                    continue;
+                }
+            } else {
+                local = Locale.forLanguageTag(l.getLocalizationPK().getLocalecode());
+            }
             if (!output.containsKey(local)) {
                 output.put(local, new SortedProperties());
             }

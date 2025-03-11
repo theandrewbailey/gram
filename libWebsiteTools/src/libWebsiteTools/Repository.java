@@ -1,5 +1,6 @@
 package libWebsiteTools;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
@@ -11,7 +12,7 @@ import java.util.function.Consumer;
  * @author alpha
  * @param <Entity> the entities that this repository operates on
  */
-public interface Repository<Entity> {
+public interface Repository<Entity extends Serializable> {
 
     /**
      * Create (or update) the given entities.

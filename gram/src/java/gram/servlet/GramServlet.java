@@ -24,7 +24,9 @@ public abstract class GramServlet extends BaseServlet {
 
     @Override
     protected void service​(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+        GramTenant ten = GramLandlord.getTenant(req);
         req.setAttribute("milligram", null != req.getParameter("milligram"));
+        req.setAttribute("categories", ten.getCategories().getAll(null));
         super.service(req, res);
     }
 

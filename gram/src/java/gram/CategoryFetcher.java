@@ -81,7 +81,9 @@ public class CategoryFetcher implements Iterable<Article> {
         if (null != catName && null == category) {
             throw new IllegalArgumentException("Category " + catName + " not found.");
         }
-        if (null != catName && getArticles().isEmpty()) {
+        if (1 != getCurrentPage() && (null == getArticles() || getArticles().isEmpty())) {
+            throw new IllegalArgumentException("Page " + getCurrentPage() + " not found.");
+        } else if (null != catName && getArticles().isEmpty()) {
             throw new IllegalArgumentException("Category " + catName + ", page " + getCurrentPage() + " not found.");
         }
 //        } catch (RuntimeException e) {

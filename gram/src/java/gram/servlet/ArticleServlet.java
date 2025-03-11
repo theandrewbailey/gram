@@ -34,6 +34,8 @@ import gram.bean.database.Article;
 import gram.tag.ArticleUrl;
 import gram.tag.Categorizer;
 import gram.bean.GramTenant;
+import gram.bean.database.Section;
+import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import libWebsiteTools.Repository;
@@ -150,7 +152,10 @@ public class ArticleServlet extends GramServlet {
                 ? ("1 " + ten.getImead().getLocal("page_comment", resolvedLocales) + ".")
                 : (art.getCommentCollection().size() + " " + ten.getImead().getLocal("page_comments", resolvedLocales) + "."));
         request.setAttribute("commentCount", commentCount);
-        String catName = null != art.getSectionid() ? art.getSectionid().getName() : ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales);
+        if (null == art.getSectionid()) {
+            art.setSectionid(new Section(ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales)));
+        }
+        String catName = art.getSectionid().getName();
         if (art.getComments()) {
             request.setAttribute("commentForm", "comments/" + art.getArticleid() + "?iframe");
             String format = FeedBucket.TIME_FORMAT;
@@ -167,7 +172,24 @@ public class ArticleServlet extends GramServlet {
         HtmlMeta.addNameTag(request, "description", art.getDescription());
         HtmlMeta.addNameTag(request, "author", art.getPostedname());
         if (null == request.getParameter("milligram")) {
-            HtmlMeta.addLink(request, "canonical", ArticleUrl.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), art, null));
+            String canonical = ArticleUrl.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), art, null);
+            HtmlMeta.addLink(request, "canonical", canonical);
+            HashSet<Locale> locales = new HashSet<>(ten.getImead().getLocales());
+            locales.add(Locale.getDefault());
+            for (Locale l : locales) {
+                if ("und".equals(l.toLanguageTag())) {
+                    continue;
+                }
+                String base = ten.getImeadValue(SecurityRepo.BASE_URL);
+                if (l != Locale.getDefault() && !l.toLanguageTag().isEmpty()) {
+                    base += l.toLanguageTag() + "/";
+                }
+                String langUrl = ArticleUrl.getUrl(base, art, null);
+                if (!langUrl.equals(canonical)) {
+                    HtmlMeta.addLocaleURL(request, l, langUrl);
+                }
+            }
+
             HtmlMeta.addPropertyTag(request, "og:title", art.getArticletitle());
             HtmlMeta.addPropertyTag(request, "og:url", ArticleUrl.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), art, null));
             if (null != art.getImageurl()) {

@@ -47,17 +47,20 @@ import libWebsiteTools.security.SecurityRepo;
  *
  * @author alpha
  */
-public class SiteMilligramExporter {
+public class SiteMilligramExporter implements Runnable {
 
     private static int[] ERROR_CODES = new int[]{400, 401, 403, 404, 405, 422, 500, 501};
     private static final Logger LOG = Logger.getLogger(SiteMilligramExporter.class.getName());
     private final GramTenant ten;
+    private final OutputStream ttr;
 
-    public SiteMilligramExporter(GramTenant ten) {
+    public SiteMilligramExporter(GramTenant ten, OutputStream ttr) {
         this.ten = ten;
+        this.ttr = ttr;
     }
 
-    public void writeZip(OutputStream ttr) {
+    @Override
+    public void run() {
         Semaphore rateLimiter = new Semaphore(Runtime.getRuntime().availableProcessors() * 2);
         HttpClient.Builder hbuilder = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).executor(new ForkJoinPool());
         try {

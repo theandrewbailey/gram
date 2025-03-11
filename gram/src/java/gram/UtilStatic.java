@@ -64,7 +64,8 @@ public final class UtilStatic {
         List<Localization> locals = new ArrayList<>();
         for (Map.Entry<Object, Object> property : props.entrySet()) {
             try {
-                imead.getLocal(property.getKey().toString(), locale.toLanguageTag()).toString();
+                String test = imead.getLocal(property.getKey().toString(), locale.toString());
+                test.toLowerCase();
             } catch (RuntimeException r) {
                 locals.add(new Localization(locale.toString(), property.getKey().toString(), property.getValue().toString()));
             }

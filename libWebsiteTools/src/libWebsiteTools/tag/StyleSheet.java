@@ -14,6 +14,7 @@ import libWebsiteTools.file.Fileupload;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.Landlord;
 import libWebsiteTools.Tenant;
+import libWebsiteTools.security.SecurityRepo;
 
 /**
  * Will link all css files described in imead.localization site_css value.
@@ -41,9 +42,9 @@ public class StyleSheet extends SimpleTagSupport {
             }
         } catch (Exception x) {
         }
+        List<Fileupload> files = new ArrayList<>();
         try {
             List<String> filenames = new ArrayList<>();
-            List<Fileupload> files = new ArrayList<>();
             for (String filename : ten.getImead().getLocal(SITE_CSS_KEY, Local.resolveLocales(ten.getImead(), req)).split("\n")) {
                 List<Fileupload> f = ten.getFile().getFileMetadata(Arrays.asList(filename));
                 if (null != f && !f.isEmpty()) {
@@ -54,10 +55,9 @@ public class StyleSheet extends SimpleTagSupport {
             }
             files.addAll(ten.getFile().getFileMetadata(filenames));
             req.setAttribute(SITE_CSS_KEY, files);
-            return files;
         } catch (Exception x) {
-            return new ArrayList<>();
         }
+        return files;
     }
 
 //    @SuppressWarnings("unchecked")
@@ -69,7 +69,6 @@ public class StyleSheet extends SimpleTagSupport {
 //        }
 //        return hashes;
 //    }
-
     @Override
     public void doTag() throws IOException {
         HttpServletRequest req = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest());
@@ -94,7 +93,7 @@ public class StyleSheet extends SimpleTagSupport {
             // TOTAL HACK: this assumes that the StyleSheet is hosted locally 
             try {
                 // will create a unique URL based on the file's last update time, so browsers will get and cache a new resource
-                String url = f.getUrl();
+                String url = ten.getImeadValue(SecurityRepo.BASE_URL) + f.getUrl();
                 // TOTAL HACK: this assumes that the etag is a base64 sha-2 hash of the file contents ONLY, for subresource integrity
                 switch (f.getEtag().length()) { // different flavors of sha-2 will have different digest lengths
                     case 44:

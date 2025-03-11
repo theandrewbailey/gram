@@ -30,29 +30,30 @@ public abstract class ArticleDatabase implements ArticleRepository {
     }
 
     @Override
-    public List<Article> search(Object term, Integer limit) {
-        if (term instanceof Section category) {
-            if (null != category.getName()) {
-                try (EntityManager em = gramPU.createEntityManager()) {
-                    TypedQuery<Article> q = em.createNamedQuery("Article.findByCategory", Article.class).setParameter("category", category.getName());
-                    q.setParameter("exclude", EXCLUDE_NOTHING);
-                    q.setMaxResults(limit);
-                    return q.getResultList();
-                }
-            }
-        } else if (term instanceof CategoryFetcher f) {
+    public List<Article> search(Section term, Integer limit) {
+        if (null != term.getName()) {
             try (EntityManager em = gramPU.createEntityManager()) {
-                TypedQuery<Article> q = f.getCategory().getName() == null
-                        ? em.createNamedQuery("Article.findAll", Article.class)
-                        : em.createNamedQuery("Article.findByCategory", Article.class).setParameter("category", f.getCategory().getName());
-                q.setParameter("exclude", null == f.getExcludes() ? EXCLUDE_NOTHING : f.getExcludes());
-                q.setFirstResult(limit * (f.getCurrentPage() - 1)); // pagination start
-                q.setMaxResults(limit);                      // pagination limit
+                TypedQuery<Article> q = em.createNamedQuery("Article.findByCategory", Article.class).setParameter("category", term.getName());
+                q.setParameter("exclude", EXCLUDE_NOTHING);
+                q.setMaxResults(limit);
                 return q.getResultList();
             }
         }
         LOG.finer("Invalid search term provided, falling back to getAll()");
         return getAll(limit);
+    }
+
+    @Override
+    public List<Article> search(CategoryFetcher term, Integer limit) {
+        try (EntityManager em = gramPU.createEntityManager()) {
+            TypedQuery<Article> q = term.getCategory().getName() == null
+                    ? em.createNamedQuery("Article.findAll", Article.class)
+                    : em.createNamedQuery("Article.findByCategory", Article.class).setParameter("category", term.getCategory().getName());
+            q.setParameter("exclude", null == term.getExcludes() ? EXCLUDE_NOTHING : term.getExcludes());
+            q.setFirstResult(limit * (term.getCurrentPage() - 1)); // pagination start
+            q.setMaxResults(limit);                      // pagination limit
+            return q.getResultList();
+        }
     }
 
     /**
@@ -66,30 +67,11 @@ public abstract class ArticleDatabase implements ArticleRepository {
     @Override
     public List<Article> upsert(Collection<Article> articles) {
         LOG.log(Level.FINER, "Upserting {0} articles", articles.size());
-        Article dbArt;
         ArrayList<Article> out = new ArrayList<>(articles.size());
         try (EntityManager em = gramPU.createEntityManager()) {
             em.getTransaction().begin();
             for (Article art : articles) {
-                boolean getnew = art.getArticleid() == null;
-                dbArt = getnew ? new Article(art.getUuid()) : em.find(Article.class, art.getArticleid());
-                // TODO: figure out how to upsert
-                dbArt.setPosted(art.getPosted() == null ? dbArt.getModified() : art.getPosted());
-                dbArt.setComments(art.getComments());
-                dbArt.setCommentCollection(art.getComments() ? dbArt.getCommentCollection() : null);
-                dbArt.setArticletitle(art.getArticletitle());
-                dbArt.setPostedhtml(art.getPostedhtml());
-                dbArt.setPostedmarkdown(art.getPostedmarkdown());
-                dbArt.setPostedname(art.getPostedname());
-                dbArt.setDescription(art.getDescription());
-                dbArt.setSummary(art.getSummary());
-                dbArt.setImageurl(art.getImageurl());
-                dbArt.setSuggestion(art.getSuggestion());
-                dbArt.setModified(OffsetDateTime.now());
-
-                if (null == art.getSectionid()) {
-                    dbArt.setSectionid(null);
-                } else if (null != art.getSectionid() && (null == dbArt.getSectionid() || !dbArt.getSectionid().getName().equals(art.getSectionid().getName()))) {
+                if (null != art.getSectionid()) {
                     Section category;
                     TypedQuery<Section> q = em.createNamedQuery("Category.findByName", Section.class).setParameter("name", art.getSectionid().getName());
                     try {
@@ -98,20 +80,16 @@ public abstract class ArticleDatabase implements ArticleRepository {
                         category = new Section(art.getSectionid().getName());
                         em.persist(category);
                     }
-                    dbArt.setSectionid(category);
+                    art.setSectionid(category);
                 }
-                dbArt.setEtag(Base64.getEncoder().encodeToString(ArticleRepository.hashArticle(dbArt, dbArt.getCommentCollection())));
-                if (getnew) {
-                    em.persist(dbArt);
-                }
-                out.add(dbArt);
+                art.setModified(OffsetDateTime.now());
+                art.setEtag(Base64.getEncoder().encodeToString(ArticleRepository.hashArticle(art, art.getCommentCollection())));
+                em.merge(art);
+                out.add(art);
                 LOG.log(Level.FINE, "Article added {0}", new Object[]{art.getArticletitle()});
             }
             em.getTransaction().commit();
             return out;
-        } catch (Throwable x) {
-            LOG.throwing(ArticleRepository.class.getCanonicalName(), "addArticles", x);
-            throw x;
         }
     }
 
@@ -202,8 +180,8 @@ public abstract class ArticleDatabase implements ArticleRepository {
     public Long count(Object term) {
         try (EntityManager em = gramPU.createEntityManager()) {
             TypedQuery<Long> qn;
-            if (term instanceof Section sect) {
-                qn = em.createNamedQuery("Article.countByCategory", Long.class).setParameter("category", sect.getName());
+            if (term instanceof Section cat) {
+                qn = em.createNamedQuery("Article.countByCategory", Long.class).setParameter("category", cat.getName());
             } else {
                 qn = em.createNamedQuery("Article.count", Long.class);
             }

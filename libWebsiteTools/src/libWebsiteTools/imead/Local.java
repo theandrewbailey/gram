@@ -37,7 +37,7 @@ public class Local extends SimpleTagSupport {
      * overridden locale, default behavior will be used.
      */
     public static final String OVERRIDE_LOCALE_PARAM = "$_LIBIMEAD_OVERRIDE_LOCALE";
-    public static final Pattern LANG_URL_PATTERN = Pattern.compile("^/([A-Za-z\\-]{2})(?:(/.*?))?$");
+    public static final Pattern LANG_URL_PATTERN = Pattern.compile("^/([A-Za-z]{2}|x-[A-Za-z\\-]*)(?:(/.*?))?$");
     private String key;
     private List<String> params = new ArrayList<>();
 
@@ -66,18 +66,17 @@ public class Local extends SimpleTagSupport {
         if (null == out) {
             Collection<Locale> locales = imead.getLocales();
             LinkedHashSet<Locale> lset = new LinkedHashSet<>();
-            Locale override = (Locale) req.getAttribute(OVERRIDE_LOCALE_PARAM);
+            Locale override;
+            Matcher langMatcher = LANG_URL_PATTERN.matcher(req.getServletPath());
+            if (langMatcher.find()) {
+                override = locales.stream().filter((l) -> l.toLanguageTag().equals(langMatcher.group(1))).findAny().orElse(null);
+                if (null != override && !Locale.ROOT.equals(override) && imead.getLocales().contains(override)) {
+                    req.setAttribute(Local.OVERRIDE_LOCALE_PARAM, override);
+                }
+            }
+            override = (Locale) req.getAttribute(OVERRIDE_LOCALE_PARAM);
             if (null != req.getSession(false) && null != req.getSession(false).getAttribute(OVERRIDE_LOCALE_PARAM)) {
                 override = (Locale) req.getSession(false).getAttribute(OVERRIDE_LOCALE_PARAM);
-            }
-            Matcher langMatcher = LANG_URL_PATTERN.matcher(req.getServletPath());
-            if (null == override) {
-                if (langMatcher.find()) {
-                    override = Locale.forLanguageTag(langMatcher.group(1));
-                    if (null != override && !Locale.ROOT.equals(override) && imead.getLocales().contains(override)) {
-                        req.setAttribute(Local.OVERRIDE_LOCALE_PARAM, override);
-                    }
-                }
             }
             if (null != override && !lset.contains(override)) {
                 lset.add(override);
@@ -102,7 +101,7 @@ public class Local extends SimpleTagSupport {
     public static String getLocaleString(IMEADHolder imead, HttpServletRequest req) {
         ArrayList<String> langTags = new ArrayList<>();
         for (Locale l : resolveLocales(imead, req)) {
-            langTags.add(l.toLanguageTag());
+            langTags.add(l.toString());
         }
         return String.join(", ", langTags);
     }

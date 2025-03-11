@@ -18,7 +18,6 @@ public class RecentArticles extends SimpleTagSupport {
 
     private Integer number;
     private Section section;
-    private String var = "_article";
 
     @Override
     @SuppressWarnings("unchecked")
@@ -43,10 +42,10 @@ public class RecentArticles extends SimpleTagSupport {
         if (2 > latest.size()) {
             latest = ten.getArts().search(new CategoryFetcher(ten, sectionURL), number);
         }
-        for (Article e : latest) {
-            getJspContext().setAttribute(getVar(), e);
+        if (!latest.isEmpty()) {
+            getJspContext().setAttribute("_articles", latest);
             getJspBody().invoke(null);
-            excludes.add(e);
+            excludes.addAll(latest);
         }
     }
 
@@ -56,13 +55,5 @@ public class RecentArticles extends SimpleTagSupport {
 
     public void setSection(Section section) {
         this.section = section;
-    }
-
-    public String getVar() {
-        return var;
-    }
-
-    public void setVar(String var) {
-        this.var = var;
     }
 }

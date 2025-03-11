@@ -2,7 +2,7 @@ package gram.bean;
 
 import gram.AdminPermission;
 import gram.UtilStatic;
-import gram.bean.database.Article;
+import gram.bean.database.ArticleRepository;
 import jakarta.ejb.Local;
 import libWebsiteTools.Repository;
 import gram.bean.database.Comment;
@@ -38,7 +38,7 @@ public interface GramTenant extends Tenant {
 
     public boolean isFirstTime();
 
-    public Repository<Article> getArts();
+    public ArticleRepository getArts();
 
     public Repository<Comment> getComms();
 

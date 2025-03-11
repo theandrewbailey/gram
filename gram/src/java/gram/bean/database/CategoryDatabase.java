@@ -21,7 +21,6 @@ import gram.UtilStatic;
 public class CategoryDatabase implements Repository<Section> {
 
     private final EntityManagerFactory gramPU;
-    private List<Section> allSections;
 
     public CategoryDatabase(EntityManagerFactory emf) {
         this.gramPU = emf;
@@ -63,36 +62,35 @@ public class CategoryDatabase implements Repository<Section> {
     @Override
     @SuppressWarnings("unchecked")
     public List<Section> getAll(Integer limit) {
-        if (null == allSections) {
-            List<Object[]> sectionsByArticlesPosted;
-            try (EntityManager em = gramPU.createEntityManager()) {
-                sectionsByArticlesPosted = em.createNamedQuery("Category.byArticlesPosted").getResultList();
-            }
-            try {
-                double now = OffsetDateTime.now().toInstant().toEpochMilli();
-                TreeMap<Double, Section> popularity = new TreeMap<>();
-                for (Object[] data : sectionsByArticlesPosted) {
-                    Section section = (Section) data[0];
-                    if (null == section.getName()) {
-                        continue;
-                    }
-                    double years = (now - ((OffsetDateTime) data[1]).toInstant().toEpochMilli()) / 31536000000.0;
-                    double points = ((Long) data[2]).doubleValue();
-                    // score = average posts per year since category first started
-                    double score = UtilStatic.score(points, years, 1.8);
-                    popularity.put(score, section);
-                }
-                allSections = new ArrayList<>(popularity.values());
-                Collections.reverse(allSections);
-            } catch (ArrayIndexOutOfBoundsException ex) {
-                return new ArrayList<>();
-            }
+        List<Object[]> categoriesByArticlesPosted;
+        try (EntityManager em = gramPU.createEntityManager()) {
+            categoriesByArticlesPosted = em.createNamedQuery("Category.byArticlesPosted").getResultList();
         }
-        return allSections;
+        try {
+            double now = OffsetDateTime.now().toInstant().toEpochMilli();
+            TreeMap<Double, Section> popularity = new TreeMap<>();
+            for (Object[] data : categoriesByArticlesPosted) {
+                Section category = (Section) data[0];
+                if (null == category.getName()) {
+                    continue;
+                }
+                double years = (now - ((OffsetDateTime) data[1]).toInstant().toEpochMilli()) / 31536000000.0;
+                double points = ((Long) data[2]).doubleValue();
+                // score = average posts per year since category first started
+                double score = UtilStatic.score(points, years, 1.8);
+                popularity.put(score, category);
+            }
+            ArrayList<Section> allCategories = new ArrayList<>(popularity.values());
+            Collections.reverse(allCategories);
+            return allCategories;
+        } catch (ArrayIndexOutOfBoundsException ex) {
+            return new ArrayList<>();
+        }
     }
 
     /**
-     * Return number of sections in DB. Does not include empty/default section.
+     * Return number of categories in DB. Does not include empty/default
+     * section.
      *
      * @param term ignored
      * @return
@@ -122,7 +120,6 @@ public class CategoryDatabase implements Repository<Section> {
     @Override
     public CategoryDatabase evict() {
         gramPU.getCache().evict(Section.class);
-        allSections = null;
         return this;
     }
 }

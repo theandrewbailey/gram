@@ -58,7 +58,7 @@ public class JspFilter implements Filter {
         try {
             String icon = ten.getImeadValue("site_appleTouchIcon");
             if (null != icon) {
-                HtmlMeta.addLink(req, "apple-touch-icon", ten.getFile().getFileMetadata(Arrays.asList(icon)).get(0).getUrl());
+                HtmlMeta.addLink(req, "apple-touch-icon", ten.getImeadValue(SecurityRepo.BASE_URL) + ten.getFile().getFileMetadata(Arrays.asList(icon)).get(0).getUrl());
             }
         } catch (Exception x) {
         }
@@ -96,10 +96,7 @@ public class JspFilter implements Filter {
         if (null != cache) {
             cache.put(PageCache.getLookup(ten.getImead(), req), page);
         }
-        try {
-            res.flushBuffer();
-        } catch (IOException ie) {
-        }
+        res.flushBuffer();
     }
 
     private CachedPage capturePage(FilterChain chain, HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {

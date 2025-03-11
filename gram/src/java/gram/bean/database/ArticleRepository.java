@@ -1,5 +1,6 @@
 package gram.bean.database;
 
+import gram.CategoryFetcher;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.time.OffsetDateTime;
@@ -17,6 +18,12 @@ import libWebsiteTools.Repository;
  * @author alpha
  */
 public interface ArticleRepository extends Repository<Article> {
+
+    public List<Article> search(Article term, Integer limit);
+
+    public List<Article> search(CategoryFetcher term, Integer limit);
+
+    public List<Article> search(Section term, Integer limit);
 
     public static final Pattern ARTICLE_TERM = Pattern.compile("(.+?)(?=(?: \\d.*)|(?:[:,] .*)|(?: \\(\\d+\\))|(?: \\()|(?: IX|IV|V?I{0,3})$)");
 

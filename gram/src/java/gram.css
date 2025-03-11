@@ -34,9 +34,6 @@ html,body,blockquote,button,div,span,article,section,header,figure,figcaption,fo
 }body>header{
   text-align: center;
   text-transform: full-width;
-}body>header>h1>a:after{
-  content: " 美学";
-  margin-left: -1px;
 }p,pre,li,.pagenation{
   margin: 0.0rem 0.0rem 1.0rem 0.0rem;
 }img{
@@ -125,6 +122,8 @@ html,body,blockquote,button,div,span,article,section,header,figure,figcaption,fo
   white-space: nowrap;
 }.seeAlso h1{
   font-size: 1.5rem;
+}.seeAlso>ul{
+  font-size: 0;
 }.seeAlso>ul>li{
   display: inline-block;
   height: 13rem;
@@ -239,7 +238,7 @@ html,body,blockquote,button,div,span,article,section,header,figure,figcaption,fo
   border-color: var(--ui-border-dark) var(--ui-border-light) var(--ui-border-light) var(--ui-border-dark);
 }aside{
   background-image: linear-gradient(#fbf,var(--background-color));
-}#searchTerm{
+}.search>input[type="search"]{
   width: 100%;
 }body>footer{
   clear: both;

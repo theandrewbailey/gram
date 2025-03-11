@@ -84,6 +84,60 @@
     </attribute>
   </tag>
   <tag>
+    <name>categoryUrl</name>
+    <tag-class>gram.tag.CategoryUrl</tag-class>
+    <body-content>scriptless</body-content>
+    <attribute>
+      <description>page number</description>
+      <name>page</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.Integer</type>
+    </attribute>
+    <attribute>
+      <description>category to generate link for</description>
+      <name>category</name>
+      <required>true</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>gram.bean.database.Category</type>
+    </attribute>
+    <attribute>
+      <description>generate anchor tag? (default true)</description>
+      <name>link</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.Boolean</type>
+    </attribute>
+    <attribute>
+      <description>target attribute</description>
+      <name>target</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.String</type>
+    </attribute>
+    <attribute>
+      <description>text displayed within tag</description>
+      <name>text</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.String</type>
+    </attribute>
+    <attribute>
+      <description>class for the anchor element</description>
+      <name>cssClass</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.String</type>
+    </attribute>
+    <attribute>
+      <description>id for the anchor element</description>
+      <name>id</name>
+      <required>false</required>
+      <rtexprvalue>true</rtexprvalue>
+      <type>java.lang.String</type>
+    </attribute>
+  </tag>
+  <tag>
     <name>recentArticles</name>
     <tag-class>gram.tag.RecentArticles</tag-class>
     <body-content>scriptless</body-content>
@@ -100,13 +154,6 @@
       <required>false</required>
       <rtexprvalue>true</rtexprvalue>
       <type>gram.bean.database.Section</type>
-    </attribute>
-    <attribute>
-      <description>article variable. default: _article</description>
-      <name>var</name>
-      <required>false</required>
-      <rtexprvalue>false</rtexprvalue>
-      <type>java.lang.String</type>
     </attribute>
   </tag>
 </taglib>

@@ -8,6 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import jakarta.servlet.jsp.JspException;
 import jakarta.servlet.jsp.tagext.SimpleTagSupport;
+import java.time.format.DateTimeFormatterBuilder;
 
 /**
  *
@@ -19,26 +20,27 @@ public class HtmlTime extends SimpleTagSupport {
     public static final String SITE_DATEFORMAT_LONG = "site_dateFormatLong";
     private String pattern;
     private OffsetDateTime datetime;
+    private final DateTimeFormatter dateTimeFormat = new DateTimeFormatterBuilder().appendPattern("uuuu-MM-dd'T'HH:mm:ss.SSSXXXXX").toFormatter();
     private final SimpleDateFormat htmlFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     @Override
     public void doTag() throws JspException, IOException {
-        ZonedDateTime z = datetime.toZonedDateTime();
-        StringBuilder out = new StringBuilder("<time datetime=\"");
-        out.append(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(z));
-        out.append("\" >");
-        Object uniFormat = getJspContext().findAttribute(FORMAT_VAR);
-        if (pattern != null) {
-            htmlFormat.applyPattern(pattern);
-            out.append(htmlFormat.format(Date.from(datetime.toInstant())));
-        } else if (uniFormat != null) {
-            htmlFormat.applyPattern(uniFormat.toString());
-            out.append(htmlFormat.format(Date.from(datetime.toInstant())));
-        } else {
-            out.append(new SimpleDateFormat().format(Date.from(datetime.toInstant())));
-        }
-        out.append("</time>");
-        getJspContext().getOut().print(out.toString());
+            ZonedDateTime z = datetime.toZonedDateTime();
+            StringBuilder out = new StringBuilder("<time datetime=\"");
+            out.append(dateTimeFormat.format(datetime));
+            out.append("\" >");
+            Object uniFormat = getJspContext().findAttribute(FORMAT_VAR);
+            if (pattern != null) {
+                htmlFormat.applyPattern(pattern);
+                out.append(htmlFormat.format(Date.from(datetime.toInstant())));
+            } else if (uniFormat != null) {
+                htmlFormat.applyPattern(uniFormat.toString());
+                out.append(htmlFormat.format(Date.from(datetime.toInstant())));
+            } else {
+                out.append(new SimpleDateFormat().format(Date.from(datetime.toInstant())));
+            }
+            out.append("</time>");
+            getJspContext().getOut().print(out.toString());
     }
 
     /**

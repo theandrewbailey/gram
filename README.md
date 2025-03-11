@@ -1,24 +1,25 @@
 # Gram Blog Engine
 
-This is a personal (as in, one author) lightweight blog system. It powers [theandrewbailey.com](https://theandrewbailey.com/).
+Gram is a personal lightweight blog system. It powers [theandrewbailey.com](https://theandrewbailey.com/).
 
 ## Features
 
-* [This code serves RSS feeds.](https://www.rssboard.org/rss-specification) Feeds are served for all articles, articles by category, all comments, and per-article comments. RSS feeds are also used to backup and restore articles and comments.
+* [Gram serves RSS feeds.](https://www.rssboard.org/rss-specification) Feeds are served for all articles, articles by category, all comments, and per-article comments. RSS feeds are also used to backup and restore articles and comments.
 * Export the entire site as a zip, which can be imported to restore it.
-	* This code also has a static site generator, which exports a zip of the site without comment, search, and administrative functionality. The files inside can be hosted anywhere you'd like.
-* [Write blog posts in markdown](https://github.github.com/gfm/), and preview the page before posting. (A markdown dingus is also available.) The first paragraph and image (if applicable) are pulled into a link and summary shown on the homepage. [This uses commonmark-java (with all first-party modules enabled) for Markdown functionality.](https://github.com/commonmark/commonmark-java)
+	* Gram also has a static site generator, which exports a zip of the site without comment, search, and administrative functionality. The files inside can be hosted anywhere you'd like.
+* [Write blog posts in markdown](https://github.github.com/gfm/), and preview the page before posting. (A markdown dingus is also available.) The first paragraph and image (if applicable) are pulled into a link and summary shown on the homepage. [Gram uses commonmark-java (with all first-party modules enabled) for Markdown functionality.](https://github.com/commonmark/commonmark-java)
+	* Preview feature estimates page size, and will show warnings if estimate exceeds limits.
 * Host multiple blogs from one server. Additional blogs must use a unique hostname.
-* [This uses Postgres' full text search functionality.](https://www.postgresql.org/docs/current/textsearch.html) [The search box features custom spellcheck and autocomplete.](https://www.postgresql.org/docs/current/pgtrgm.html)
+* [Gram uses Postgres' full text search functionality.](https://www.postgresql.org/docs/current/textsearch.html) [The search box features custom spellcheck and autocomplete.](https://www.postgresql.org/docs/current/pgtrgm.html)
 	* On a blog post page, its title is searched (can be overridden), and those results are shown at the end of the article as a 'you might also like' feature. The links are presented similarly to the homepage.
 	* Links on the homepage, sidebar, and the 'you might also like' area won't list the same article between them (if you have enough articles).
 
-This code is optimized for page load speed:
+Gram code is optimized for page load speed:
 
 * Internal links are preloaded when they are shown on screen. Clicking those links will swap the page with the preloaded version.
 * Up to 100 pages are stored in an internal cache, and are automatically dropped when not requested for a while (must get more than 1 hit per hour to stay).
 * Images will lazy load [(via `<img loading="lazy">`)](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#loading), except for all images of an article on its page, and the first 2 images of the homepage. When left alone, lazy load images will load in, one by one, every 5 seconds or so (based on initial page load time) until all images are fully loaded.
-* Responsive images supported. Images must be prepared externally, because this code will not resize and encode automatically ([see avifify.sh for more](https://gist.github.com/theandrewbailey/4e05e20a229ef2f2c1f9a6d0e326ec2a)). When posting an article with images, image uploads are searched by name, file type (see `site_imagePriority` configuration), and size (named *image*×*n*). All matched images will be placed in [a `<picture>` element](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/picture) with the original.
+* Responsive images supported. Images must be prepared externally, because Gram will not resize and encode automatically ([see avifify.sh for more](https://gist.github.com/theandrewbailey/4e05e20a229ef2f2c1f9a6d0e326ec2a)). When posting an article with images, image uploads are searched by name, file type (see `site_imagePriority` configuration), and dimensions (named *image*×*n*). All matched images will be placed in [a `<picture>` element](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/picture) with the original.
 	* Lowest resolution images are displayed in article summaries. The preload function will replace them with higher resolution images on hover if available.
 * Pages and files are compressed with gzip, [brotli](https://github.com/google/brotli) (via [Brotli4j](https://github.com/hyperxpro/Brotli4j)), and [zstd](https://github.com/facebook/zstd) (via [zstd-jni](https://github.com/luben/zstd-jni)).
 * [HTTP cache headers are set on every page](https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching), and are set to 100,000 seconds (a bit more than a day). [HTTP Etag headers](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag) use a SHA-256 hash of the meaningful data served.
@@ -30,7 +31,7 @@ Security is important!
 * All headers checked by [SecurityHeaders.com](https://securityheaders.com/) are supported, including [content security policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP), [feature policy, and permissions policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Permissions_Policy).
 * [Subresource integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) is used for all CSS and JS files.
 * All form fields are obfuscated on a per-visitor/session basis.
-* [This uses argon2 to hash passwords.](https://github.com/Password4j/password4j)
+* [Gram uses argon2 to hash passwords.](https://github.com/Password4j/password4j)
 
 ## Setup guide
 
@@ -68,12 +69,14 @@ Security is important!
 		* site_security_* options are mostly regex filters or HTTP headers.
 		* page_* options are little bits of visible text scattered around pages. HTML entities will be escaped automatically. You'll probably want to customize a few of these later. Seriously, if you see a piece of text somewhere, you can change it from here. You can make the comment form a complaint form, haha!
 		* site_* options are configurations that aren't seen, and aren't escaped.
-	1. This blog will call external programs during use:
+	1. Gram will call external programs during use:
 		* site_healthCommands
 			* These programs are called on the health check page (see `admin_health`), with their outputs shown.
 	1. Click Save and start blogging!
 		* WARNING: sessions expire after 1 hour, and you can't save unpublished blog posts. Instead, write your magnum opus blog post in some other text editor of your choice, then copy+paste the text into Gram.
 		* Tip: upload all your images first before publishing your post.
+		* While Gram supports multiple locales, there's no support for a single article translated into multiple languages. It was implemented for skinning purposes. [Tip: try using private use extensions.](https://docs.oracle.com/javase/tutorial/i18n/locale/extensions.html#private)
+			* Access locales by appending the locale to the URL, e.g. https://theandrewbailey.com/x-scrolls/, or look at any page's source for `<link rel="alternate" hreflang="..." href="...">` elements.
 1. To start Payara again after a reboot, run `~/payara6/glassfish/bin/asadmin start-domain gramPayara-xxxxx` where `gramPayara-xxxxx` is the Payara username that the script gave you. (You kept that info, right? I told you it's important!)
 1. To setup another blog on the same server, an additional database must be created and registered as a JDBC resource (named "java/gram/`domain.name`") in Payara.
 	1. Run `setupUsTheBlog.sh -a domain.name`
@@ -90,10 +93,10 @@ I'm using [HAProxy](https://www.haproxy.org/) in front of Payara to handle port 
 
 The default setup assumes you're running Linux on x86-64 CPUs. If you're not, download the relevant JARs for [Brotli4j](https://repo1.maven.org/maven2/com/aayushatharva/brotli4j/) and [zstd-jni](https://repo1.maven.org/maven2/com/github/luben/zstd-jni/).
 
-This project was formerly known as the Toilet Blog Engine. [I changed it because this code's purpose isn't to serve files, but web pages.](https://wiki.loadingreadyrun.com/index.php/Installation_Anxiety)
+Gram Blog Engine was formerly known as the Toilet Blog Engine. [I changed it because this code's purpose isn't to serve files, but web pages.](https://wiki.loadingreadyrun.com/index.php/Installation_Anxiety)
 
 ## Architecture
 
 Gram runs on [Java](https://openjdk.org/), [Payara](https://www.payara.fish/), [Postgres](https://www.postgresql.org/), and Linux [(Debian)](https://www.debian.org/), and written and built with Netbeans. (It should run on other Linux distros and Jakarta EE servers without much difficulty (untested), and other databases with a bit of effort. Pull requests for such compatibility welcome!)
 
-This is built with Jakarta EE Servlets, JSPs, and an EJB. This isn't a car shop: no springs or struts here.
+Gram is a monolith, built with Jakarta EE Servlets, JSPs, and an EJB. This isn't a car shop: no springs or struts here.

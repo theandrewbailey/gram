@@ -82,23 +82,36 @@ public final class HashUtil {
     }
 
     /**
+     * Wraps getArgon2WithParameters(String, Matcher) with the correct Matcher.
+     *
+     * @param parameters an argon2 hash
+     * @return an Argon2Function object ready to use with
+     * com.​password4j.Password builders
+     */
+    public static Argon2Function getArgon2WithParameters(String parameters) {
+        return getArgon2WithParameters(parameters, ARGON2_ENCODING_PATTERN.matcher(parameters));
+    }
+
+    /**
      * Reads an argon2 hash and returns a Argon2Function object having the same
      * parameters. Salt length must be specified separately.
      *
-     * @param parameters an argon2 hash like $argon2id$v=19$m=9999,t=2,p=1$...........$...........
-     * @return an Argon2Function object ready to use with com.​password4j.Password builders
+     * @param parameters an argon2 hash like
+     * $argon2id$v=19$m=9999,t=2,p=1$...........$...........
+     * @param regex ARGON2_ENCODING_PATTERN.matcher(parameters)
+     * @return an Argon2Function object ready to use with
+     * com.​password4j.Password builders
      */
-    public static Argon2Function getArgon2WithParameters(String parameters) {
+    public static Argon2Function getArgon2WithParameters(String parameters, Matcher regex) {
         try {
-            Matcher m = ARGON2_ENCODING_PATTERN.matcher(parameters);
-            if (m.find()) {
-                int memory = Integer.parseInt(m.group("m"));
-                int version = Integer.parseInt(m.group("v"));
-                int iterations = Integer.parseInt(m.group("t"));
-                int parallelism = Integer.parseInt(m.group("p"));
-                int length = Base64.getDecoder().decode(m.group("hash")).length;
+            if (regex.find()) {
+                int memory = Integer.parseInt(regex.group("m"));
+                int version = Integer.parseInt(regex.group("v"));
+                int iterations = Integer.parseInt(regex.group("t"));
+                int parallelism = Integer.parseInt(regex.group("p"));
+                int length = Base64.getDecoder().decode(regex.group("hash")).length;
                 Argon2 type;
-                switch (m.group("type")) {
+                switch (regex.group("type")) {
                     case "argon2i":
                         type = Argon2.I;
                         break;
@@ -128,8 +141,10 @@ public final class HashUtil {
      */
     public static String getArgon2Hash(String parameters, String password) {
         try {
-            Argon2Function argon2 = getArgon2WithParameters(parameters);
-            return Password.hash(password.getBytes("UTF-8")).addRandomSalt(64).with(argon2).getResult();
+            Matcher regex = ARGON2_ENCODING_PATTERN.matcher(parameters);
+            Argon2Function argon2 = getArgon2WithParameters(parameters, regex);
+            int saltLen = Base64.getDecoder().decode(regex.group("salt")).length;
+            return Password.hash(password.getBytes("UTF-8")).addRandomSalt(saltLen).with(argon2).getResult();
         } catch (UnsupportedEncodingException ex) {
             throw new JVMNotSupportedError(ex);
         } catch (NumberFormatException n) {

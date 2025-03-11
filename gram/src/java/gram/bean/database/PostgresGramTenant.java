@@ -39,7 +39,7 @@ public class PostgresGramTenant implements GramTenant {
     private final FileRepository file;
     private final IMEADHolder imead;
     private final Repository<Feed> feeds;
-    private final Repository<Article> arts;
+    private final ArticleRepository arts;
     private final Repository<Comment> comms;
     private final Repository<Section> sects;
     private final SiteMapper mapper;
@@ -118,7 +118,7 @@ public class PostgresGramTenant implements GramTenant {
     }
 
     @Override
-    public Repository<Article> getArts() {
+    public ArticleRepository getArts() {
         return arts;
     }
 

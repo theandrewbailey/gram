@@ -74,21 +74,23 @@ public class FileDatabase implements FileRepository {
     }
 
     @Override
+    public List<Fileupload> search(Fileupload term, Integer limit) {
+        try (EntityManager em = PU.createEntityManager()) {
+            return em.createNamedQuery("Filemetadata.searchByType", Fileupload.class).setParameter("term", term.getMimetype()).getResultList();
+        } catch (NoResultException n) {
+            return null;
+        }
+    }
+
+    @Override
     public List<Fileupload> upsert(Collection<Fileupload> entities) {
         ArrayList<Fileupload> out = new ArrayList<>(entities.size());
         try (EntityManager em = PU.createEntityManager()) {
             try {
                 em.getTransaction().begin();
                 for (Fileupload upload : entities) {
-                    if (null == upload) {
-                        continue;
-                    } else if (null == em.find(Fileupload.class, upload.getFilename())) {
-                        em.persist(upload);
-                        LOG.log(Level.FINE, "File added {0}", upload.getFilename());
-                    } else {
-                        upload = em.merge(upload);
-                        LOG.log(Level.FINE, "File upserted {0}", upload.getFilename());
-                    }
+                    upload = em.merge(upload);
+                    LOG.log(Level.FINE, "File upserted {0}", upload.getFilename());
                     out.add(upload);
                 }
                 em.getTransaction().commit();

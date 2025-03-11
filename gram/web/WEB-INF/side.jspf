@@ -1,9 +1,10 @@
 <%@ page session="false" %><%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <aside class="noPrint">
     <div class="side_top"><h:local key="page_sideTop"/></div>
-    <nav><h1><h:local key="page_topics" /></h1><ul><g:categorizer>
-        <li id="${_category_uuid}"><c:choose><c:when test="${_category_name == curGroup}">${_category_name}</c:when><c:otherwise><a href="${_category_url}">${_category_name}</a></c:otherwise></c:choose></li></g:categorizer>
-    </ul></nav><h:localVar key="page_patternMismatch" var="patternMismatch"/><h:localVar key="page_valueMissing" var="valueMissing"/>
+    <c:if test="${categories.size()>0}"><nav><h1><h:local key="page_topics" /></h1><ul><c:forEach items="${categories}" var="cate" >
+        <li id="${cate.uuid}"><c:choose><c:when test="${cate.name == curGroup}">${cate.name}</c:when><c:otherwise><g:categoryUrl category="${cate}" text="${cate.name}"/></c:otherwise></c:choose></li></c:forEach>
+    </ul></nav></c:if>
+    <h:localVar key="page_patternMismatch" var="patternMismatch"/><h:localVar key="page_valueMissing" var="valueMissing"/>
     <c:if test="${!milligram}"><form class="search" action="search" method="GET" accept-charset="UTF-8">
         <input type="search" name="searchTerm" size="20" required="required" data-valuemissing="${valueMissing}" data-patternmismatch="${patternMismatch}" aria-label="Search" autocomplete="off"/>
         <button class="search" type="submit"><h:local key="page_search" /></button>

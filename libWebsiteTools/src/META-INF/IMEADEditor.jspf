@@ -5,7 +5,7 @@
         <thead>
             <th>key</th>
             <c:forEach items="${properties.keySet()}" var="locale" >
-                <th>${locale.toLanguageKey()}</th>
+                <th>${locale}</th>
             </c:forEach>
             <th><h:select id="" parameters="${groups}" ></th>
         </thead>

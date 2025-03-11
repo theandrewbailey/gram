@@ -146,9 +146,7 @@ public abstract class FileCompressorJob implements Callable<Boolean>, Comparable
     }
 
     public static List<Future> startAllJobs(Tenant ten, Fileupload file) {
-        return List.of(ten.getExec().submit(new Gzip(ten, file)),
-                ten.getExec().submit(new Brotli(ten, file)),
-                ten.getExec().submit(new Zstd(ten, file)));
+        return List.of(ten.getExec().submit(new ConsolidatedJobs(ten, file)));
     }
     private final static Logger LOG = Logger.getLogger(FileCompressorJob.class.getName());
     final Fileupload file;
@@ -173,13 +171,15 @@ public abstract class FileCompressorJob implements Callable<Boolean>, Comparable
             throw new RuntimeException(ex);
         }
         byte[] compressedData = getResult();
-        synchronized (file) {
-            if (null != compressedData && compressedData.length < file.getFiledata().length) {
-                Fileupload activeFile = ten.getFile().get(file.getFilename());
-                ten.getFile().upsert(Arrays.asList(setResult(activeFile, compressedData)));
-                ten.getFile().evict();
-                ten.getGlobalCache().clear();
-                return true;
+        if (null != compressedData && compressedData.length < file.getFiledata().length) {
+            setResult(file, compressedData);
+            if (null != ten) {
+                synchronized (file) {
+                    ten.getFile().upsert(Arrays.asList(file));
+                    ten.getFile().evict();
+                    ten.getGlobalCache().clear();
+                    return true;
+                }
             }
         }
         return false;
@@ -203,5 +203,32 @@ public abstract class FileCompressorJob implements Callable<Boolean>, Comparable
     @Override
     public String toString() {
         return this.getClass().getName() + " " + file.getFilename();
+    }
+}
+
+/**
+ * Will launch all compression jobs, but upsert only once per file.
+ *
+ * @author alpha
+ */
+class ConsolidatedJobs implements Callable<Boolean> {
+
+    final Fileupload file;
+    final Tenant ten;
+
+    public ConsolidatedJobs(Tenant ten, Fileupload file) {
+        this.ten = ten;
+        this.file = file;
+    }
+
+    @Override
+    public Boolean call() throws Exception {
+        new FileCompressorJob.Gzip(null, file).call();
+        new FileCompressorJob.Brotli(null, file).call();
+        new FileCompressorJob.Zstd(null, file).call();
+        ten.getFile().upsert(Arrays.asList(file));
+        ten.getFile().evict();
+        ten.getGlobalCache().clear();
+        return true;
     }
 }

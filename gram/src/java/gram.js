@@ -23,7 +23,7 @@ function ajax(method,url,onLoad,onTimeout,body){
 	req.addEventListener("load",onLoad);req.addEventListener("timeout",onTimeout);req.send(body);}
 function isLongRequest(e){
 	const total=e?.serverTiming.find(function findTotal(t){return "total"===t.name})?.duration;
-	return 300<total||(e?.encodedBodySize+5000<e?.duration);}
+	return 300<total||((e?.transferSize+5000)<e?.duration);}
 try{new PerformanceObserver(function detectSlowness(list){
 	list.getEntries().forEach(function check(e){
 		if(isLongRequest(e)){
@@ -73,8 +73,9 @@ function enhanceLinks(query,n=document){
 			history.replaceState({url:location.href,html:document.documentElement.outerHTML},document.title,location.href);
 			const cached=cachedPages.get(u.href);
 			showDocument(cached.html);
-			if(cached.preload){
-				$0("body>footer.downContent>p>.elapsed").insertAdjacentText('afterend',cached.preload);}
+			if(cached.preload)try{
+				$0("body>footer.downContent>p>.elapsed").insertAdjacentText('afterend',cached.preload);
+			}catch(TypeError){}
 			history.pushState({url:cached.url,html:cached.html},document.title,cached.url);
 			window.scrollTo(0,0);
 			e.preventDefault();}}
@@ -256,7 +257,7 @@ function enhanceLazyload(query,n=document){
 	setTimeout(eagerLoad,getWaitTime()*10,$(query,n).map(function getLazyImgs(node){return $("img[loading='lazy']",node);}).flat().reverse());}
 function enhanceLayout(){
 	function sizeIframe(iFrame){
-		iFrame.style.setProperty("width",(iFrame.parentNode.clientWidth-1)+'px');
+		iFrame.style.setProperty("width",(iFrame.parentNode.clientWidth-10)+'px');
 		iFrame.style.setProperty("height",iFrame.contentWindow.document.body.scrollHeight+50+'px');
 		return iFrame;}
 	function onResize(e){

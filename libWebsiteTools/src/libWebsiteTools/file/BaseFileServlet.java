@@ -32,6 +32,7 @@ import libWebsiteTools.imead.Local;
 import libWebsiteTools.turbo.RequestTimer;
 import libWebsiteTools.Landlord;
 import libWebsiteTools.Tenant;
+import libWebsiteTools.tag.AbstractInput;
 
 public abstract class BaseFileServlet extends BaseServlet {
 
@@ -198,13 +199,13 @@ public abstract class BaseFileServlet extends BaseServlet {
         Instant start = Instant.now();
         try {
             List<Fileupload> uploadedfiles = FileUtil.getFilesFromRequest(request, "filedata");
-            //boolean overwrite = AbstractInput.getParameter(request, "overwrite") != null;
+            boolean overwrite = AbstractInput.getParameter(request, "overwrite") != null;
             for (Fileupload uploadedfile : uploadedfiles) {
-                if (null != ten.getFile().get(uploadedfile.getFilename())) {
+                if (!overwrite && null != ten.getFile().get(uploadedfile.getFilename())) {
                     request.setAttribute("ERROR_MESSAGE", "File exists: " + uploadedfile.getFilename());
                     return;
                 }
-                uploadedfile.setUrl(getImmutableURL(ten.getImeadValue(SecurityRepo.BASE_URL), uploadedfile));
+                uploadedfile.setUrl(getImmutableURL("", uploadedfile));
             }
             ten.getFile().upsert(uploadedfiles);
             RequestTimer.addTiming(request, "save", Duration.between(start, Instant.now()));

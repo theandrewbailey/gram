@@ -71,7 +71,7 @@ public class FileUtil {
             f.setFiledata(FileUtil.getByteArray(filedata));
             f.setEtag(HashUtil.getSHA256Hash(f.getFiledata()));
             f.setMimetype(type);
-            f.setUrl(BaseFileServlet.getImmutableURL(ten.getImeadValue(SecurityRepo.BASE_URL), f));
+            f.setUrl(BaseFileServlet.getImmutableURL("", f));
         }
         return f;
     }
