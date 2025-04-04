@@ -24,6 +24,7 @@ import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Queue;
@@ -41,7 +42,10 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509ExtendedTrustManager;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.BaseServlet;
+import libWebsiteTools.imead.HtmlPageServlet;
+import libWebsiteTools.imead.Localization;
+import libWebsiteTools.security.SecurityRepository;
 
 /**
  *
@@ -102,7 +106,8 @@ public class SiteMilligramExporter implements Runnable {
         final BlockingQueue<CompletableFuture> subtasks = new LinkedBlockingQueue<>();
         subtasks.addAll(getAllPagesOfCategory(ten, locale, null, hclient, rateLimiter, zip));
         // Repository.processArchive() causes thread deadlock (I think)
-        String baseURL = ten.getImeadValue(SecurityRepo.BASE_URL);
+        String baseURL = ten.getImeadValue(SecurityRepository.BASE_URL);
+        subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + "index.html", baseURL + locale + "index.html"));
         subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + "rss/" + ArticleRss.NAME, baseURL + "rss/" + ArticleRss.NAME));
         subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + "rss/" + CommentRss.NAME, baseURL + "rss/" + CommentRss.NAME));
         for (Article a : ten.getArts().getAll(null)) {
@@ -119,7 +124,21 @@ public class SiteMilligramExporter implements Runnable {
             subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + "rss/" + category.getName() + ArticleRss.NAME, baseURL + "rss/" + category.getName() + ArticleRss.NAME));
         }
         for (int e : ERROR_CODES) {
-            subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + e + ".html", ten.getImeadValue(SecurityRepo.BASE_URL) + locale + "coroner/" + e));
+            subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + e + ".html", ten.getImeadValue(SecurityRepository.BASE_URL) + locale + "page/error" + e + ".html"));
+        }
+        HashSet<String> alreadyRequested = new HashSet<>();
+        for (Localization l : ten.getImead().search(HtmlPageServlet.IMEAD_KEY_PREFIX, null)) {
+            if (l.getLocalizationPK().getKey().startsWith(HtmlPageServlet.IMEAD_KEY_PREFIX)
+                    && !l.getLocalizationPK().getKey().endsWith("_markdown")
+                    && !l.getLocalizationPK().getKey().startsWith(BaseServlet.ERROR_PREFIX)
+                    && !l.getLocalizationPK().getKey().equals(HtmlPageServlet.IMEAD_KEY_PREFIX + "noPosts")) {
+                String pagename = l.getLocalizationPK().getKey().replace(HtmlPageServlet.IMEAD_KEY_PREFIX, "");
+                String zipPath = locale + "page/" + pagename + ".html";
+                if (!alreadyRequested.contains(zipPath)) {
+                    subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, zipPath, ten.getImeadValue(SecurityRepository.BASE_URL) + locale + "page/" + pagename + ".html"));
+                    alreadyRequested.add(zipPath);
+                }
+            }
         }
         UtilStatic.join(subtasks);
         return subtasks;
@@ -128,7 +147,7 @@ public class SiteMilligramExporter implements Runnable {
     private static Queue<CompletableFuture> getAllPagesOfCategory(GramTenant ten, String locale, String category, HttpClient hclient, Semaphore rateLimiter, ZipOutputStream zip) {
         final Queue<CompletableFuture> subtasks = new ConcurrentLinkedQueue<>();
         CategoryFetcher f = new CategoryFetcher(ten, Categorizer.getUrl("/", category, 1));
-        String baseURL = ten.getImeadValue(SecurityRepo.BASE_URL) + locale;
+        String baseURL = ten.getImeadValue(SecurityRepository.BASE_URL) + locale;
         for (int p = 1; p <= f.getPageCount(); p++) {
             subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, Categorizer.getUrl(locale, category, p), Categorizer.getUrl(baseURL, category, p)));
         }
@@ -136,7 +155,7 @@ public class SiteMilligramExporter implements Runnable {
     }
 
     private static CompletableFuture milligramAddPageToZip(GramTenant ten, String locale, HttpClient hclient, Semaphore rateLimiter, ZipOutputStream zip, String zipPath, String url) {
-        String baseURL = ten.getImeadValue(SecurityRepo.BASE_URL);
+        String baseURL = ten.getImeadValue(SecurityRepository.BASE_URL);
         URI requestURL = URI.create(url + "?nocache&milligram");
         HttpRequest hreq = HttpRequest.newBuilder(requestURL).GET().build();
         int fileAncestorDistance = zipPath.length() - zipPath.replace("/", "").length();
@@ -154,22 +173,24 @@ public class SiteMilligramExporter implements Runnable {
         return hclient.sendAsync(hreq, HttpResponse.BodyHandlers.ofString()).thenAccept((t) -> {
             LOG.log(Level.FINEST, "Milligram received: {0}", requestURL);
             rateLimiter.release();
-            try {
-                String body = t.body().replaceAll("<base href=\".*?\"/>", "").
-                        replaceAll(" href=\"" + baseURL + locale + "index.html", " href=\"" + goToLocaleRoot + "index.html").
-                        replaceAll(baseURL, "").
-                        replaceAll("(fileImmutable/[0-9A-Za-z=_-]+)", goToFileRoot + "file").
-                        replaceAll(" integrity=\"sha256-(?:[A-Za-z0-9]|[+/])+={0,2}\"", "").
-                        replaceAll(" href=\"" + locale + "article/", " href=\"" + goToLocaleRoot + "article/").
-                        replaceAll(" href=\"" + locale + "index/", " href=\"" + goToLocaleRoot + "index/").
-                        replaceAll(" href=\"article/", " href=\"" + goToLocaleRoot + "article/").
-                        replaceAll(" href=\"index/", " href=\"" + goToLocaleRoot + "index/").
-                        replaceAll(" href=\"rss/", " href=\"" + goToLocaleRoot + "rss/");
-                byte[] bodybytes = body.getBytes("UTF-8");
-                String type = t.headers().firstValue(HttpHeaders.CONTENT_TYPE).get().split(";")[0];
-                SiteExporter.addFileToZip(zip, zipPath, type, OffsetDateTime.now(), bodybytes);
-            } catch (IOException ix) {
-                throw new RuntimeException(ix);
+            if (200 <= t.statusCode() && t.statusCode() <= 299) {
+                try {
+                    String body = t.body().replaceAll("<base href=\".*?\"/>", "").
+                            replaceAll(" href=\"" + baseURL + locale + "index.html", " href=\"" + goToLocaleRoot + "index.html").
+                            replaceAll(baseURL, "").
+                            replaceAll("(fileImmutable/[0-9A-Za-z=_-]+)", goToFileRoot + "file").
+                            replaceAll(" integrity=\"sha256-(?:[A-Za-z0-9]|[+/])+={0,2}\"", "").
+                            replaceAll(" href=\"" + locale + "article/", " href=\"" + goToLocaleRoot + "article/").
+                            replaceAll(" href=\"" + locale + "index/", " href=\"" + goToLocaleRoot + "index/").
+                            replaceAll(" href=\"article/", " href=\"" + goToLocaleRoot + "article/").
+                            replaceAll(" href=\"index/", " href=\"" + goToLocaleRoot + "index/").
+                            replaceAll(" href=\"rss/", " href=\"" + goToLocaleRoot + "rss/");
+                    byte[] bodybytes = body.getBytes("UTF-8");
+                    String type = t.headers().firstValue(HttpHeaders.CONTENT_TYPE).get().split(";")[0];
+                    SiteExporter.addFileToZip(zip, zipPath, type, OffsetDateTime.now(), bodybytes);
+                } catch (IOException ix) {
+                    throw new RuntimeException(ix);
+                }
             }
         });
     }

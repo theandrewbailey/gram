@@ -3,14 +3,14 @@
 <main>
 <form action="file" method="POST" enctype="multipart/form-data" class="adminform adminFile" accept-charset="UTF-8">
 <c:if test="${ERROR_MESSAGE != null}"><p class="error">${ERROR_MESSAGE}</p></c:if><h:localVar key="page_valueMissing" var="valueMissing" />
-<span class="directory"><h:textbox name="directory" label="Directory:" datalist="${directories}" maxLength="250" labelNextLine="false" value="${prop.key}" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /></span>
-<span class="file"><h:file name="filedata" label="File Upload: " labelNextLine="false" required="true" valueMissing="${valueMissing}" multiple="true" /></span>
-<span class="overwrite"><h:checkbox name="overwrite" label="Overwrite" /></span>
+<span class="directory"><h:localVar key="page_fileDirectory"/><h:textbox name="directory" label="${page_fileDirectory}: " datalist="${directories}" maxLength="250" labelNextLine="false" value="${prop.key}" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /></span>
+<span class="file"><h:localVar key="page_fileUpload"/><h:file name="filedata" label="${page_fileUpload}: " labelNextLine="false" required="true" valueMissing="${valueMissing}" multiple="true" /></span>
+<span class="overwrite"><h:localVar key="page_fileOverwrite"/><h:checkbox name="overwrite" label=" ${page_fileOverwrite}" /></span>
 <button type="submit"><h:local key="page_upload"/></button>
-<c:if test="${null != uploadedfiles}"><p class="adminform"><h:local key="page_uploadSuccess"/><c:forEach items="${uploadedfiles}" var="uploadedfile"><br/><a href="file/${uploadedfile.filename}" target="_blank" rel="noopener" class="nocache">${uploadedfile.filename}</a></c:forEach></p></c:if>
+<c:if test="${null != uploadedfiles}"><p><h:local key="page_uploadSuccess"/></p><ul><c:forEach items="${uploadedfiles}" var="uploadedfile">
+<li><a href="file/${uploadedfile.filename}" target="_blank" rel="noopener" class="nocache">${uploadedfile.filename}</a></li></c:forEach></ul></c:if>
 </form>
-<br/>
-<form action="adminFile" method="POST" class="adminform adminFile" accept-charset="UTF-8"><p>Current Files:</p>
+<form action="adminFile" method="POST" class="adminform adminFile" accept-charset="UTF-8"><p><h:local key="page_fileCurrent"/>:</p>
     <c:forEach items="${files}" var="dir">
     <details ${opened_dir == dir.key ? "open='true'" : ""} ><summary>${dir.key}</summary><table>
     <c:forEach items="${dir.value}" var="con">

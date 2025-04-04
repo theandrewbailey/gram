@@ -1,1 +1,1 @@
-<c:if test="${null != searchSuggestion}"><a href="${searchURL}" class="searchSuggestion"><h:local key="page_searchSuggestion"/>&nbsp;&quot;${searchSuggestion}&quot;?</a></c:if>
+<c:if test="${null != searchSuggestion}"><a href="${searchURL}" class="searchSuggestion"><h:local key="page_searchSuggestion"><h:param object="${searchSuggestion}"/></h:local></a></c:if>

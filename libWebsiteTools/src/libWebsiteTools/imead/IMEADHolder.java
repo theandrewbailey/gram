@@ -13,14 +13,13 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import libWebsiteTools.Repository;
 
 /**
  * Internationalization Made Easy And Dynamic
  *
  * @author alpha
  */
-public abstract class IMEADHolder implements Repository<Localization> {
+public abstract class IMEADHolder implements IMEADRepository {
 
     private static final Logger LOG = Logger.getLogger(IMEADHolder.class.getName());
     protected Map<Locale, Properties> localizedCache = new HashMap<>();
@@ -38,6 +37,7 @@ public abstract class IMEADHolder implements Repository<Localization> {
      *
      * @return map of Locale to Properties
      */
+    @Override
     public Map<Locale, Properties> getProperties() {
         Map<Locale, Properties> output = new HashMap<>();
         for (Localization l : getAll(null)) {
@@ -61,6 +61,7 @@ public abstract class IMEADHolder implements Repository<Localization> {
         return output;
     }
 
+    @Override
     public List<Pattern> getPatterns(String key) {
         if (!patterns.containsKey(key) && null != getValue(key)) {
             List<Pattern> temps = new ArrayList<>();
@@ -83,6 +84,7 @@ public abstract class IMEADHolder implements Repository<Localization> {
         return false;
     }
 
+    @Override
     public Collection<Locale> getLocales() {
         return localizedCache.keySet();
     }
@@ -93,6 +95,7 @@ public abstract class IMEADHolder implements Repository<Localization> {
      * @param key
      * @return value from keyValue map (from DB)
      */
+    @Override
     public String getValue(String key) {
         try {
             return localizedCache.get(Locale.ROOT).getProperty(key);
@@ -109,6 +112,7 @@ public abstract class IMEADHolder implements Repository<Localization> {
      * @return value
      * @throws RuntimeException if key cannot be found in locales
      */
+    @Override
     public String getLocal(String key, Collection<Locale> locales) {
         for (Locale l : locales) {
             if (localizedCache.containsKey(l)) {
@@ -118,8 +122,9 @@ public abstract class IMEADHolder implements Repository<Localization> {
                 }
             }
         }
-        LOG.log(Level.FINE, "Key {0} not found in locales {1}", new Object[]{key, Arrays.toString(locales.toArray())});
-        throw new LocalizedStringNotFoundException(key, Arrays.toString(locales.toArray()));
+        String arrayString = Arrays.toString(locales.stream().map((l) -> l.toLanguageTag()).toArray());
+        LOG.log(Level.FINER, "Key {0} not found in locales {1}", new Object[]{key, arrayString});
+        throw new LocalizedStringNotFoundException(key, arrayString);
     }
 
     /**
@@ -132,6 +137,7 @@ public abstract class IMEADHolder implements Repository<Localization> {
      * @return value || null
      * @throws NullPointerException
      */
+    @Override
     public String getLocal(String key, String locale) {
         Locale l = Locale.forLanguageTag(locale);
         if (null == l) {
@@ -147,6 +153,7 @@ public abstract class IMEADHolder implements Repository<Localization> {
     /**
      * @return the localizedHash
      */
+    @Override
     public String getLocalizedHash() {
         return localizedHash;
     }

@@ -23,7 +23,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.core.CacheControl;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.ext.RuntimeDelegate;
-import libWebsiteTools.imead.IMEADHolder;
+import libWebsiteTools.imead.IMEADRepository;
 import libWebsiteTools.security.HashUtil;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.tag.AbstractInput;
@@ -69,7 +69,7 @@ public class PageCache implements Cache<String, CachedPage> {
         return out;
     }
 
-    public static String getLookup(IMEADHolder imead, HttpServletRequest req) {
+    public static String getLookup(IMEADRepository imead, HttpServletRequest req) {
         Object lookup = req.getAttribute(PAGECACHE_LOOKUP);
         if (null == lookup) {
             StringBuilder lookupBuild = new StringBuilder(300).append(req.getAttribute(AbstractInput.ORIGINAL_REQUEST_URL).toString());
@@ -82,7 +82,7 @@ public class PageCache implements Cache<String, CachedPage> {
         return lookup.toString();
     }
 
-    public static String getETag(IMEADHolder imead, HttpServletRequest req) {
+    public static String getETag(IMEADRepository imead, HttpServletRequest req) {
         Object etag = req.getAttribute(HttpHeaders.ETAG);
         if (null == etag) {
             etag = "W/\"" + HashUtil.getSHA256Hash(PageCache.getLookup(imead, req)) + "\"";

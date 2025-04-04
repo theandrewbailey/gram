@@ -22,15 +22,14 @@ import jakarta.persistence.TypedQuery;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import java.util.logging.Level;
-import libWebsiteTools.Repository;
-import libWebsiteTools.imead.IMEADHolder;
+import libWebsiteTools.imead.IMEADRepository;
 
 /**
  * used for tracking IP blocks, errors, and what the script kiddies picking at.
  *
  * @author alpha
  */
-public class SecurityRepo implements Repository<Exceptionevent> {
+public class SecurityRepository implements ExceptionRepository {
 
     public static final String LOCAL_NAME = "java:module/ExceptionRepo";
     public static final String NEWLINE = "<br/>";
@@ -41,19 +40,19 @@ public class SecurityRepo implements Repository<Exceptionevent> {
     public static final String DENIED_USER_AGENTS = "site_security_deniedAgents";
     public static final String HONEYPOTS = "site_security_honeypots";
     private static final String HONEYPOT_INITIAL_BLOCK_TIME = "site_security_initialBlock";
-    private static final Logger LOG = Logger.getLogger(SecurityRepo.class.getName());
+    private static final Logger LOG = Logger.getLogger(SecurityRepository.class.getName());
     private final EntityManagerFactory PU;
-    private final IMEADHolder imead;
+    private final IMEADRepository imead;
     private final CertUtil certs = new CertUtil();
 
-    public SecurityRepo(EntityManagerFactory PU, IMEADHolder imead) {
+    public SecurityRepository(EntityManagerFactory PU, IMEADRepository imead) {
         this.PU = PU;
         this.imead = imead;
         evict();
     }
 
     @Override
-    public SecurityRepo evict() {
+    public SecurityRepository evict() {
         OffsetDateTime localNow = OffsetDateTime.now();
         try (EntityManager em = PU.createEntityManager()) {
             em.getTransaction().begin();
@@ -66,6 +65,7 @@ public class SecurityRepo implements Repository<Exceptionevent> {
         return this;
     }
 
+    @Override
     public void logException(HttpServletRequest req, String title, String desc, Throwable t) {
         LOG.log(Level.FINE, "Saving exception");
         if (title == null && req != null) {
@@ -91,14 +91,14 @@ public class SecurityRepo implements Repository<Exceptionevent> {
             }
         }
         if (desc != null) {
-            additionalDesc.append(desc).append(SecurityRepo.NEWLINE);
+            additionalDesc.append(desc).append(SecurityRepository.NEWLINE);
         }
         if (t != null) {
             StringWriter w = new StringWriter();
             PrintWriter p = new PrintWriter(w, false);
             t.printStackTrace(p);
             p.flush();
-            additionalDesc.append(w.toString().replace("\n\tat ", SecurityRepo.NEWLINE + " at "));
+            additionalDesc.append(w.toString().replace("\n\tat ", SecurityRepository.NEWLINE + " at "));
         }
         desc = additionalDesc.toString();
         upsert(Arrays.asList(new Exceptionevent(null, OffsetDateTime.now(), desc, title, UUID.randomUUID())));
@@ -220,6 +220,7 @@ public class SecurityRepo implements Repository<Exceptionevent> {
         return null == proxyAddress ? req.getRemoteAddr() : proxyAddress;
     }
 
+    @Override
     public boolean inHoneypot(String ip) {
         try (EntityManager em = PU.createEntityManager()) {
             em.createNamedQuery("Honeypot.findByIpBeforeNow", Honeypot.class).setParameter("ip", ip).setParameter("now", OffsetDateTime.now()).getSingleResult();
@@ -229,6 +230,7 @@ public class SecurityRepo implements Repository<Exceptionevent> {
         }
     }
 
+    @Override
     public boolean putInHoneypot(String ip) {
         OffsetDateTime localNow = OffsetDateTime.now();
         Long honeypotFirstBlockTime = Long.valueOf(imead.getValue(HONEYPOT_INITIAL_BLOCK_TIME));
@@ -255,6 +257,7 @@ public class SecurityRepo implements Repository<Exceptionevent> {
         return created;
     }
 
+    @Override
     public CertUtil getCerts() {
         return certs;
     }

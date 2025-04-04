@@ -40,6 +40,7 @@ public class GramLandlord implements Landlord {
 
     private static final String DEFAULT_DATASOURCE = "java/gram/default";
     private final Map<String, GramTenant> tenants = new ConcurrentHashMap<>();
+    private final Map<String, DataSource> sources = new ConcurrentHashMap<>();
     @Resource
     private ManagedExecutorService defaultExec;
 
@@ -70,13 +71,26 @@ public class GramLandlord implements Landlord {
             }
         } catch (SQLException ex) {
         }
-        throw new RuntimeException("JNDI resource " + jndi + " can't be used. Verify this connection works, rename this resource, or implement support for it.");
+        return new NullTenant(jndi);
+    }
+
+    @Override
+    public synchronized GramTenant replaceTenant(HttpServletRequest req) {
+        String name = req.getHeader(HttpHeaders.HOST);
+        if (!tenants.containsKey(name) || null == name) {
+            name = DEFAULT_DATASOURCE;
+        }
+        GramTenant ten = instantiateTenant(name, sources.get(name));
+        tenants.put(name, ten);
+        req.setAttribute(libWebsiteTools.Tenant.class.getCanonicalName(), ten);
+        return ten;
     }
 
     @PostConstruct
     @Override
     public void init() {
         Map<String, GramTenant> newTenants = new HashMap<>();
+        sources.clear();
         for (Map.Entry<String, DataSource> pair : traverseContext(null, "").entrySet()) {
             String jndi = pair.getKey();
             if (jndi.startsWith("java/gram/")) {
@@ -87,12 +101,19 @@ public class GramLandlord implements Landlord {
                     continue;
                 }
                 newTenants.put(dsName, instantiateTenant(jndi, pair.getValue()));
+                sources.put(dsName, pair.getValue());
             }
+        }
+        if (!newTenants.containsKey(DEFAULT_DATASOURCE)) {
+            newTenants.put(DEFAULT_DATASOURCE, new NullTenant(DEFAULT_DATASOURCE));
         }
         synchronized (tenants) {
             for (Map.Entry<String, GramTenant> e : tenants.entrySet()) {
                 if (!newTenants.containsKey(e.getKey())) {
-                    e.getValue().destroy();
+                    try {
+                        e.getValue().reset().close();
+                    } catch (Exception ex) {
+                    }
                     tenants.remove(e.getKey());
                 }
             }
@@ -106,7 +127,10 @@ public class GramLandlord implements Landlord {
     public void cleanup() {
         synchronized (tenants) {
             for (GramTenant ten : tenants.values()) {
-                ten.destroy();
+                try {
+                    ten.reset().close();
+                } catch (Exception ex) {
+                }
             }
             tenants.clear();
         }

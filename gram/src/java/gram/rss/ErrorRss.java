@@ -6,7 +6,7 @@ import java.util.logging.Logger;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.core.HttpHeaders;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.security.Exceptionevent;
 import libWebsiteTools.rss.RssChannel;
 import libWebsiteTools.rss.RssItem;
@@ -23,7 +23,7 @@ import gram.bean.GramLandlord;
 public class ErrorRss implements Feed {
 
     public static final String NAME = "logger.rss";
-    private static final Logger LOG = Logger.getLogger(SecurityRepo.class.getName());
+    private static final Logger LOG = Logger.getLogger(SecurityRepository.class.getName());
 
     @Override
     public String getName() {

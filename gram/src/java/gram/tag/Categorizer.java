@@ -8,7 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.jsp.JspException;
 import jakarta.servlet.jsp.PageContext;
 import jakarta.servlet.jsp.tagext.SimpleTagSupport;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.JVMNotSupportedError;
 import gram.bean.database.Section;
 import gram.bean.GramTenant;
@@ -41,7 +41,7 @@ public class Categorizer extends SimpleTagSupport {
                 execute(article.getSectionid());
             } else {
                 List<Locale> resolvedLocales = Local.resolveLocales(ten.getImead(), req);
-                Object baseURL = req.getAttribute(SecurityRepo.BASE_URL);
+                Object baseURL = req.getAttribute(SecurityRepository.BASE_URL);
                 getJspContext().setAttribute("_category_url", getUrl(baseURL.toString(), null, page));
                 getJspContext().setAttribute("_category_name", ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales));
                 getJspContext().setAttribute("_category_uuid", "00000000-0000-0000-0000-000000000000");
@@ -55,7 +55,7 @@ public class Categorizer extends SimpleTagSupport {
     }
 
     private void execute(Section category) throws JspException, IOException {
-        Object baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepo.BASE_URL);
+        Object baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepository.BASE_URL);
         if (null != baseURL) {
             getJspContext().setAttribute("_category_url", getUrl(baseURL.toString(), category.getName(), page));
             getJspContext().setAttribute("_category_name", category.getName());
@@ -74,7 +74,7 @@ public class Categorizer extends SimpleTagSupport {
                 throw new JVMNotSupportedError(ex);
             }
         }
-        if (null != page && 1 != page) {
+        if (null != page) {
             url.append('/').append(page);
         }
         return url.append(".html").toString();

@@ -19,7 +19,7 @@ import java.util.regex.Matcher;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.rss.FeedBucket;
 import libWebsiteTools.turbo.RequestTimer;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.tag.AbstractInput;
 import gram.ArticleProcessor;
 import gram.bean.database.ArticleRepository;
@@ -54,17 +54,41 @@ public class AdminArticleServlet extends AdminServlet {
         return new AdminPermission[]{AdminPermission.Password.EDIT_POSTS};
     }
 
+    private static ArticleProcessor getProcessor(HttpServletRequest req, Article art) {
+        GramTenant ten = GramLandlord.getTenant(req);
+        ArticleProcessor artPro = (ArticleProcessor) req.getSession().getAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + ArticleProcessor.class.getCanonicalName());
+        if (art == null) {
+            art = (Article) req.getSession().getAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName());
+        }
+        if (art == null) {
+            art = ArticleServlet.getArticleFromURL(ten, req.getRequestURI());
+        }
+        if (art != null) {
+            req.getSession().setAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName(), art);
+        }
+        if (artPro == null) {
+            artPro = new ArticleProcessor(ten, art);
+            req.getSession().setAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + ArticleProcessor.class.getCanonicalName(), artPro);
+        }
+        return artPro;
+    }
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         GramTenant ten = GramLandlord.getTenant(request);
         if (null != request.getParameter("iframe") && "Preview".equals(request.getParameter("action"))) {
-            Article art = (Article) request.getSession().getAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + Article.class.getCanonicalName());
+            ArticleProcessor artPro = getProcessor(request, null);
+            Article art = artPro.getArt();
             if (null != art.getArticletitle() && null != art.getPostedhtml() && null != art.getPosted()) {
                 request.setAttribute(Article.class.getSimpleName(), art);
-                checkSize(ten, request);
+                checkSize(ten, request, artPro);
+                Collection<Article> seeAlso = ArticleServlet.getArticleSuggestions(ten.getArts(), art);
+                request.setAttribute("seeAlso", seeAlso);
                 request.getRequestDispatcher(ADMIN_ADD_ARTICLE_IFRAME).forward(request, response);
             }
         } else {
+            request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + ArticleProcessor.class.getCanonicalName());
+            request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName());
             Instant start = Instant.now();
             Article art = ArticleServlet.getArticleFromURL(ten, request.getRequestURI());
             if (null == art) {
@@ -73,18 +97,20 @@ public class AdminArticleServlet extends AdminServlet {
             if (null == art) {
                 art = new Article(UUID.randomUUID());
             }
+            ArticleProcessor artPro = getProcessor(request, art);
             RequestTimer.addTiming(request, "query", Duration.between(start, Instant.now()));
-            AdminArticleServlet.displayArticleEdit(ten, request, response, art);
+            AdminArticleServlet.displayArticleEdit(ten, request, response, artPro);
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        Matcher validator = AbstractInput.DEFAULT_REGEXP.matcher("");
         GramTenant ten = GramLandlord.getTenant(request);
-        Article art = updateArticleFromPage(request);
+        Matcher validator = AbstractInput.DEFAULT_REGEXP.matcher("");
+        ArticleProcessor artPro = updateArticleFromPage(request);
+        Article art = artPro.getArt();
         if ("Preview".equals(request.getParameter("action"))) {
-            AdminArticleServlet.displayArticleEdit(ten, request, response, art);
+            AdminArticleServlet.displayArticleEdit(ten, request, response, artPro);
             return;
         } else if (!validator.reset(art.getArticletitle()).matches()
                 || !validator.reset(art.getDescription()).matches()
@@ -92,7 +118,7 @@ public class AdminArticleServlet extends AdminServlet {
                 || !validator.reset(art.getPostedmarkdown()).matches()
                 || (null != art.getSectionid() && !validator.reset(art.getSectionid().getName()).matches())) {
             request.setAttribute(GramServlet.ERROR_MESSAGE_PARAM, ten.getImead().getLocal("page_patternMismatch", Local.resolveLocales(ten.getImead(), request)));
-            AdminArticleServlet.displayArticleEdit(ten, request, response, art);
+            AdminArticleServlet.displayArticleEdit(ten, request, response, artPro);
             return;
         }
         Instant start = Instant.now();
@@ -104,18 +130,20 @@ public class AdminArticleServlet extends AdminServlet {
         response.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(request, Boolean.FALSE));
         ten.getArts().evict();
         ten.getGlobalCache().clear();
+        request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + ArticleProcessor.class.getCanonicalName());
+        request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName());
         request.getSession().invalidate();
         response.setHeader("Clear-Site-Data", "*");
-        response.sendRedirect(ArticleUrl.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), art, null));
+        response.sendRedirect(ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null));
         ten.getExec().submit(() -> {
             ten.getArts().refreshSearch();
         });
     }
 
-    private Article updateArticleFromPage(HttpServletRequest req) {
+    private ArticleProcessor updateArticleFromPage(HttpServletRequest req) {
         Instant start = Instant.now();
         GramTenant ten = GramLandlord.getTenant(req);
-        Article art = (Article) req.getSession().getAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + Article.class.getCanonicalName());
+        Article art = (Article) req.getSession().getAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName());
         boolean isNewArticle = null == art.getArticleid();
         if (isNewArticle) {
             int nextID = ten.getArts().count(null).intValue();
@@ -151,9 +179,10 @@ public class AdminArticleServlet extends AdminServlet {
         try {
             art.setImageurl(null);
             art.setSummary(null);
-            ArticleProcessor processor = new ArticleProcessor(ten, art);
-            req.getSession().setAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + ArticleProcessor.class.getCanonicalName(), processor);
-            return processor.call();
+            art.setPostedhtml(null);
+            ArticleProcessor artPro = getProcessor(req, art);
+            artPro.call();
+            return artPro;
         } finally {
             if (isNewArticle) {
                 art.setArticleid(null);
@@ -162,8 +191,9 @@ public class AdminArticleServlet extends AdminServlet {
         }
     }
 
-    public static void displayArticleEdit(GramTenant ten, HttpServletRequest request, HttpServletResponse response, Article art) throws ServletException, IOException {
+    public static void displayArticleEdit(GramTenant ten, HttpServletRequest request, HttpServletResponse response, ArticleProcessor artPro) throws ServletException, IOException {
         Instant start = Instant.now();
+        Article art = artPro.getArt();
         Collection<Article> seeAlso = ArticleServlet.getArticleSuggestions(ten.getArts(), art);
         request.setAttribute("seeAlso", seeAlso);
         RequestTimer.addTiming(request, "seeAlsoQuery", Duration.between(start, Instant.now()));
@@ -181,31 +211,23 @@ public class AdminArticleServlet extends AdminServlet {
         request.setAttribute("iframeSrc", null == art.getArticleid() ? "adminArticle?action=Preview&iframe" : "edit/" + art.getArticleid() + "?action=Preview&iframe");
         request.setAttribute("defaultSearchTerm", ArticleRepository.getArticleSuggestionTerm(art));
         request.setAttribute(Article.class.getSimpleName(), art);
-        request.getSession().setAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + Article.class.getCanonicalName(), art);
-        request.getSession().removeAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + ArticleProcessor.class.getCanonicalName());
         request.setAttribute("seeAlsoTerm", null != art.getSuggestion() ? art.getSuggestion() : ArticleRepository.getArticleSuggestionTerm(art));
         String formattedDate = null != art.getPosted() ? DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(art.getPosted()) : "";
         request.setAttribute("formattedDate", formattedDate);
         if (null != request.getParameter("iframe")) {
-            checkSize(ten, request);
+            checkSize(ten, request, artPro);
             request.getRequestDispatcher(ADMIN_ADD_ARTICLE_IFRAME).forward(request, response);
         } else {
             request.getRequestDispatcher(ADMIN_ADD_ARTICLE).forward(request, response);
         }
+        request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + ArticleProcessor.class.getCanonicalName());
     }
 
-    public static void checkSize(GramTenant ten, HttpServletRequest request) {
-        ArticleProcessor artP = (ArticleProcessor) request.getSession().getAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + ArticleProcessor.class.getCanonicalName());
-        if (null == artP) {
-            Article art = (Article) request.getSession().getAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + Article.class.getCanonicalName());
-            artP = new ArticleProcessor(ten, art);
-            artP.call();
-            request.getSession().setAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + ArticleProcessor.class.getCanonicalName(), artP);
-        }
-        Long fixed = artP.getFixedSizeEstimate();
-        Long low = fixed + artP.getLowSizeEstimate();
-        Long high = fixed + artP.getHighSizeEstimate();
-        int resources = artP.getResourceCount();
+    public static void checkSize(GramTenant ten, HttpServletRequest request, ArticleProcessor artPro) {
+        Long fixed = artPro.getFixedSizeEstimate();
+        Long low = fixed + artPro.getLowSizeEstimate();
+        Long high = fixed + artPro.getHighSizeEstimate();
+        int resources = artPro.getResourceCount();
         if (fixed > FIXED_SIZE_LIMIT) {
             String message = ten.getImead().getLocal("page_admin_fixed_size_error", Local.resolveLocales(ten.getImead(), request));
             request.setAttribute(ERROR_MESSAGE_PARAM, MessageFormat.format(message, FileSize.readableFileSize(fixed)));

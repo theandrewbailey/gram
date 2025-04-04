@@ -86,7 +86,7 @@ public abstract class ArticleDatabase implements ArticleRepository {
                 art.setEtag(Base64.getEncoder().encodeToString(ArticleRepository.hashArticle(art, art.getCommentCollection())));
                 em.merge(art);
                 out.add(art);
-                LOG.log(Level.FINE, "Article added {0}", new Object[]{art.getArticletitle()});
+                LOG.log(Level.FINE, "Article upserted {0}", new Object[]{art.getArticletitle()});
             }
             em.getTransaction().commit();
             return out;
@@ -149,7 +149,7 @@ public abstract class ArticleDatabase implements ArticleRepository {
 
     /**
      *
-     * @param operation This will be run in parallel.
+     * @param operation
      * @param transaction Should changes be saved?
      */
     @Override

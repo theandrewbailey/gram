@@ -29,6 +29,15 @@ public interface Landlord {
      */
     public Tenant setTenant(HttpServletRequest req);
 
+    /**
+     * Re-instantiate the Tenant associated with the given request, which is
+     * then used for subsequent requests for all users.
+     *
+     * @param req
+     * @return
+     */
+    public Tenant replaceTenant(HttpServletRequest req);
+
     public static Tenant getTenant(HttpServletRequest req) {
         return (Tenant) req.getAttribute(Tenant.class.getCanonicalName());
     }

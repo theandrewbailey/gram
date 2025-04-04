@@ -17,7 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Duration;
 import java.time.Instant;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.turbo.RequestTimer;
 import libWebsiteTools.tag.AbstractInput;
 import gram.ArticleProcessor;
@@ -61,7 +61,7 @@ public class AdminPostServlet extends AdminServlet {
             ten.getGlobalCache().clear();
             RequestTimer.addTiming(request, "save", Duration.between(start, Instant.now()));
             response.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(request, Boolean.FALSE));
-            response.sendRedirect(request.getAttribute(SecurityRepo.BASE_URL).toString());
+            response.sendRedirect(request.getAttribute(SecurityRepository.BASE_URL).toString());
         } else if (request.getParameter("rewrite") != null) {
             try {
                 Queue<Future<Article>> articleTasks = new ConcurrentLinkedQueue<>();
@@ -99,7 +99,7 @@ public class AdminPostServlet extends AdminServlet {
             RequestTimer.addTiming(request, "rewrite", Duration.between(start, Instant.now()));
             response.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(request, Boolean.FALSE));
             response.setHeader("Clear-Site-Data", "cache");
-            response.sendRedirect(request.getAttribute(SecurityRepo.BASE_URL).toString());
+            response.sendRedirect(request.getAttribute(SecurityRepository.BASE_URL).toString());
         } else {
             List<Article> articles = ten.getArts().getAll(null);
             RequestTimer.addTiming(request, "query", Duration.between(start, Instant.now()));

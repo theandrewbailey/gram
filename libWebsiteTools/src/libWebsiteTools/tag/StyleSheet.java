@@ -14,7 +14,7 @@ import libWebsiteTools.file.Fileupload;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.Landlord;
 import libWebsiteTools.Tenant;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 
 /**
  * Will link all css files described in imead.localization site_css value.
@@ -93,7 +93,7 @@ public class StyleSheet extends SimpleTagSupport {
             // TOTAL HACK: this assumes that the StyleSheet is hosted locally 
             try {
                 // will create a unique URL based on the file's last update time, so browsers will get and cache a new resource
-                String url = ten.getImeadValue(SecurityRepo.BASE_URL) + f.getUrl();
+                String url = ten.getImeadValue(SecurityRepository.BASE_URL) + f.getUrl();
                 // TOTAL HACK: this assumes that the etag is a base64 sha-2 hash of the file contents ONLY, for subresource integrity
                 switch (f.getEtag().length()) { // different flavors of sha-2 will have different digest lengths
                     case 44:

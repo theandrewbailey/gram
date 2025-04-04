@@ -2,10 +2,10 @@
 <aside class="noPrint">
     <div class="side_top"><h:local key="page_sideTop"/></div>
     <c:if test="${categories.size()>0}"><nav><h1><h:local key="page_topics" /></h1><ul><c:forEach items="${categories}" var="cate" >
-        <li id="${cate.uuid}"><c:choose><c:when test="${cate.name == curGroup}">${cate.name}</c:when><c:otherwise><g:categoryUrl category="${cate}" text="${cate.name}"/></c:otherwise></c:choose></li></c:forEach>
+        <li><c:choose><c:when test="${cate.name == curGroup}"><span id="${cate.uuid}">${cate.name}</span></c:when><c:otherwise><g:categoryUrl category="${cate}" text="${cate.name}" page="${1}"/></c:otherwise></c:choose></li></c:forEach>
     </ul></nav></c:if>
     <h:localVar key="page_patternMismatch" var="patternMismatch"/><h:localVar key="page_valueMissing" var="valueMissing"/>
-    <c:if test="${!milligram}"><form class="search" action="search" method="GET" accept-charset="UTF-8">
+    <c:if test="${!milligram&&requestScope['libWebsiteTools.Tenant'].arts.count(null)>0}"><form class="search" action="search" method="GET" accept-charset="UTF-8">
         <input type="search" name="searchTerm" size="20" required="required" data-valuemissing="${valueMissing}" data-patternmismatch="${patternMismatch}" aria-label="Search" autocomplete="off"/>
         <button class="search" type="submit"><h:local key="page_search" /></button>
     </form></c:if>

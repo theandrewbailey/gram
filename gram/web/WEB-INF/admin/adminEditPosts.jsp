@@ -15,9 +15,9 @@
     <button type="submit" formmethod="GET" formaction="edit/${art.articleid}"><h:local key="page_edit"/></button>
     <g:articleUrl article="${art}" cssClass="nocache"/> <label for="${$_LAST_CHECKBOX_ID}"><c:if test="${null!=art.sectionid}">under ${art.sectionid.name}, </c:if>
     <h:time datetime="${art.posted}" pattern="EEE MM/dd/yy h:mm a"/></label>
-    <c:if test="${0!=fn:length(art.commentCollection)}"><p class="secondmin" >
-    <c:forEach items="${art.commentCollection}" var="comm"><h:time datetime="${comm.posted}" pattern="EEE MM/dd/yy h:mm a"/> by ${comm.postedname} <button type="submit" name="deletecomment" value="${comm.commentid}"><h:local key="page_delete"/></button><br/>
-    </c:forEach></p></c:if>
+    <c:if test="${0!=fn:length(art.commentCollection)}"><ol>
+    <c:forEach items="${art.commentCollection}" var="comm"><li><h:time datetime="${comm.posted}" pattern="EEE MM/dd/yy h:mm a"/> by ${comm.postedname} <button type="submit" name="deletecomment" value="${comm.commentid}"><h:local key="page_delete"/></button></li>
+    </c:forEach></ol></c:if>
 </article></c:forEach>
 <button name="selectAll" data-check="articleCheckbox"><h:local key="page_select_all"/></button>
 <button name="selectImages" data-check="articleCheckboxWithImage"><h:local key="page_select_all_images"/></button>

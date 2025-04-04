@@ -1,7 +1,6 @@
 package gram.servlet;
 
 import java.io.IOException;
-import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
@@ -15,7 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.core.HttpHeaders;
 import java.time.Duration;
 import java.time.Instant;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.turbo.RequestTimer;
 import libWebsiteTools.tag.HtmlMeta;
@@ -28,7 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
-@WebServlet(name = "IndexServlet", description = "Gets all the posts of a single group, defaults to Home", urlPatterns = {"/index/*", "/index.html", "/index", "/"})
+@WebServlet(name = "IndexServlet", description = "Get articles of a category", urlPatterns = {"/index/*"})
 public class IndexServlet extends GramServlet {
 
     public static final String HOME_JSP = "/WEB-INF/category.jsp";
@@ -89,11 +88,6 @@ public class IndexServlet extends GramServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         GramTenant ten = GramLandlord.getTenant(request);
         List<Locale> resolvedLocales = Local.resolveLocales(ten.getImead(), request);
-        if (ten.isFirstTime()) {
-            String url = AdminImeadServlet.class.getAnnotation(WebServlet.class).urlPatterns()[0];
-            request.getRequestDispatcher(url).forward(request, response);
-            return;
-        }
         doHead(request, response);
         if (!response.isCommitted()) {
             CategoryFetcher f = getCategoryFetcher(request);
@@ -109,9 +103,7 @@ public class IndexServlet extends GramServlet {
                     request.setAttribute("pagen_current", f.getCurrentPage());
                     request.setAttribute("pagen_count", f.getPageCount());
                 } else if ((null == f.getCategory() || null == f.getCategory().getSectionid()) && 0 == ten.getArts().count(null)) {
-                    String message = MessageFormat.format(ten.getImead().getLocal("page_noPosts", resolvedLocales), new Object[]{request.getAttribute(SecurityRepo.BASE_URL).toString() + "adminLogin"});
-                    request.setAttribute(CoronerServlet.ERROR_MESSAGE_PARAM, message);
-                    request.getServletContext().getRequestDispatcher(CoronerServlet.ERROR_JSP).forward(request, response);
+                    request.getRequestDispatcher("/page/noPosts.html").forward(request, response);
                     return;
                 } else if (HttpServletResponse.SC_NOT_FOUND == response.getStatus()) {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -138,7 +130,7 @@ public class IndexServlet extends GramServlet {
                 if (null == request.getParameter("milligram")) {
                     String catName = null != f.getCategory() ? f.getCategory().getName() : ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales);
                     String catNameNull = null != f.getCategory() ? f.getCategory().getName() : null;
-                    String canonical = Categorizer.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), catNameNull, f.getCurrentPage());
+                    String canonical = Categorizer.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), catNameNull, f.getCurrentPage());
                     HtmlMeta.addLink(request, "canonical", canonical);
                     HashSet<Locale> locales = new HashSet<>(ten.getImead().getLocales());
                     locales.add(Locale.getDefault());
@@ -146,7 +138,7 @@ public class IndexServlet extends GramServlet {
                         if ("und".equals(l.toLanguageTag())) {
                             continue;
                         }
-                        String base = ten.getImeadValue(SecurityRepo.BASE_URL);
+                        String base = ten.getImeadValue(SecurityRepository.BASE_URL);
                         if (l != Locale.getDefault() && !l.toLanguageTag().isEmpty()) {
                             base += l.toLanguageTag() + "/";
                         }
@@ -166,13 +158,13 @@ public class IndexServlet extends GramServlet {
                     HtmlMeta.addPropertyTag(request, "og:site_name", ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales));
                     HtmlMeta.addPropertyTag(request, "og:type", "website");
                     JsonArrayBuilder itemList = Json.createArrayBuilder();
-                    itemList.add(HtmlMeta.getLDBreadcrumb(ten.getImead().getLocal("page_title", resolvedLocales), 1, request.getAttribute(SecurityRepo.BASE_URL).toString()));
+                    itemList.add(HtmlMeta.getLDBreadcrumb(ten.getImead().getLocal("page_title", resolvedLocales), 1, request.getAttribute(SecurityRepository.BASE_URL).toString()));
                     if (null == f.getCategory() && 1 == f.getCurrentPage() && null == request.getAttribute(Local.OVERRIDE_LOCALE_PARAM)) {
-                        JsonObjectBuilder potentialAction = Json.createObjectBuilder().add("@type", "SearchAction").add("target", ten.getImeadValue(SecurityRepo.BASE_URL) + "search?searchTerm={search_term_string}").add("query-input", "required name=search_term_string");
-                        JsonObjectBuilder search = Json.createObjectBuilder().add("@context", "https://schema.org").add("@type", "WebSite").add("url", ten.getImeadValue(SecurityRepo.BASE_URL)).add("potentialAction", potentialAction.build());
+                        JsonObjectBuilder potentialAction = Json.createObjectBuilder().add("@type", "SearchAction").add("target", ten.getImeadValue(SecurityRepository.BASE_URL) + "search?searchTerm={search_term_string}").add("query-input", "required name=search_term_string");
+                        JsonObjectBuilder search = Json.createObjectBuilder().add("@context", "https://schema.org").add("@type", "WebSite").add("url", ten.getImeadValue(SecurityRepository.BASE_URL)).add("potentialAction", potentialAction.build());
                         HtmlMeta.addLDJSON(request, search.build().toString());
                     } else if (null != f.getCategory() && null != catNameNull) {
-                        itemList.add(HtmlMeta.getLDBreadcrumb(catName, 2, Categorizer.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), catNameNull, null)));
+                        itemList.add(HtmlMeta.getLDBreadcrumb(catName, 2, Categorizer.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), catNameNull, null)));
                     }
                     JsonObjectBuilder breadcrumbs = Json.createObjectBuilder().add("@context", "https://schema.org").add("@type", "BreadcrumbList").add("itemListElement", itemList.build());
                     HtmlMeta.addLDJSON(request, breadcrumbs.build().toString());

@@ -18,7 +18,7 @@ import jakarta.ws.rs.core.HttpHeaders;
 import java.time.Duration;
 import libWebsiteTools.security.HashUtil;
 import libWebsiteTools.JVMNotSupportedError;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.turbo.PageCache;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.tag.AbstractInput;
@@ -113,7 +113,7 @@ public class CommentServlet extends GramServlet {
             request.setAttribute(Article.class.getSimpleName(), art);
             request.setAttribute("title", art.getArticletitle());
             request.setAttribute("articleCategory", art.getSectionid());
-            request.setAttribute("commentForm", request.getAttribute(SecurityRepo.BASE_URL).toString() + "comments/" + art.getArticleid() + (null == request.getParameter("iframe") ? "" : "?iframe"));
+            request.setAttribute("commentForm", request.getAttribute(SecurityRepository.BASE_URL).toString() + "comments/" + art.getArticleid() + (null == request.getParameter("iframe") ? "" : "?iframe"));
             request.getServletContext().getRequestDispatcher(null == request.getParameter("iframe") ? COMMENT_JSP : IFRAME_JSP).forward(request, response);
         }
     }

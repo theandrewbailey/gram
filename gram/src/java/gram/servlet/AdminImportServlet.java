@@ -14,7 +14,7 @@ import jakarta.ws.rs.core.HttpHeaders;
 import java.util.Arrays;
 import libWebsiteTools.security.GuardFilter;
 import libWebsiteTools.turbo.RequestTimer;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.tag.AbstractInput;
 import gram.bean.SiteExporter;
 import gram.bean.GramLandlord;
@@ -46,11 +46,15 @@ public class AdminImportServlet extends AdminServlet {
             Part p = AbstractInput.getPart(request, "zip");
             InputStream i = p.getInputStream();
             ZipInputStream zip = new ZipInputStream(i);
+            if (null != AbstractInput.getParameter(request, "deleteAll")) {
+                ten.deleteAll();
+                ten = gramlord.replaceTenant(request);
+            }
             new SiteImporter(ten, zip).run();
             request.getSession().invalidate();
             response.setHeader("Clear-Site-Data", "*");
             response.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(request, Boolean.FALSE));
-            response.sendRedirect(request.getAttribute(SecurityRepo.BASE_URL).toString());
+            response.sendRedirect(request.getAttribute(SecurityRepository.BASE_URL).toString());
         } catch (IOException ex) {
             ten.getError().logException(request, "Restore from zip failed", null, ex);
             request.setAttribute(GuardFilter.HANDLED_ERROR, true);

@@ -18,7 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import libWebsiteTools.JVMNotSupportedError;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.Markdowner;
 import libWebsiteTools.file.BaseFileServlet;
 import libWebsiteTools.file.Fileupload;
@@ -52,7 +52,7 @@ public class ArticleProcessor implements Callable<Article> {
             Map.entry("⅘", 0.8), Map.entry("⅚", 5.0 / 6), Map.entry("⅞", 0.875)
     );
     public static final Pattern ATTRIB_PATTERN = Pattern.compile("([^\\s=]+)(?:=[\\\"](.*?)[\\\"])?");
-    public static final Pattern PARA_PATTERN = Pattern.compile(".*?(<p>.*?</p>).*", Pattern.DOTALL);
+    public static final Pattern PARA_PATTERN = Pattern.compile("(<p>.*?</p>)", Pattern.DOTALL);
     public static final Pattern A_PATTERN = Pattern.compile("</?a(?:\\s.*?)?>");
     public static final Pattern HTML_TAG_PATTERN = Pattern.compile("<.+?>");
     // !?\["?(.+?)"?\]\(\S+?(?:\s"?(.+?)"?)?\)
@@ -98,12 +98,12 @@ public class ArticleProcessor implements Callable<Article> {
         if (null == art) {
             throw new IllegalArgumentException("Can't process an article when YOU DON'T PASS IT!");
         }
-        if (null != art.getPostedmarkdown()) {
+        if (null != art.getPostedmarkdown() && null == art.getPostedhtml()) {
             art.setPostedhtml(Markdowner.getHtml(art.getPostedmarkdown()));
-        } else if (null != art.getPostedhtml()) {
+        } else if (null != art.getPostedhtml() && null == art.getPostedmarkdown()) {
             art.setPostedmarkdown(Markdowner.getMarkdown(art.getPostedhtml()));
             LOG.log(Level.FINE, "The markdown for article {0} was copied from HTML.", art.getArticletitle());
-        } else {
+        } else if (null == art.getPostedmarkdown() && null == art.getPostedhtml()) {
             throw new IllegalArgumentException(String.format("The text for article %s cannot be recovered, because it has no HTML or markdown.", art.getArticletitle()));
         }
         if (null == art.getUuid()) {
@@ -133,7 +133,7 @@ public class ArticleProcessor implements Callable<Article> {
                 }
                 getImageInfo(URLDecoder.decode(origAttribs.get("src"), "UTF-8"), origAttribs);
                 StringBuilder pictureTag = new StringBuilder(500).append("<picture>");
-                String tempImageURL = URLDecoder.decode(origAttribs.get("src"), "UTF-8").replaceAll(ten.getImeadValue(SecurityRepo.BASE_URL), "");
+                String tempImageURL = URLDecoder.decode(origAttribs.get("src"), "UTF-8").replaceAll(ten.getImeadValue(SecurityRepository.BASE_URL), "");
                 Matcher stemmer = IMG_MULTIPLIER.matcher(tempImageURL);
                 if (stemmer.find() && null != ten.getImeadValue(FORMAT_PRIORITY)) {
                     AtomicLong lowImageSize = new AtomicLong(0);
@@ -179,12 +179,12 @@ public class ArticleProcessor implements Callable<Article> {
                                 if (0 != width.intValue()) {
                                     // optimized for theandrewbailey.com and Google Pagespeed Insights
                                     int wvalue = Double.valueOf(Math.floor(width.multiply(multiplier).doubleValue() * 1.41)).intValue();
-                                    srcset.add(ten.getImeadValue(SecurityRepo.BASE_URL) + file.getUrl() + " " + wvalue + "w");
+                                    srcset.add(ten.getImeadValue(SecurityRepository.BASE_URL) + file.getUrl() + " " + wvalue + "w");
                                 } else {
-                                    srcset.add(ten.getImeadValue(SecurityRepo.BASE_URL) + file.getUrl() + " " + multiplier + "x");
+                                    srcset.add(ten.getImeadValue(SecurityRepository.BASE_URL) + file.getUrl() + " " + multiplier + "x");
                                 }
                             } catch (Exception x) {
-                                srcset.add(ten.getImeadValue(SecurityRepo.BASE_URL) + file.getUrl() + (0 != width.intValue() ? " " + width + "w" : " 1x"));
+                                srcset.add(ten.getImeadValue(SecurityRepository.BASE_URL) + file.getUrl() + (0 != width.intValue() ? " " + width + "w" : " 1x"));
                             }
                         });
                         if (!srcset.isEmpty()) {
@@ -230,7 +230,7 @@ public class ArticleProcessor implements Callable<Article> {
         }
         try {
             Fileupload fileUpload = ten.getFile().get(BaseFileServlet.getNameFromURL(url));
-            attributes.put("src", BaseFileServlet.getImmutableURL(ten.getImeadValue(SecurityRepo.BASE_URL), fileUpload));
+            attributes.put("src", BaseFileServlet.getImmutableURL(ten.getImeadValue(SecurityRepository.BASE_URL), fileUpload));
             attributes.put("type", fileUpload.getMimetype());
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(fileUpload.getFiledata()));
             attributes.put("width", Integer.toString(image.getWidth()));
@@ -270,6 +270,10 @@ public class ArticleProcessor implements Callable<Article> {
      */
     public static Article deres(Article art) {
         art.setSummary(art.getSummary().replaceAll("w, https?://.*? \\d+", ""));
+        return art;
+    }
+
+    public Article getArt() {
         return art;
     }
 

@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.jsp.JspException;
 import jakarta.servlet.jsp.PageContext;
 import jakarta.servlet.jsp.tagext.SimpleTagSupport;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.JVMNotSupportedError;
 import gram.bean.database.Article;
 
@@ -27,7 +27,7 @@ public class ArticleUrl extends SimpleTagSupport {
         if (link) {
             b.append("<a href=\"");
         }
-        b.append(getUrl(((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepo.BASE_URL).toString(), article, anchor));
+        b.append(getUrl(((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepository.BASE_URL).toString(), article, anchor));
         if (link && id != null) {
             b.append("\" id=\"").append(id);
         } else if (link) {

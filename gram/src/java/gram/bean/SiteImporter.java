@@ -46,7 +46,7 @@ import libWebsiteTools.imead.Localization;
 import libWebsiteTools.rss.FeedBucket;
 import libWebsiteTools.rss.RssChannel;
 import libWebsiteTools.security.HashUtil;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
@@ -163,12 +163,14 @@ public class SiteImporter implements Runnable {
             try {
                 if (null != articleImporter.getTask()) {
                     List<Article> articles = articleImporter.getTask().get();
-                    String baseURL = ten.getImeadValue(SecurityRepo.BASE_URL);
+                    String baseURL = ten.getImeadValue(SecurityRepository.BASE_URL);
                     final Queue<Future> reprocessTasks = new ConcurrentLinkedQueue<>();
                     for (Article a : articles) {
                         // this import might be from a different environment, so reprocess
                         if (a.getPostedhtml().contains("<img ") && !a.getPostedhtml().contains(baseURL)) {
-                            a.setPostedhtml(null);
+                            if (null != a.getPostedmarkdown()) {
+                                a.setPostedhtml(null);
+                            }
                             a.setSummary(null);
                         }
                         if (null == a.getPostedhtml() || null == a.getPostedmarkdown() || null == a.getSummary()) {
@@ -214,9 +216,12 @@ public class SiteImporter implements Runnable {
         private Document rssFeed;
         private Future<List<Article>> task;
 
-        public ArticleRssImporter with(InputStream rssStream) {
+        public synchronized ArticleRssImporter with(InputStream rssStream) {
             if (null == rssStream) {
                 throw new IllegalArgumentException("rssStream is null.");
+            }
+            if (null != rssFeed) {
+                throw new IllegalStateException("ArticleRssImporter.with() called too many times.");
             }
             try {
                 DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -319,9 +324,12 @@ public class SiteImporter implements Runnable {
         private Document rssFeed;
         private Future<List<Comment>> task;
 
-        public CommentRssImporter with(InputStream rssStream) {
+        public synchronized CommentRssImporter with(InputStream rssStream) {
             if (null == rssStream) {
                 throw new IllegalArgumentException("rssStream is null.");
+            }
+            if (null != rssFeed) {
+                throw new IllegalStateException("CommentRssImporter.with() called too many times.");
             }
             try {
                 DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();

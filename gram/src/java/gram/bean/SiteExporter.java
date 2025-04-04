@@ -33,7 +33,7 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.JVMNotSupportedError;
 import libWebsiteTools.file.Fileupload;
 import libWebsiteTools.rss.FeedBucket;
@@ -63,17 +63,24 @@ public class SiteExporter implements Runnable {
     }
 
     public static enum BackupTypes {
-        ARTICLES, COMMENTS, LOCALIZATIONS, FILES;
+        ARTICLES, COMMENTS, LOCALIZATIONS, PASSWORDS, FILES;
     }
 
     @Override
     public void run() {
+        if (null == ten.getImeadValue(MASTER_DIR)) {
+            throw new IllegalArgumentException(MASTER_DIR + " not configured.");
+        }
         cleanupZips();
         backup();
         backupToZip();
     }
 
     public void cleanupZips() {
+        ten.getImead().evict();
+        if (null == ten.getImeadValue(MASTER_DIR)) {
+            throw new IllegalArgumentException(MASTER_DIR + " not configured.");
+        }
         LOG.log(Level.FINE, "Cleaning up zip backups");
         String master = ten.getImeadValue(MASTER_DIR);
         final String zipStem = getArchiveStem();
@@ -160,7 +167,7 @@ public class SiteExporter implements Runnable {
                         writeFile(fn, f.getAtime(), f.getFiledata());
                     } catch (IOException ex) {
                         LOG.log(Level.SEVERE, "Error writing " + f.getFilename(), ex);
-                        ten.getError().logException(null, "Backup failure", ex.getMessage() + SecurityRepo.NEWLINE + "while backing up " + fn, null);
+                        ten.getError().logException(null, "Backup failure", ex.getMessage() + SecurityRepository.NEWLINE + "while backing up " + fn, null);
                     }
                 }
             }, false);
@@ -229,6 +236,12 @@ public class SiteExporter implements Runnable {
      * @see BackupDaemon.createZip(OutputStream wrapped)
      */
     public void backupToZip() {
+        ten.getImead().evict();
+        ten.getArts().evict();
+        ten.getFile().evict();
+        if (null == ten.getImeadValue(MASTER_DIR)) {
+            throw new IllegalArgumentException(MASTER_DIR + " not configured.");
+        }
         LOG.log(Level.FINE, "Backup to zip procedure initiating");
         String master = ten.getImeadValue(MASTER_DIR);
         String zipName = getArchiveName("zip");
@@ -238,7 +251,7 @@ public class SiteExporter implements Runnable {
             LOG.log(Level.FINE, "Backup to zip procedure finished");
         } catch (Exception ex) {
             LOG.log(Level.SEVERE, "Error writing zip file: " + fn, ex);
-            ten.getError().logException(null, "Backup failure", ex.getMessage() + SecurityRepo.NEWLINE + "while backing up " + fn, null);
+            ten.getError().logException(null, "Backup failure", ex.getMessage() + SecurityRepository.NEWLINE + "while backing up " + fn, null);
         }
     }
 
@@ -280,7 +293,15 @@ public class SiteExporter implements Runnable {
                     for (Locale l : propMap.keySet()) {
                         try {
                             StringWriter propertiesContent = new StringWriter(10000);
-                            propMap.get(l).store(propertiesContent, null);
+                            Properties localMap = propMap.get(l);
+                            if (!types.contains(BackupTypes.PASSWORDS)) {
+                                for (String k : localMap.keySet().stream().map((k) -> k.toString()).toList()) {
+                                    if (k.startsWith("admin_")) {
+                                        localMap.remove(k);
+                                    }
+                                }
+                            }
+                            localMap.store(propertiesContent, null);
                             String localeString = l != Locale.ROOT ? l.toLanguageTag() : "";
                             localeFiles.put(localeString, propertiesContent.toString());
                         } catch (IOException ex) {
@@ -343,7 +364,7 @@ public class SiteExporter implements Runnable {
      * @return site title (a-zA-Z_0-9 only), plus "_" character is a digit
      */
     public String getArchiveStem() {
-        Matcher originMatcher = SecurityRepo.ORIGIN_PATTERN.matcher(ten.getImead().getValue(SecurityRepo.BASE_URL));
+        Matcher originMatcher = SecurityRepository.ORIGIN_PATTERN.matcher(ten.getImead().getValue(SecurityRepository.BASE_URL));
         originMatcher.find();
         String stem = originMatcher.group(3).replace(".", "-");
         return stem;

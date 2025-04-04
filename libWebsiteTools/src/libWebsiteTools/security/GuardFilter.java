@@ -31,6 +31,7 @@ import libWebsiteTools.imead.Local;
 import libWebsiteTools.tag.AbstractInput;
 import libWebsiteTools.Landlord;
 import libWebsiteTools.Tenant;
+import libWebsiteTools.imead.IMEADRepository;
 
 @WebFilter(description = "DoS preventer (maybe) and reverse proxy", filterName = "GuardFilter", dispatcherTypes = {DispatcherType.REQUEST}, urlPatterns = {"/*"}, asyncSupported = true)
 public class GuardFilter implements Filter {
@@ -59,18 +60,18 @@ public class GuardFilter implements Filter {
         AbstractInput.getTokenURL(req);
         // kill suspicious requests
         if (null == req.getSession(false) || req.getSession().isNew()) {
-            if (ten.getError().inHoneypot(SecurityRepo.getIP(req))) {
+            if (ten.getError().inHoneypot(SecurityRepository.getIP(req))) {
                 req.setAttribute(SpinnerServlet.REASON, "IP already in honeypot");
 //                req.getRequestDispatcher("/spin").forward(request, response);
                 return;
             }
-            if (IMEADHolder.matchesAny(req.getRequestURL(), ten.getImead().getPatterns(SecurityRepo.HONEYPOTS))) {
+            if (IMEADHolder.matchesAny(req.getRequestURL(), ten.getImead().getPatterns(SecurityRepository.HONEYPOTS))) {
                 req.setAttribute(SpinnerServlet.REASON, "IP added to honeypot: Illegal URL");
 //                req.getRequestDispatcher("/spin").forward(request, response);
                 return;
             }
             String userAgent = req.getHeader("User-Agent");
-            if (userAgent != null && IMEADHolder.matchesAny(userAgent, ten.getImead().getPatterns(SecurityRepo.DENIED_USER_AGENTS))) {
+            if (userAgent != null && IMEADHolder.matchesAny(userAgent, ten.getImead().getPatterns(SecurityRepository.DENIED_USER_AGENTS))) {
                 req.setAttribute(SpinnerServlet.REASON, "IP added to honeypot: Illegal User-Agent");
 //                req.getRequestDispatcher("/spin").forward(request, response);
                 return;
@@ -90,7 +91,7 @@ public class GuardFilter implements Filter {
                 return;
         }
         // set variables and headers
-        req.setAttribute(SecurityRepo.BASE_URL, ten.getImeadValue(SecurityRepo.BASE_URL));
+        req.setAttribute(SecurityRepository.BASE_URL, ten.getImeadValue(SecurityRepository.BASE_URL));
         res.setDateHeader(HttpHeaders.DATE, localNow.toInstant().toEpochMilli());
         res.setHeader("X-Content-Type-Options", "nosniff");
         res.setHeader(HttpHeaders.VARY, VARY_HEADER);
@@ -120,7 +121,7 @@ public class GuardFilter implements Filter {
         Locale selected = Local.resolveLocales(ten.getImead(), req).get(0);
         String servletPath = req.getServletPath();
         if (null != selected && !Locale.ROOT.equals(selected) && ten.getImead().getLocales().contains(selected)) {
-            req.setAttribute(SecurityRepo.BASE_URL, ten.getImeadValue(SecurityRepo.BASE_URL) + selected.toLanguageTag() + "/");
+            req.setAttribute(SecurityRepository.BASE_URL, ten.getImeadValue(SecurityRepository.BASE_URL) + selected.toLanguageTag() + "/");
             String rootPath = "/" + selected.toLanguageTag();
             if (!servletPath.startsWith(rootPath + "/") && !servletPath.equals(rootPath)) {
                 forwardURL = req.getContextPath() + "/" + selected.toLanguageTag() + req.getRequestURI().substring(req.getContextPath().length());
@@ -163,7 +164,7 @@ public class GuardFilter implements Filter {
 
     public boolean killInHoney(HttpServletRequest req, HttpServletResponse res) {
         kill(req, res);
-        return Landlord.getTenant(req).getError().putInHoneypot(SecurityRepo.getIP(req));
+        return Landlord.getTenant(req).getError().putInHoneypot(SecurityRepository.getIP(req));
     }
 
     public static void kill(ServletRequest request, ServletResponse response) {
@@ -237,7 +238,7 @@ public class GuardFilter implements Filter {
         return false;
     }
 
-    private static void writeHeaders(IMEADHolder imead, HttpServletResponse res, CachedPage page) {
+    private static void writeHeaders(IMEADRepository imead, HttpServletResponse res, CachedPage page) {
         res.setHeader("Via", imead.getValue(VIA_HEADER));
         res.setStatus(page.getStatus());
         if (null != page.getContentType()) {

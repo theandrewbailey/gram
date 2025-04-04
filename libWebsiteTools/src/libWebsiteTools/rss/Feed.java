@@ -26,7 +26,6 @@ import org.w3c.dom.Element;
 public interface Feed extends Serializable {
 
     public static final String COPYRIGHT = "site_rss_copyright";
-    public static final String LANGUAGE = "site_rss_language";
     public static final String MASTER = "site_rss_master";
 
     public enum MimeType {

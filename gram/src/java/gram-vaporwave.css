@@ -40,6 +40,12 @@ html,body,blockquote,button,div,span,article,section,header,figure,figcaption,fo
   height: auto;
   max-width: 100%;
   vertical-align: top;
+}.indexPage article img,p img{
+  max-height: 40em;
+  width: revert-layer;
+  object-fit: contain;
+}p img{
+  object-fit: scale-down;
 }p:last-of-type>img{
   margin: -1.0rem 0.0rem 0.0rem 0.0rem;
 }abbr{
@@ -61,16 +67,14 @@ html,body,blockquote,button,div,span,article,section,header,figure,figcaption,fo
   position: absolute;
 }article>footer,.articleFooter{
   font-size: 0.9rem;
-}article>p{
-  overflow: auto;
 }article>p:last-of-type{
   margin: 0.0rem 0.0rem 0.0rem 0.0rem;
 }article>table td,article>table th{
   padding: 0.0rem 0.5rem;
 }article.comment,.noComment{
   margin-top: 1.5rem;
-}article>ul,article>ul>li>*,blockquote{
-  margin-left: 2rem;
+}article ul,article ol,article>ul>li>p,blockquote{
+  margin-left: 2.0rem;
 }article>ul>li>*:first-child{
   margin: 0.0rem;
 }article>iframe{
@@ -87,11 +91,11 @@ html,body,blockquote,button,div,span,article,section,header,figure,figcaption,fo
   margin: 0rem 0.2rem 0.2rem 0rem;
   padding:  0.1rem 0.1rem 0.1rem 0.1rem;
 }textarea{
+  width: 99%;
   resize: vertical;
 }input[type="submit"],button{
   border-style: outset;
   padding:  0.2rem 1.0rem 0.2rem 1.0rem;
-  min-width: 7em;
 }input:focus,textarea:focus,select:focus,input[type="submit"]:focus,button:focus{
   outline-offset: -4px;
 }.commentForm{
@@ -173,9 +177,20 @@ html,body,blockquote,button,div,span,article,section,header,figure,figcaption,fo
 }.suggestionList{
   margin: 0rem 0rem 0rem -1rem;
 }.suggestionList>li{
-  margin: 1rem 0rem 1rem 0rem;
-}p.secondmin,.secondmin>td,.secondmin>td:first-child{
+  margin: 0.5rem 0rem 0.5rem 0rem;
+}table.secondmin,.secondmin input{
+  width: 99%;
+}p.secondmin,table.secondmin,.secondmin td,.secondmin td:first-child{
   padding-left: 0.5rem;
+}div.adminform>form.adminform{
+  display: inline;
+}.adminArticleAdd,.adminFile{
+  margin-bottom: 2em;
+}.adminform>p,.adminform>ol,.adminform li{
+  list-style: none;
+  margin: 0;
+}.secondmin td{
+  vertical-align: middle;
 }/* SCREEN STYLES */
 @media screen{html{
   --text-color: #620d55;
@@ -211,7 +226,6 @@ html,body,blockquote,button,div,span,article,section,header,figure,figcaption,fo
   overflow: hidden;
   right: 0;
   top: 0;
-  z-index: 1;
 }a.withFigure>figure>figcaption{
   background-color: var(--background-color);
   position: absolute;
@@ -298,11 +312,10 @@ html,body,blockquote,button,div,span,article,section,header,figure,figcaption,fo
   flex-flow: column;
 }aside{
   order: 9999;
-}.search{
-  display: flex;
-  flex-flow: row;
 }.search>*{
   margin-right: 0.5rem;
+}article ul,article ol,article>ul>li>p,blockquote{
+  margin-left: 1.0rem;
 }}/* PRINT STYLES */
 @media print{
 aside,form,body>header>h2,body>footer,.noComment,.pagenation,.noPrint,.seeAlso{

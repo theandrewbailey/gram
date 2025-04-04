@@ -24,6 +24,8 @@ function ajax(method,url,onLoad,onTimeout,body){
 function isLongRequest(e){
 	const total=e?.serverTiming.find(function findTotal(t){return "total"===t.name})?.duration;
 	return 300<total||((e?.transferSize+5000)<e?.duration);}
+function getDocument(response){
+	return Document.parseHTMLUnsafe?Document.parseHTMLUnsafe(response):new DOMParser().parseFromString(response,"text/html");}
 try{new PerformanceObserver(function detectSlowness(list){
 	list.getEntries().forEach(function check(e){
 		if(isLongRequest(e)){
@@ -39,7 +41,7 @@ function enhanceLinks(query,n=document){
 		}else if(!isCached(u)&&!$0("html.noPreload")){
 			ajax("GET",u.href,function cachePage(r){
 				if(4===r.target.readyState&&200===r.target.status){
-					const doc=Document.parseHTMLUnsafe(r.target.response);
+					const doc=getDocument(r.target.response);
 					enhancePicture(a,doc);
 					const cacheHeaders=r.target.getResponseHeader("cache-control")?.split(", ");
 					const isHtml=r.target.getResponseHeader("content-type")?.startsWith("text/html");
@@ -63,7 +65,7 @@ function enhanceLinks(query,n=document){
 			},function timedOut(r){$("html,a").forEach(function disableCache(l){l.addClass("noPreload");});});}
 		if(isCached(u)){
 			a.on('click',useCache);
-			enhancePicture(a,Document.parseHTMLUnsafe(cachedPages.get(u.href).html));}}
+			enhancePicture(a,getDocument(cachedPages.get(u.href).html));}}
 	function useCache(e){
 		const a=e.currentTarget;
 		const u=new URL(a.href,document.location.origin);
@@ -82,7 +84,7 @@ function enhanceLinks(query,n=document){
 	function isCached(url){
 		return cachedPages.has(url.href)&&Date.now()<=Number(cachedPages.get(url.href).expires);}
 	function showDocument(html){
-		const doc=Document.parseHTMLUnsafe(html);
+		const doc=getDocument(html);
 		document.body=doc.body;
 		$0("title").innerHTML=$0("title",doc).innerHTML;
 		try{$0('link[rel="canonical"]').href=$0('link[rel="canonical"]',doc).href;}catch(ex){}
@@ -139,7 +141,7 @@ function enhancePicture(query,n=document){
 		const fig=$0("figure",query);
 		fig.style.setProperty("height",fig.clientHeight+"px");
 		const aPic=$0("picture:not(.swapped):not(.removable)",query);
-		const newPic=$0("img[src=\""+$0("img",query).src+"\"]",n).closest("picture").cloneNode(true);
+		const newPic=$0("img[src=\""+decodeURI($0("img",query).src)+"\"]",n).closest("picture").cloneNode(true);
 		aPic.addClass("removable").insertAdjacentElement('afterend',newPic);
 		$0("img",newPic).on('load',rmPlaceholder).addClass("swapped");
 		query.on('click',aPic.rm,{once:true});}catch(x){}
@@ -258,7 +260,7 @@ function enhanceLazyload(query,n=document){
 function enhanceLayout(){
 	function sizeIframe(iFrame){
 		iFrame.style.setProperty("width",(iFrame.parentNode.clientWidth-10)+'px');
-		iFrame.style.setProperty("height",iFrame.contentWindow.document.body.scrollHeight+50+'px');
+		iFrame.style.setProperty("height",$0("main",iFrame.contentDocument).scrollHeight+40+'px');
 		return iFrame;}
 	function onResize(e){
 		$("iframe.resizeable",e.currentTarget.document).forEach(sizeIframe);}

@@ -58,7 +58,7 @@ public class Local extends SimpleTagSupport {
      * @see LOCALE_PARAM
      */
     @SuppressWarnings("unchecked")
-    public static List<Locale> resolveLocales(IMEADHolder imead, HttpServletRequest req) {
+    public static List<Locale> resolveLocales(IMEADRepository imead, HttpServletRequest req) {
         if (null == req) {
             return List.of(Locale.getDefault(), Locale.ROOT);
         }
@@ -98,7 +98,7 @@ public class Local extends SimpleTagSupport {
         return out;
     }
 
-    public static String getLocaleString(IMEADHolder imead, HttpServletRequest req) {
+    public static String getLocaleString(IMEADRepository imead, HttpServletRequest req) {
         ArrayList<String> langTags = new ArrayList<>();
         for (Locale l : resolveLocales(imead, req)) {
             langTags.add(l.toString());

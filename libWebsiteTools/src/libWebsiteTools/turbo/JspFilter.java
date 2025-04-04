@@ -16,7 +16,7 @@ import jakarta.ws.rs.core.HttpHeaders;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.imead.LocalizedStringNotFoundException;
 import libWebsiteTools.rss.FeedBucket;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.tag.HtmlMeta;
 import libWebsiteTools.tag.HtmlScript;
 import libWebsiteTools.tag.HtmlTime;
@@ -58,7 +58,7 @@ public class JspFilter implements Filter {
         try {
             String icon = ten.getImeadValue("site_appleTouchIcon");
             if (null != icon) {
-                HtmlMeta.addLink(req, "apple-touch-icon", ten.getImeadValue(SecurityRepo.BASE_URL) + ten.getFile().getFileMetadata(Arrays.asList(icon)).get(0).getUrl());
+                HtmlMeta.addLink(req, "apple-touch-icon", ten.getImeadValue(SecurityRepository.BASE_URL) + ten.getFile().getFileMetadata(Arrays.asList(icon)).get(0).getUrl());
             }
         } catch (Exception x) {
         }
@@ -120,7 +120,7 @@ public class JspFilter implements Filter {
                 scriptHashes = "'none'";
             }
 //            String scriptHashes = "'self'";
-            String csp = String.format(CSP_TEMPLATE, scriptHashes, stylesheetHashes, ten.getImeadValue(SecurityRepo.BASE_URL));
+            String csp = String.format(CSP_TEMPLATE, scriptHashes, stylesheetHashes, ten.getImeadValue(SecurityRepository.BASE_URL));
             res.setHeader(CONTENT_SECURITY_POLICY, csp);
 //            res.setHeader(REPORTING_ENDPOINTS, String.format(REPORTING_TEMPLATE, ten.getImeadValue(SecurityRepo.BASE_URL)));
             wrap.flushBuffer();

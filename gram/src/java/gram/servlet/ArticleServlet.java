@@ -20,7 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.core.HttpHeaders;
 import java.time.Duration;
 import java.time.Instant;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.imead.LocalizedStringNotFoundException;
 import libWebsiteTools.rss.FeedBucket;
@@ -106,7 +106,7 @@ public class ArticleServlet extends GramServlet {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        String properUrl = ArticleUrl.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), art, null);
+        String properUrl = ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null);
         String actual = request.getAttribute(AbstractInput.ORIGINAL_REQUEST_URL).toString();
         if (!actual.contains(properUrl) && null == request.getAttribute("searchSuggestion")) {
             request.setAttribute(Article.class.getCanonicalName(), null);
@@ -172,7 +172,7 @@ public class ArticleServlet extends GramServlet {
         HtmlMeta.addNameTag(request, "description", art.getDescription());
         HtmlMeta.addNameTag(request, "author", art.getPostedname());
         if (null == request.getParameter("milligram")) {
-            String canonical = ArticleUrl.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), art, null);
+            String canonical = ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null);
             HtmlMeta.addLink(request, "canonical", canonical);
             HashSet<Locale> locales = new HashSet<>(ten.getImead().getLocales());
             locales.add(Locale.getDefault());
@@ -180,7 +180,7 @@ public class ArticleServlet extends GramServlet {
                 if ("und".equals(l.toLanguageTag())) {
                     continue;
                 }
-                String base = ten.getImeadValue(SecurityRepo.BASE_URL);
+                String base = ten.getImeadValue(SecurityRepository.BASE_URL);
                 if (l != Locale.getDefault() && !l.toLanguageTag().isEmpty()) {
                     base += l.toLanguageTag() + "/";
                 }
@@ -191,7 +191,7 @@ public class ArticleServlet extends GramServlet {
             }
 
             HtmlMeta.addPropertyTag(request, "og:title", art.getArticletitle());
-            HtmlMeta.addPropertyTag(request, "og:url", ArticleUrl.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), art, null));
+            HtmlMeta.addPropertyTag(request, "og:url", ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null));
             if (null != art.getImageurl()) {
                 HtmlMeta.addPropertyTag(request, "og:image", art.getImageurl());
             }
@@ -214,9 +214,9 @@ public class ArticleServlet extends GramServlet {
                 HtmlMeta.addLDJSON(request, article.build().toString());
             }
             JsonArrayBuilder itemList = Json.createArrayBuilder();
-            itemList.add(HtmlMeta.getLDBreadcrumb(ten.getImead().getLocal("page_title", resolvedLocales), 1, request.getAttribute(SecurityRepo.BASE_URL).toString()));
-            itemList.add(HtmlMeta.getLDBreadcrumb(catName, 2, Categorizer.getUrl(request.getAttribute(SecurityRepo.BASE_URL).toString(), null != art.getSectionid() ? art.getSectionid().getName() : null, null)));
-            itemList.add(HtmlMeta.getLDBreadcrumb(art.getArticletitle(), 3, ArticleUrl.getUrl(ten.getImeadValue(SecurityRepo.BASE_URL), art, null)));
+            itemList.add(HtmlMeta.getLDBreadcrumb(ten.getImead().getLocal("page_title", resolvedLocales), 1, request.getAttribute(SecurityRepository.BASE_URL).toString()));
+            itemList.add(HtmlMeta.getLDBreadcrumb(catName, 2, Categorizer.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), null != art.getSectionid() ? art.getSectionid().getName() : null, null)));
+            itemList.add(HtmlMeta.getLDBreadcrumb(art.getArticletitle(), 3, ArticleUrl.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), art, null)));
             JsonObjectBuilder breadcrumbs = Json.createObjectBuilder().add("@context", "https://schema.org").add("@type", "BreadcrumbList").add("itemListElement", itemList);
             HtmlMeta.addLDJSON(request, breadcrumbs.build().toString());
         }

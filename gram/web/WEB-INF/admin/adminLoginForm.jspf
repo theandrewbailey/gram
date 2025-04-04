@@ -1,5 +1,6 @@
 <form class="adminform" action='adminLogin' method="post" accept-charset="UTF-8">
     <fieldset><c:if test="${autofocus != true}"><legend><h:local key="page_footerLoginLegend"/></legend></c:if>
+    <%--<div class="hide"><input type="text" name="username" autocomplete="username" /></div>--%>
     <h:localVar key="page_door" /><h:localVar key="page_valueMissing" var="valueMissing" />
     <h:password name="answer" label="${page_door}" size="40" autofocus="${autofocus}" valueMissing="${valueMissing}" required="true" labelNextLine="true" autocomplete="current-password"/>
     </fieldset>

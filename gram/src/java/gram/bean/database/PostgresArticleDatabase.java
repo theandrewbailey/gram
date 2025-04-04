@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import jakarta.persistence.TypedQuery;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -18,6 +20,7 @@ import jakarta.persistence.TypedQuery;
  */
 public class PostgresArticleDatabase extends ArticleDatabase {
 
+    private static final Logger LOG = Logger.getLogger(PostgresArticleDatabase.class.getName());
     private final Map<String, List<Article>> articleCache = Collections.synchronizedMap(new LinkedHashMap<>(100));
     private final Map<String, List<Article>> suggestionCache = Collections.synchronizedMap(new LinkedHashMap<>(100));
 
@@ -125,6 +128,7 @@ public class PostgresArticleDatabase extends ArticleDatabase {
             em.createNativeQuery("REFRESH MATERIALIZED VIEW gram.articlesearchindex").executeUpdate();
             em.createNativeQuery("ANALYZE gram.articlewords").executeUpdate();
             em.getTransaction().commit();
+            LOG.log(Level.FINER, "Article search re-indexed");
         }
     }
 }

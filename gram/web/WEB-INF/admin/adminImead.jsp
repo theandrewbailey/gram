@@ -8,9 +8,9 @@
     <h:datalist id="localeList" options="${locales}"/>
     <c:set scope="page" var="propCount" value="${0}"/>
 
-    <details open="true"><summary>Security:</summary><table><thead><tr><th><h:local key="page_setupKey"/></th><th><h:local key="page_setupValue"/></th></tr></thead>
+    <details open="true"><summary>Security:</summary><table class="secondmin"><thead><tr><th><h:local key="page_setupKey"/></th><th><h:local key="page_setupValue"/></th></tr></thead>
     <c:forEach items="${security}" var="prop">
-        <tr class="secondmin <c:if test="${ERRORS.contains(prop.localizationPK)}">error</c:if>"><td>
+        <tr <c:if test="${ERRORS.contains(prop.localizationPK)}">class="error"</c:if>><td>
             <label for="${prop.localizationPK.key}">${prop.localizationPK.key}</label>
             <h:hidden name="key${propCount}" value="${prop.localizationPK.key}" /><h:hidden name="locale${propCount}" value="" />
         </td><td>
@@ -22,9 +22,9 @@
 
     <c:forEach items="${imeadProperties}" var="imeadProp">
     <details open="true"><summary>${imeadProp.key}</summary>
-    <table><thead><tr><th><h:local key="page_setupKey"/></th><th><h:local key="page_setupValue"/></th><c:if test="${FIRST_TIME_SETUP != 'FIRST_TIME_SETUP'}"><th></th></c:if></tr></thead>
+    <table class="secondmin"><thead><tr><th><h:local key="page_setupKey"/></th><th><h:local key="page_setupValue"/></th><c:if test="${FIRST_TIME_SETUP != 'FIRST_TIME_SETUP'}"><th></th></c:if></tr></thead>
     <c:forEach items="${imeadProp.value}" var="prop">
-    <tr class="secondmin"><td>
+    <tr><td>
         <label for="${imeadProp.key}|${prop.localizationPK.key}">${prop.localizationPK.key}</label>
         </td><td>
             <h:hidden name="key${propCount}" value="${prop.localizationPK.key}" />
@@ -37,9 +37,9 @@
     <h:button type="submit" name="action" value="save"><h:local key="page_save"/></h:button>
     </details></c:forEach>
 
-    <table>
+    <table class="secondmin">
         <thead><tr><th>Locale:</th><th>Key:</th><th>Value:</th></tr></thead>
-        <c:forEach begin="${propCount}" end="${propCount+4}" var="newCount"><tr class="secondmin">
+        <c:forEach begin="${propCount}" end="${propCount+4}" var="newCount"><tr>
             <td><h:textbox name="locale${newCount}" value="${imeadProp.key}" datalist="localeList" maxLength="16" labelNextLine="false" /></td>
             <td><h:textbox name="key${newCount}" maxLength="250" labelNextLine="false" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /></td>
             <td><h:textarea name="value${newCount}" length="70" labelNextLine="false" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /></td>

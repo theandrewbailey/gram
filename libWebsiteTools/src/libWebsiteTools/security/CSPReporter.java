@@ -24,21 +24,21 @@ public class CSPReporter extends BaseServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-        StringBuilder report = new StringBuilder(1000).append("IP: ").append(SecurityRepo.getIP(request)).append(SecurityRepo.NEWLINE);
+        StringBuilder report = new StringBuilder(1000).append("IP: ").append(SecurityRepository.getIP(request)).append(SecurityRepository.NEWLINE);
         Enumeration<String> headerNames = request.getHeaderNames();
         while (headerNames.hasMoreElements()) {
             String headerName = headerNames.nextElement();
             Enumeration<String> headers = request.getHeaders(headerName);
             while (headers.hasMoreElements()) {
                 String header = headers.nextElement();
-                report.append(headerName).append(": ").append(SecurityRepo.htmlFormat(header)).append(SecurityRepo.NEWLINE);
+                report.append(headerName).append(": ").append(SecurityRepository.htmlFormat(header)).append(SecurityRepository.NEWLINE);
             }
         }
-        report.append(SecurityRepo.NEWLINE).append(SecurityRepo.NEWLINE).append("csp-report:").append(SecurityRepo.NEWLINE);
+        report.append(SecurityRepository.NEWLINE).append(SecurityRepository.NEWLINE).append("csp-report:").append(SecurityRepository.NEWLINE);
         JsonReader read = Json.createReader(request.getInputStream());
         JsonObject reportObject = read.readObject().getJsonObject("csp-report");
         for (Map.Entry<String, JsonValue> field : reportObject.entrySet()) {
-            report.append(SecurityRepo.htmlFormat(field.getKey())).append(": ").append(SecurityRepo.htmlFormat(field.getValue().toString())).append(SecurityRepo.NEWLINE);
+            report.append(SecurityRepository.htmlFormat(field.getKey())).append(": ").append(SecurityRepository.htmlFormat(field.getValue().toString())).append(SecurityRepository.NEWLINE);
         }
         Tenant ten = Landlord.getTenant(request);
         ten.getError().logException(null, "Content Security Policy violation", report.toString(), null);

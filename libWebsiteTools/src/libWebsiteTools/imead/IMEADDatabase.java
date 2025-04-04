@@ -23,16 +23,27 @@ public class IMEADDatabase extends IMEADHolder {
         evict();
     }
 
+    @Override
+    public List<Localization> search(Object term, Integer limit) {
+        try (EntityManager em = PU.createEntityManager()) {
+            TypedQuery<Localization> q = em.createNamedQuery("Localization.searchKeys", Localization.class).setParameter("term", term.toString());
+            if (null != limit) {
+                q.setMaxResults(limit);
+            }
+            return q.getResultList();
+        }
+    }
+
     /**
      * refresh cache of all properties from the DB
      */
     @Override
     public IMEADHolder evict() {
         PU.getCache().evict(Localization.class);
-        localizedHash = HashUtil.getSHA256Hash(localizedCache.toString());
         patterns.clear();
         filteredCache.clear();
         localizedCache = Collections.unmodifiableMap(getProperties());
+        localizedHash = HashUtil.getSHA256Hash(localizedCache.toString());
         return this;
     }
 

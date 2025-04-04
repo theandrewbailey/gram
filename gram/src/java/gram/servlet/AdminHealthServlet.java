@@ -25,7 +25,7 @@ import libWebsiteTools.security.CertPath;
 import libWebsiteTools.security.CertUtil;
 import libWebsiteTools.security.GuardFilter;
 import libWebsiteTools.turbo.RequestTimer;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.tag.AbstractInput;
 import libWebsiteTools.turbo.RequestTimes;
 import gram.UtilStatic;
@@ -73,13 +73,13 @@ public class AdminHealthServlet extends AdminServlet {
         if ("reload".equals(action)) {
             landlord.init();
             ten.reset();
-            ten.isFirstTime();
+            ten.getImead().isFirstTime();
             ten.getExec().submit(new SiteExporter(ten));
             request.getSession().invalidate();
             response.setHeader("Clear-Site-Data", "*");
-            response.sendRedirect(request.getAttribute(SecurityRepo.BASE_URL).toString());
+            response.sendRedirect(request.getAttribute(SecurityRepository.BASE_URL).toString());
         } else if ("error".equals(action)) {
-            response.sendRedirect(ten.getImeadValue(SecurityRepo.BASE_URL) + "rss/" + ErrorRss.NAME);
+            response.sendRedirect(ten.getImeadValue(SecurityRepository.BASE_URL) + "rss/" + ErrorRss.NAME);
         } else {
             doGet(request, response);
         }
@@ -204,7 +204,7 @@ public class AdminHealthServlet extends AdminServlet {
                     throw new RuntimeException(gx);
                 }
                 HttpClient hclient = hbuilder.build();
-                URI url = new URI(ten.getImeadValue(SecurityRepo.BASE_URL));
+                URI url = new URI(ten.getImeadValue(SecurityRepository.BASE_URL));
                 HttpRequest hreq = HttpRequest.newBuilder(url).GET().build();
                 HttpResponse<String> hres = hclient.send(hreq, HttpResponse.BodyHandlers.ofString());
                 Certificate[] certs = hres.sslSession().get().getPeerCertificates();

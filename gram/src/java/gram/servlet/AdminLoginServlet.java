@@ -10,7 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import libWebsiteTools.security.GuardFilter;
 import libWebsiteTools.tag.AbstractInput;
 import gram.bean.GramTenant;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 
 @WebServlet(name = "AdminLoginServlet", description = "Show the login page", urlPatterns = {"/adminLogin"})
 public class AdminLoginServlet extends AdminServlet {
@@ -36,7 +36,7 @@ public class AdminLoginServlet extends AdminServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         GramTenant ten = GramLandlord.getTenant(request);
-        if (ten.isFirstTime()) {
+        if (ten.getImead().isFirstTime()) {
             String url = AdminImeadServlet.class.getAnnotation(WebServlet.class).urlPatterns()[0];
             request.getRequestDispatcher(url).forward(request, response);
             return;
@@ -57,9 +57,10 @@ public class AdminLoginServlet extends AdminServlet {
                 request.getRequestDispatcher(per.getUrl()).forward(request, response);
             } else {
                 ten.getError().logException(request, "Bad Login", "Tried to access restricted area. Login not recognized: " + answer, null);
-                request.getSession().setAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + AdminPermission.class.getCanonicalName(), null);
+                request.getSession().setAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + AdminPermission.class.getCanonicalName(), null);
                 request.setAttribute(GuardFilter.HANDLED_ERROR, true);
-                request.getRequestDispatcher(IndexServlet.class.getAnnotation(WebServlet.class).urlPatterns()[0]).forward(request, response);
+//                request.getRequestDispatcher(IndexServlet.class.getAnnotation(WebServlet.class).urlPatterns()[0]).forward(request, response);
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             }
         } catch (RuntimeException ex) {
             ten.getError().logException(request, "Multithread Exception", "Something happened while verifying passwords", ex);

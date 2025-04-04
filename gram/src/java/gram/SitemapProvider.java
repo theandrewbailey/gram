@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.sitemap.ChangeFreq;
 import libWebsiteTools.sitemap.UrlMap;
 import gram.bean.database.Article;
@@ -31,7 +31,7 @@ public class SitemapProvider implements Iterable<UrlMap> {
         Collections.reverse(entries);
         List<Section> categories = ten.getCategories().getAll(null);
         ArrayList<UrlMap> urlMap = new ArrayList<>(entries.size() + categories.size() + 10);
-        urlMap.add(new UrlMap(ten.getImeadValue(SecurityRepo.BASE_URL), null, ChangeFreq.daily, "0.7"));
+        urlMap.add(new UrlMap(ten.getImeadValue(SecurityRepository.BASE_URL), null, ChangeFreq.daily, "0.7"));
         @SuppressWarnings("null")
         int maxArticleID = !entries.isEmpty() ? entries.get(entries.size() - 1).getArticleid() : 1;
         for (Article e : entries) {
@@ -55,7 +55,7 @@ public class SitemapProvider implements Iterable<UrlMap> {
                     freq = ChangeFreq.yearly;
                 }
             }
-            urlMap.add(new UrlMap(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepo.BASE_URL), e, null), e.getModified(), freq, String.format("%.1f", difference)));
+            urlMap.add(new UrlMap(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), e, null), e.getModified(), freq, String.format("%.1f", difference)));
         }
         for (Section s : categories) {
             String name = s.getName();
@@ -72,7 +72,7 @@ public class SitemapProvider implements Iterable<UrlMap> {
                 if (difference < 0.1f) {
                     difference = 0.1f;
                 }
-                urlMap.add(new UrlMap(ten.getImeadValue(SecurityRepo.BASE_URL) + "index/" + name + x, null, ChangeFreq.weekly, String.format("%.1f", difference)));
+                urlMap.add(new UrlMap(ten.getImeadValue(SecurityRepository.BASE_URL) + "index/" + name + x, null, ChangeFreq.weekly, String.format("%.1f", difference)));
             }
         }
         return urlMap.iterator();

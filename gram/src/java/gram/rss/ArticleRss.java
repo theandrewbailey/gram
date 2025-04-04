@@ -21,7 +21,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import libWebsiteTools.imead.Local;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.security.HashUtil;
 import libWebsiteTools.rss.RssChannel;
 import libWebsiteTools.rss.RssServlet;
@@ -52,10 +52,10 @@ public class ArticleRss implements DynamicFeed {
         RssChannel entries = new RssChannel(null == catName
                 ? ten.getImead().getLocal(GramServlet.SITE_TITLE, locales)
                 : ten.getImead().getLocal(GramServlet.SITE_TITLE, locales) + " - " + catName,
-                ten.getImeadValue(SecurityRepo.BASE_URL), ten.getImead().getLocal(GramServlet.TAGLINE, locales));
+                ten.getImeadValue(SecurityRepository.BASE_URL), ten.getImead().getLocal(GramServlet.TAGLINE, locales));
         entries.setWebMaster(ten.getImeadValue(Feed.MASTER));
         entries.setManagingEditor(entries.getWebMaster());
-        entries.setLanguage(ten.getImeadValue(Feed.LANGUAGE));
+        entries.setLanguage(locales.get(0).toLanguageTag());
         entries.setCopyright(ten.getImeadValue(Feed.COPYRIGHT));
         List<Article> articles = ten.getArts().search(new Section(catName), numEntries);
         List<Duration> timings = new ArrayList<>(articles.size() + 1);
@@ -65,8 +65,8 @@ public class ArticleRss implements DynamicFeed {
             GramRssItem i = new GramRssItem(text);
             entries.addItem(i);
             i.setTitle(art.getArticletitle());
-            i.setAuthor(entries.getWebMaster());
-            i.setLink(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepo.BASE_URL), art, null));
+            i.setAuthor(art.getPostedname());
+            i.setLink(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), art, null));
             i.setGuid(art.getUuid().toString());
             i.setPubDate(art.getPosted());
             i.setMarkdownSource(art.getPostedmarkdown());
@@ -76,7 +76,7 @@ public class ArticleRss implements DynamicFeed {
             i.setSummary(art.getSummary());
             i.setImageURL(art.getImageurl());
             if (null != art.getSectionid()) {
-                i.addCategory(art.getSectionid().getName(), Categorizer.getUrl(ten.getImeadValue(SecurityRepo.BASE_URL), catName, null));
+                i.addCategory(art.getSectionid().getName(), Categorizer.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), catName, null));
             }
             if (art.getComments()) {
                 i.setComments(i.getLink() + "#comments");
@@ -148,7 +148,7 @@ public class ArticleRss implements DynamicFeed {
                 String etag = "\"" + HashUtil.getSHA256Hash(holder.toString()) + "\"";
                 res.setHeader(HttpHeaders.ETAG, etag);
                 req.removeAttribute(Local.LOCALE_PARAM);
-                req.setAttribute(Local.OVERRIDE_LOCALE_PARAM, Locale.forLanguageTag(ten.getImeadValue(Feed.LANGUAGE)));
+                req.setAttribute(Local.OVERRIDE_LOCALE_PARAM, resolvedLocales.get(0));
                 req.setAttribute(HttpHeaders.ETAG, etag);
                 req.setAttribute(NAME, XML);
                 if (etag.equals(req.getHeader(HttpHeaders.IF_NONE_MATCH))) {

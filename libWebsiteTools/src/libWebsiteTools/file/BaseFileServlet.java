@@ -23,7 +23,7 @@ import java.time.Duration;
 import java.time.Instant;
 import libWebsiteTools.BaseServlet;
 import libWebsiteTools.security.GuardFilter;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.JVMNotSupportedError;
 import libWebsiteTools.turbo.CachedContent;
 import libWebsiteTools.turbo.PageCache;
@@ -98,7 +98,7 @@ public abstract class BaseFileServlet extends BaseServlet {
 
     @Override
     protected void doOptions(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        Matcher originMatcher = SecurityRepo.ORIGIN_PATTERN.matcher(request.getHeader("Origin"));
+        Matcher originMatcher = SecurityRepository.ORIGIN_PATTERN.matcher(request.getHeader("Origin"));
         Tenant ten = Landlord.getTenant(request);
         if (null == request.getHeader("Origin")
                 || (null == request.getHeader("Access-Control-Request-Method")
@@ -106,7 +106,7 @@ public abstract class BaseFileServlet extends BaseServlet {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        if (IMEADHolder.matchesAny(request.getHeader("Origin"), ten.getImead().getPatterns(SecurityRepo.ALLOWED_ORIGINS)) && originMatcher.matches()) {
+        if (IMEADHolder.matchesAny(request.getHeader("Origin"), ten.getImead().getPatterns(SecurityRepository.ALLOWED_ORIGINS)) && originMatcher.matches()) {
             response.setHeader("Access-Control-Allow-Origin", originMatcher.group(1));
         } else {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -137,20 +137,20 @@ public abstract class BaseFileServlet extends BaseServlet {
             } catch (FileNotFoundException | NoResultException ex) {
                 response.setHeader(HttpHeaders.CACHE_CONTROL, "public, max-age=" + MAX_AGE_SECONDS);
                 response.setDateHeader(HttpHeaders.EXPIRES, localNow.toInstant().toEpochMilli());
-                if (HttpMethod.HEAD.equals(request.getMethod()) && fromApprovedDomain(request, ten.getImead().getPatterns(SecurityRepo.ALLOWED_ORIGINS))) {
+                if (HttpMethod.HEAD.equals(request.getMethod()) && fromApprovedDomain(request, ten.getImead().getPatterns(SecurityRepository.ALLOWED_ORIGINS))) {
                     request.setAttribute(GuardFilter.HANDLED_ERROR, true);
                 }
                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
         }
-        if (!isAuthorized(request, c.getMimetype(), ten.getImead().getPatterns(SecurityRepo.ALLOWED_ORIGINS))) {
+        if (!isAuthorized(request, c.getMimetype(), ten.getImead().getPatterns(SecurityRepository.ALLOWED_ORIGINS))) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             ten.getError().logException(request, null, ten.getImead().getLocal(CROSS_SITE_REQUEST, Local.resolveLocales(ten.getImead(), request)), null);
             request.setAttribute(GuardFilter.HANDLED_ERROR, true);
             return;
         }
-        Matcher canonicalMatcher = SecurityRepo.ORIGIN_PATTERN.matcher(request.getAttribute(SecurityRepo.BASE_URL).toString());
+        Matcher canonicalMatcher = SecurityRepository.ORIGIN_PATTERN.matcher(request.getAttribute(SecurityRepository.BASE_URL).toString());
         canonicalMatcher.matches();
         response.setHeader("Access-Control-Allow-Origin", canonicalMatcher.group(1));
         if (isImmutableURL(request.getRequestURL())) {
@@ -188,7 +188,7 @@ public abstract class BaseFileServlet extends BaseServlet {
             response.getOutputStream().write(sorted.getResult());
             PageCache global = ten.getGlobalCache().getCache(request, response);
             if (null != global) {
-                global.put(PageCache.getLookup(ten.getImead(), request), new CachedContent(ten.getImead().getPatterns(SecurityRepo.ALLOWED_ORIGINS), response, sorted.getResult(), PageCache.getLookup(ten.getImead(), request)));
+                global.put(PageCache.getLookup(ten.getImead(), request), new CachedContent(ten.getImead().getPatterns(SecurityRepository.ALLOWED_ORIGINS), response, sorted.getResult(), PageCache.getLookup(ten.getImead(), request)));
             }
         }
     }
@@ -202,7 +202,7 @@ public abstract class BaseFileServlet extends BaseServlet {
             boolean overwrite = AbstractInput.getParameter(request, "overwrite") != null;
             for (Fileupload uploadedfile : uploadedfiles) {
                 if (!overwrite && null != ten.getFile().get(uploadedfile.getFilename())) {
-                    request.setAttribute("ERROR_MESSAGE", "File exists: " + uploadedfile.getFilename());
+                    request.setAttribute(ERROR_MESSAGE_PARAM, "File exists: " + uploadedfile.getFilename());
                     return;
                 }
                 uploadedfile.setUrl(getImmutableURL("", uploadedfile));
@@ -218,7 +218,7 @@ public abstract class BaseFileServlet extends BaseServlet {
             }
             request.setAttribute("uploadedfiles", uploadedfiles);
         } catch (FileNotFoundException fx) {
-            request.setAttribute("ERROR_MESSAGE", "File not sent");
+            request.setAttribute(ERROR_MESSAGE_PARAM, "File not sent");
         } catch (EJBException | IOException | ServletException ex) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }

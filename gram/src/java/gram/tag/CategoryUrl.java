@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.jsp.JspException;
 import jakarta.servlet.jsp.PageContext;
 import jakarta.servlet.jsp.tagext.SimpleTagSupport;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.JVMNotSupportedError;
 import gram.bean.database.Section;
 
@@ -27,7 +27,7 @@ public class CategoryUrl extends SimpleTagSupport {
         if (link) {
             b.append("<a href=\"");
         }
-        String baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepo.BASE_URL).toString();
+        String baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepository.BASE_URL).toString();
         b.append(getUrl(baseURL, null != category.getSectionid() ? category.getName() : null, page));
         if (link && id != null) {
             b.append("\" id=\"").append(id);
@@ -56,7 +56,7 @@ public class CategoryUrl extends SimpleTagSupport {
                 throw new JVMNotSupportedError(ex);
             }
         }
-        if (null != page && 1 != page) {
+        if (null != page) {
             url.append('/').append(page);
         }
         return url.append(".html").toString();

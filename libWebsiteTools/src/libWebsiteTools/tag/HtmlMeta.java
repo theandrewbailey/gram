@@ -13,7 +13,7 @@ import jakarta.servlet.jsp.JspWriter;
 import jakarta.servlet.jsp.PageContext;
 import jakarta.servlet.jsp.tagext.SimpleTagSupport;
 import java.util.Locale;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.rss.Feed;
 import libWebsiteTools.rss.DynamicFeed;
 import libWebsiteTools.Landlord;
@@ -107,7 +107,7 @@ public class HtmlMeta extends SimpleTagSupport {
         HttpServletRequest req = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest());
         Tenant ten = Landlord.getTenant(req);
         output.println(String.format("<meta charset=\"%s\"/>", ((PageContext) getJspContext()).getResponse().getCharacterEncoding()));
-        Object baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepo.BASE_URL);
+        Object baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepository.BASE_URL);
         if (null != baseURL && !baseURL.toString().isEmpty()) {
             output.println(String.format("<base href=\"%s\"/>", baseURL.toString()));
         }
@@ -139,7 +139,7 @@ public class HtmlMeta extends SimpleTagSupport {
             if (feed instanceof DynamicFeed) {
                 for (Map.Entry<String, String> entry : ((DynamicFeed) feed).getFeedURLs(req).entrySet()) {
                     output.println(String.format("<link rel=\"alternate\" href=\"%srss/%s\" title=\"%s\" type=\"%s\">",
-                            ten.getImeadValue(SecurityRepo.BASE_URL), entry.getKey(), entry.getValue(), feed.getMimeType().toString()));
+                            ten.getImeadValue(SecurityRepository.BASE_URL), entry.getKey(), entry.getValue(), feed.getMimeType().toString()));
                 }
             }
         }

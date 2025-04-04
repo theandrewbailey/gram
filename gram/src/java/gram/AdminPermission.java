@@ -11,7 +11,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.concurrent.Callable;
 import libWebsiteTools.security.HashUtil;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 
 /**
  * Defines the permissions used to administer the site. A password is associated
@@ -33,13 +33,13 @@ public interface AdminPermission {
 
     default AdminPermission authenticate(HttpServletRequest req) {
         GramTenant ten = GramLandlord.getTenant(req);
-        req.getSession().setAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + AdminPermission.class.getCanonicalName(), this);
+        req.getSession().setAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + AdminPermission.class.getCanonicalName(), this);
         return this;
     }
 
     default boolean isAuthenticated(HttpServletRequest req) {
         GramTenant ten = GramLandlord.getTenant(req);
-        return this.equals(req.getSession().getAttribute(ten.getImeadValue(SecurityRepo.BASE_URL) + AdminPermission.class.getCanonicalName()));
+        return this.equals(req.getSession().getAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + AdminPermission.class.getCanonicalName()));
     }
 
     public static enum Password implements AdminPermission {
@@ -79,7 +79,7 @@ public interface AdminPermission {
 
         @Override
         public boolean isAuthenticated(HttpServletRequest req) {
-            return GramLandlord.getTenant(req).isFirstTime();
+            return GramLandlord.getTenant(req).getImead().isFirstTime();
         }
 
         @Override
@@ -123,6 +123,6 @@ class FirsttimeAuthenticator implements Callable<AdminPermission> {
 
     @Override
     public AdminPermission call() {
-        return ten.isFirstTime() ? perm.authenticate(r) : null;
+        return ten.getImead().isFirstTime() ? perm.authenticate(r) : null;
     }
 }

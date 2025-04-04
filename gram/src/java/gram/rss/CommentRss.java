@@ -23,7 +23,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import libWebsiteTools.imead.Local;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.security.HashUtil;
 import libWebsiteTools.rss.RssChannel;
 import libWebsiteTools.rss.RssItem;
@@ -68,23 +68,23 @@ public class CommentRss implements DynamicFeed {
     }
 
     public RssChannel createChannel(GramTenant ten, List<Locale> locales, Collection<Comment> lComments) {
-        RssChannel entries = new RssChannel(ten.getImead().getLocal(GramServlet.SITE_TITLE, locales) + " - Comments", ten.getImeadValue(SecurityRepo.BASE_URL), ten.getImead().getLocal(GramServlet.TAGLINE, locales));
+        RssChannel entries = new RssChannel(ten.getImead().getLocal(GramServlet.SITE_TITLE, locales) + " - Comments", ten.getImeadValue(SecurityRepository.BASE_URL), ten.getImead().getLocal(GramServlet.TAGLINE, locales));
         entries.setWebMaster(ten.getImeadValue(Feed.MASTER));
         entries.setManagingEditor(entries.getWebMaster());
-        entries.setLanguage(ten.getImeadValue(Feed.LANGUAGE));
+        entries.setLanguage(locales.get(0).toLanguageTag());
         List<Duration> timings = new ArrayList<>(lComments.size() + 1);
         OffsetDateTime lastTime = OffsetDateTime.now();
         for (Comment c : lComments) {
             RssItem i = new RssItem(c.getPostedhtml());
             entries.addItem(i);
-            i.addCategory(c.getArticleid().getSectionid().getName(), Categorizer.getUrl(ten.getImeadValue(SecurityRepo.BASE_URL), c.getArticleid().getSectionid().getName(), null));
-            i.setLink(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepo.BASE_URL), c.getArticleid(), "comments"));
+            i.addCategory(c.getArticleid().getSectionid().getName(), Categorizer.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), c.getArticleid().getSectionid().getName(), null));
+            i.setLink(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), c.getArticleid(), "comments"));
             i.setGuid(c.getUuid().toString());
             i.setPubDate(c.getPosted());
             i.setTitle(c.getArticleid().getArticletitle());
             i.setAuthor(c.getPostedname());
             if (c.getArticleid().getComments()) {
-                i.setComments(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepo.BASE_URL), c.getArticleid(), "comments"));
+                i.setComments(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), c.getArticleid(), "comments"));
             }
             timings.add(Duration.between(c.getPosted(), lastTime).abs());
             lastTime = c.getPosted();
@@ -156,7 +156,7 @@ public class CommentRss implements DynamicFeed {
                 String etag = "\"" + HashUtil.getSHA256Hash(holder.toString()) + "\"";
                 res.setHeader(HttpHeaders.ETAG, etag);
                 req.removeAttribute(Local.LOCALE_PARAM);
-                req.setAttribute(Local.OVERRIDE_LOCALE_PARAM, Locale.forLanguageTag(ten.getImeadValue(Feed.LANGUAGE)));
+                req.setAttribute(Local.OVERRIDE_LOCALE_PARAM, resolvedLocales.get(0));
                 req.setAttribute(HttpHeaders.ETAG, etag);
                 req.setAttribute(NAME, XML);
                 if (etag.equals(req.getHeader(HttpHeaders.IF_NONE_MATCH))) {

@@ -17,7 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Duration;
 import java.time.Instant;
-import libWebsiteTools.security.SecurityRepo;
+import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.imead.Localization;
 import libWebsiteTools.imead.LocalizationPK;
@@ -53,36 +53,26 @@ public class AdminImeadServlet extends AdminServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         GramTenant ten = GramLandlord.getTenant(request);
         Instant start = Instant.now();
-        if (ten.isFirstTime()) {
-            if (null == ten.getImeadValue(SecurityRepo.BASE_URL)) {
+        if (ten.getImead().isFirstTime()) {
+            if (null == ten.getImeadValue(SecurityRepository.BASE_URL)) {
                 ArrayList<Localization> locals = new ArrayList<>();
                 String canonicalRoot = AbstractInput.getTokenURL(request);
                 if (!canonicalRoot.endsWith("/")) {
                     canonicalRoot += "/";
                 }
-                Matcher originMatcher = SecurityRepo.ORIGIN_PATTERN.matcher(canonicalRoot);
+                Matcher originMatcher = SecurityRepository.ORIGIN_PATTERN.matcher(canonicalRoot);
                 if (originMatcher.matches()) {
                     String currentReg = originMatcher.group(2).replace(".", "\\.");
-                    locals.add(new Localization("", SecurityRepo.ALLOWED_ORIGINS, String.format(ALLOWED_ORIGINS_TEMPLATE, currentReg)));
-                    locals.add(new Localization("", SecurityRepo.BASE_URL, canonicalRoot));
+                    locals.add(new Localization("", SecurityRepository.ALLOWED_ORIGINS, String.format(ALLOWED_ORIGINS_TEMPLATE, currentReg)));
+                    locals.add(new Localization("", SecurityRepository.BASE_URL, canonicalRoot));
                 }
                 ten.getImead().upsert(locals);
                 ten.getImead().evict();
-                Collection<Fileupload> files = new ArrayList<>();
                 // load default files
-                if (ten.getFile().getFileMetadata(List.of("gram.css")).isEmpty()) {
-                    files.addAll(ten.getFile().upsert(List.of(
-                            FileUtil.loadFile(ten, "gram.css", "text/css", AdminImeadServlet.class.getResourceAsStream("/gram.css")))));
-                }
-                if (ten.getFile().getFileMetadata(List.of("gram.js")).isEmpty()) {
-                    files.addAll(ten.getFile().upsert(List.of(
-                            FileUtil.loadFile(ten, "gram.js", "text/javascript", AdminImeadServlet.class.getResourceAsStream("/gram.js")))));
-                }
-                for (Fileupload file : files) {
-                    FileCompressorJob.startAllJobs(ten, file);
-                }
+                checkAndLoadFile(ten, "gram-vaporwave.css", "text/css");
+                checkAndLoadFile(ten, "gram.js", "text/javascript");
                 ten.getArts().refreshSearch();
-                request.setAttribute(SecurityRepo.BASE_URL, canonicalRoot);
+                request.setAttribute(SecurityRepository.BASE_URL, canonicalRoot);
             }
             request.setAttribute("FIRST_TIME_SETUP", "FIRST_TIME_SETUP");
         }
@@ -90,11 +80,22 @@ public class AdminImeadServlet extends AdminServlet {
         showProperties(ten, request, response);
     }
 
+    private static void checkAndLoadFile(GramTenant ten, String filename, String type) throws IOException {
+        Collection<Fileupload> files = new ArrayList<>();
+        if (ten.getFile().getFileMetadata(List.of(filename)).isEmpty()) {
+            files.addAll(ten.getFile().upsert(List.of(
+                    FileUtil.loadFile(ten, filename, "text/css", AdminImeadServlet.class.getResourceAsStream("/" + filename)))));
+        }
+        for (Fileupload file : files) {
+            FileCompressorJob.startAllJobs(ten, file);
+        }
+    }
+
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         GramTenant ten = GramLandlord.getTenant(request);
         Instant start = Instant.now();
-        boolean initialFirstTime = ten.isFirstTime();
+        boolean initialFirstTime = ten.getImead().isFirstTime();
         // save things
         String action = AbstractInput.getParameter(request, "action");
         if (null == action) {
@@ -115,7 +116,7 @@ public class AdminImeadServlet extends AdminServlet {
                             && !HashUtil.ARGON2_ENCODING_PATTERN.matcher(l.getValue()).matches()) {
                         if (null != previousValue && !HashUtil.ARGON2_ENCODING_PATTERN.matcher(previousValue).matches() && previousValue.equals(l.getValue())) {
                             errors.add(l.getLocalizationPK());
-                            request.setAttribute(GramServlet.ERROR_MESSAGE_PARAM, ten.getImead().getLocal("error_adminadmin", Local.resolveLocales(ten.getImead(), request)));
+                            request.setAttribute(GramServlet.ERROR_MESSAGE_PARAM, ten.getImead().getLocal("page_error_adminadmin", Local.resolveLocales(ten.getImead(), request)));
                         }
                         l.setValue(HashUtil.getArgon2Hash(argon2_parameters, l.getValue()));
                     }
@@ -135,9 +136,9 @@ public class AdminImeadServlet extends AdminServlet {
         }
         ten.reset();
         RequestTimer.addTiming(request, "save", Duration.between(start, Instant.now()));
-        if (initialFirstTime && !ten.isFirstTime()) {
+        if (initialFirstTime && !ten.getImead().isFirstTime()) {
             request.getSession().invalidate();
-            response.sendRedirect(ten.getImeadValue(SecurityRepo.BASE_URL));
+            response.sendRedirect(ten.getImeadValue(SecurityRepository.BASE_URL));
         } else {
             showProperties(ten, request, response);
         }

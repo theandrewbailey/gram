@@ -25,7 +25,8 @@ import libWebsiteTools.UUIDConverter;
     @NamedQuery(name = "Localization.findAll", query = "SELECT l FROM Localization l ORDER BY l.localizationPK.localecode ASC, l.localizationPK.key ASC"),
     @NamedQuery(name = "Localization.findByLocalecode", query = "SELECT l FROM Localization l WHERE l.localizationPK.localecode = :localecode ORDER BY l.localizationPK.key ASC"),
     @NamedQuery(name = "Localization.getDistinctLocales", query = "SELECT DISTINCT l.localizationPK.localecode FROM Localization l ORDER BY l.localizationPK.localecode ASC"),
-    @NamedQuery(name = "Localization.count", query = "SELECT COUNT(l) FROM Localization l")})
+    @NamedQuery(name = "Localization.count", query = "SELECT COUNT(l) FROM Localization l"),
+    @NamedQuery(name = "Localization.searchKeys", query = "SELECT l FROM Localization l WHERE l.localizationPK.key like CONCAT('%',:term,'%') ORDER BY l.localizationPK.localecode,l.localizationPK.key")})
 public class Localization implements Serializable {
 
     private static final long serialVersionUID = 1L;

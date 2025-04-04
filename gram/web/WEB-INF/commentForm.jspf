@@ -3,12 +3,12 @@
     <form action="${commentForm}" class="commentForm noPrint" method="get" accept-charset="UTF-8">
         <h:localVar key="page_commentOpen" /><button type="submit" name="iframe" value="${page_commentOpen}">${page_commentOpen}</button>
     </form>
-</c:when><c:when test="${Article.comments && !spamSuspected}">
+</c:when><c:when test="${Article.comments && !spamSuspected}"><h:localVar key="page_commentOpen" />
 <form action="${commentForm}" class="commentForm noPrint" method="post" accept-charset="UTF-8"><fieldset>
-    <legend><h:local key="page_commentLegend" /></legend><h:localVar key="page_patternMismatch" var="patternMismatch" /><h:localVar key="page_valueMissing" var="valueMissing" />
-    <h:localVar key="page_commentName" /><h:textbox name="name" label="${page_commentName}" maxLength="30" value="${sessionScope.LastPostedName}" required="true" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" inputMode="latin-name" autocomplete="name" /><br/>
-    <h:localVar key="page_commentText" /><h:textarea name="text" label="${page_commentText}" styleClass="comment" height="10" value="${commentText}" required="true" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /><br/>
+    <legend>${page_commentOpen}: </legend><h:localVar key="page_patternMismatch" var="patternMismatch" /><h:localVar key="page_valueMissing" var="valueMissing" />
+    <div><h:localVar key="page_commentName" /><h:textbox name="name" label="${page_commentName}: " maxLength="30" value="${sessionScope.LastPostedName}" required="true" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" inputMode="latin-name" autocomplete="name" /></div>
+    <div><h:localVar key="page_commentText" /><h:textarea name="text" label="${page_commentText}: " styleClass="comment" height="10" value="${commentText}" required="true" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /></div>
     <h:localVar key="page_commentSubmit" /><button type="submit" value="${page_commentSubmit}">${page_commentSubmit}</button>
     <h:hidden name="original-request-time" value="${$_LIBWEBSITETOOLS_START_TIME.toInstant().toEpochMilli()}" />
-</fieldset></form><br/></c:when>
+</fieldset></form></c:when>
 <c:when test="${!Article.comments}"><h:local key="page_commentDisabled" /></c:when></c:choose>
