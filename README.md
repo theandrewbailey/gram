@@ -57,6 +57,7 @@ Gram is a monolith, built with Jakarta EE Servlets, JSPs, and an EJB. This isn't
 		* The HTTPS certificate is self signed. It's OK to ignore that error.
 		* You should see a configuration page with lots of text boxes.
 	1. If you have a backup, upload it at the bottom of the page at "Have a backup?", and skip the rest of this.
+		* If you're trying out Gram (on a machine that isn't connected to the open internet), try importing the example site `GramExampleImport_v11_3.zip` here.
 	1. Set passwords for administrative tasks (YOU MUST CHANGE THESE):
 		* admin_editPosts
 			* Enter this at /adminLogin to add and edit posts, list all articles and comments posted, and delete comments.
@@ -68,7 +69,7 @@ Gram is a monolith, built with Jakarta EE Servlets, JSPs, and an EJB. This isn't
 			* Enter this at /adminLogin to show this configuration page.
 		* admin_importExport
 			* Enter this at /adminLogin to download or upload a site export. This password should be the strongest since it can affect every piece of data and configuration on this site.
-	1. Pay attention to other options:
+	1. The Configuration and Localization article in the example site has more detail on the rest of these configurations, but for now, pay attention to these:
 		* page_title
 			* This is the site's name and page titles.
 		* site_security_baseURL
@@ -76,18 +77,14 @@ Gram is a monolith, built with Jakarta EE Servlets, JSPs, and an EJB. This isn't
 		* site_backup
 			* [The site will observe International Backup Awareness Day at 1am local time every day.](https://blog.codinghorror.com/international-backup-awareness-day/) All articles, comments, configurations, and uploaded files will be dumped into this directory, along with timestamped zip of the same that can be uploaded to quickly restore the site (see "Have a backup?" at bottom of the page, and `admin_importExport`). The script will set this as the gram directory it created.
 		* site_css, site_javascript
-			* These are the CSS and JS files that are put on every page (one file per line). These should match up with an uploaded file (see `admin_files)`. The default style isn't great, but it's on purpose.
-		* site_security_* options are mostly regex filters or HTTP headers.
-		* page_* options are little bits of visible text scattered around pages. HTML entities will be escaped automatically. You'll probably want to customize a few of these later. Seriously, if you see a piece of text somewhere, you can change it from here. You can make the comment form a complaint form, haha!
-		* site_* options are configurations that aren't seen, and aren't escaped.
-	1. Gram will call external programs during use:
+			* These are the CSS and JS files that are put on every page (one file per line). These should match up with an uploaded file (see `admin_files`). The default style isn't great, but it's on purpose.
 		* site_healthCommands
 			* These programs are called on the health check page (see `admin_health`), with their outputs shown.
 	1. Click Save and start blogging!
 		* WARNING: sessions expire after 1 hour, and you can't save unpublished blog posts. Instead, write your magnum opus blog post in some other text editor of your choice, then copy+paste the text into Gram.
 		* Tip: upload all your images first before publishing your post.
 		* While Gram supports multiple locales, there's no support for a single article translated into multiple languages. It was implemented for skinning purposes. [Tip: try using private use extensions.](https://docs.oracle.com/javase/tutorial/i18n/locale/extensions.html#private)
-			* Access locales by appending the locale to the URL, e.g. https://theandrewbailey.com/x-scrolls/, or look at any page's source for `<link rel="alternate" hreflang="..." href="...">` elements.
+			* Access locales by appending the locale to the URL, e.g. https://theandrewbailey.com/x-scrolls/, or inspect any page's source for `<link rel="alternate" hreflang="..." href="...">` elements.
 1. To start Payara again after a reboot, run `~/payara6/glassfish/bin/asadmin start-domain gramPayara-xxxxx` where `gramPayara-xxxxx` is the Payara username that the script gave you. (You kept that info, right? I told you it's important!)
 1. To setup another blog on the same server, an additional database must be created and registered as a JDBC resource (named "java/gram/`domain.name`") in Payara.
 	1. Run `setupUsTheBlog.sh -a domain.name`
