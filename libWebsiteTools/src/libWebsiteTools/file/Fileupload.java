@@ -28,6 +28,7 @@ import libWebsiteTools.UUIDConverter;
 @NamedQueries({
     @NamedQuery(name = "Fileupload.findAll", query = "SELECT f FROM Fileupload f ORDER BY f.filename"),
     @NamedQuery(name = "Fileupload.count", query = "SELECT COUNT(f) FROM Fileupload f"),
+    @NamedQuery(name = "Filemetadata.findAllRecent", query = "SELECT" + Fileupload.METADATA_CONSTRUCTOR + "FROM Fileupload f ORDER BY f.atime DESC"),
     @NamedQuery(name = "Filemetadata.findAll", query = "SELECT" + Fileupload.METADATA_CONSTRUCTOR + "FROM Fileupload f ORDER BY f.filename"),
     @NamedQuery(name = "Filemetadata.findByFilenames", query = "SELECT" + Fileupload.METADATA_CONSTRUCTOR + "FROM Fileupload f WHERE f.filename in :filenames ORDER BY f.filename"),
     @NamedQuery(name = "Filemetadata.search", query = "SELECT" + Fileupload.METADATA_CONSTRUCTOR + "FROM Fileupload f WHERE f.filename like CONCAT('%',:term,'%') OR f.url like CONCAT('%',:term,'%') ORDER BY f.filename"),

@@ -32,6 +32,7 @@ import libWebsiteTools.imead.Local;
 import libWebsiteTools.turbo.RequestTimer;
 import libWebsiteTools.Landlord;
 import libWebsiteTools.Tenant;
+import libWebsiteTools.rss.RssServlet;
 import libWebsiteTools.tag.AbstractInput;
 
 public abstract class BaseFileServlet extends BaseServlet {
@@ -229,6 +230,13 @@ public abstract class BaseFileServlet extends BaseServlet {
             throw new IllegalArgumentException("No mimetype.");
         }
         if (mimetype.startsWith("image") || mimetype.startsWith("audio") || mimetype.startsWith("video")) {
+            if (null != req.getSession(false)) {
+                Tenant ten = Landlord.getTenant(req);
+                Object origin = req.getSession().getAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + RssServlet.class.getCanonicalName());
+                if (null != origin && origin.equals(req.getHeader("Origin"))) {
+                    return true;
+                }
+            }
             try {
                 if (!fromApprovedDomain(req, acceptableDomains)) {
                     return false;
@@ -243,6 +251,12 @@ public abstract class BaseFileServlet extends BaseServlet {
     public static boolean fromApprovedDomain(HttpServletRequest req, List<Pattern> acceptableDomains) {
         String referrer = req.getHeader("referer");
         if (null != referrer) {
+            String origin = req.getHeader("Origin");
+            Matcher canonicalMatcher = SecurityRepository.ORIGIN_PATTERN.matcher(req.getAttribute(SecurityRepository.BASE_URL).toString());
+            canonicalMatcher.matches();
+            if ((null != origin && origin.equals(canonicalMatcher.group(1))) || referrer.startsWith(canonicalMatcher.group(1))) {
+                return true;
+            }
             return IMEADHolder.matchesAny(referrer, acceptableDomains);
         }
         return true;

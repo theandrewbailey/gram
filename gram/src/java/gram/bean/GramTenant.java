@@ -7,6 +7,7 @@ import gram.bean.database.Comment;
 import gram.bean.database.GramIMEADRepository;
 import gram.bean.database.Section;
 import libWebsiteTools.Tenant;
+import libWebsiteTools.file.FileDatabase;
 
 /**
  * Provides access to all blog data for a single tenant.
@@ -18,6 +19,9 @@ public interface GramTenant extends Tenant {
 
     @Override
     public GramIMEADRepository getImead();
+
+    @Override
+    public FileDatabase getFile();
 
     public ArticleRepository getArts();
 

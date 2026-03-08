@@ -49,13 +49,22 @@ public class ArticleRss implements DynamicFeed {
     }
 
     public Document createFeed(GramTenant ten, List<Locale> locales, String catName, Integer numEntries) {
+        String lang = locales.get(0).toLanguageTag();
+        String baseURL = ten.getImeadValue(SecurityRepository.BASE_URL);
+        if ("und".equals(lang)) {
+            lang = "";
+        } else {
+            baseURL += lang + "/";
+        }
         RssChannel entries = new RssChannel(null == catName
                 ? ten.getImead().getLocal(GramServlet.SITE_TITLE, locales)
                 : ten.getImead().getLocal(GramServlet.SITE_TITLE, locales) + " - " + catName,
-                ten.getImeadValue(SecurityRepository.BASE_URL), ten.getImead().getLocal(GramServlet.TAGLINE, locales));
+                baseURL, ten.getImead().getLocal(GramServlet.TAGLINE, locales));
         entries.setWebMaster(ten.getImeadValue(Feed.MASTER));
         entries.setManagingEditor(entries.getWebMaster());
-        entries.setLanguage(locales.get(0).toLanguageTag());
+        if (!"".equals(lang)) {
+            entries.setLanguage(lang);
+        }
         entries.setCopyright(ten.getImeadValue(Feed.COPYRIGHT));
         List<Article> articles = ten.getArts().search(new Section(catName), numEntries);
         List<Duration> timings = new ArrayList<>(articles.size() + 1);
@@ -66,7 +75,7 @@ public class ArticleRss implements DynamicFeed {
             entries.addItem(i);
             i.setTitle(art.getArticletitle());
             i.setAuthor(art.getPostedname());
-            i.setLink(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), art, null));
+            i.setLink(ArticleUrl.getUrl(baseURL, art, null));
             i.setGuid(art.getUuid().toString());
             i.setPubDate(art.getPosted());
             i.setMarkdownSource(art.getPostedmarkdown());
@@ -76,7 +85,7 @@ public class ArticleRss implements DynamicFeed {
             i.setSummary(art.getSummary());
             i.setImageURL(art.getImageurl());
             if (null != art.getSectionid()) {
-                i.addCategory(art.getSectionid().getName(), Categorizer.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), catName, null));
+                i.addCategory(art.getSectionid().getName(), Categorizer.getUrl(baseURL, catName, null));
             }
             if (art.getComments()) {
                 i.setComments(i.getLink() + "#comments");

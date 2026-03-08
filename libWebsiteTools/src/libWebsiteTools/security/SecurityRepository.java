@@ -22,6 +22,7 @@ import jakarta.persistence.TypedQuery;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import java.util.logging.Level;
+import libWebsiteTools.BaseServlet;
 import libWebsiteTools.imead.IMEADRepository;
 
 /**
@@ -38,12 +39,25 @@ public class SecurityRepository implements ExceptionRepository {
     public static final String BASE_URL = "site_security_baseURL";
     public static final String ALLOWED_ORIGINS = "site_security_allowedOrigins";
     public static final String DENIED_USER_AGENTS = "site_security_deniedAgents";
+    public static final String DENIED_COOKIES = "site_security_deniedCookies";
+    public static final String DENIED_LANGUAGES = "site_security_deniedLanguages";
     public static final String HONEYPOTS = "site_security_honeypots";
     private static final String HONEYPOT_INITIAL_BLOCK_TIME = "site_security_initialBlock";
     private static final Logger LOG = Logger.getLogger(SecurityRepository.class.getName());
     private final EntityManagerFactory PU;
     private final IMEADRepository imead;
     private final CertUtil certs = new CertUtil();
+
+    @Override
+    public SecurityRepository warmCache() {
+        imead.getPatterns(ALLOWED_ORIGINS);
+        imead.getPatterns(DENIED_USER_AGENTS);
+        imead.getPatterns(DENIED_COOKIES);
+        imead.getPatterns(DENIED_LANGUAGES);
+        imead.getPatterns(HONEYPOTS);
+        imead.getPatterns(BaseServlet.SITE_404_TO_410);
+        return this;
+    }
 
     public SecurityRepository(EntityManagerFactory PU, IMEADRepository imead) {
         this.PU = PU;
@@ -74,6 +88,9 @@ public class SecurityRepository implements ExceptionRepository {
             title = t.getClass().getName();
         }
         StringBuilder additionalDesc = new StringBuilder(1000);
+        if (desc != null) {
+            additionalDesc.append(desc).append(SecurityRepository.NEWLINE);
+        }
         if (req != null) {
             additionalDesc.append("Headers<br/>");
             Enumeration<String> headerNames = req.getHeaderNames();
@@ -90,9 +107,6 @@ public class SecurityRepository implements ExceptionRepository {
                 additionalDesc.append("<br/>Parameters<br/>").append(requestParams);
             }
         }
-        if (desc != null) {
-            additionalDesc.append(desc).append(SecurityRepository.NEWLINE);
-        }
         if (t != null) {
             StringWriter w = new StringWriter();
             PrintWriter p = new PrintWriter(w, false);
@@ -102,11 +116,6 @@ public class SecurityRepository implements ExceptionRepository {
         }
         desc = additionalDesc.toString();
         upsert(Arrays.asList(new Exceptionevent(null, OffsetDateTime.now(), desc, title, UUID.randomUUID())));
-    }
-
-    @Override
-    public List<Exceptionevent> search(Object term, Integer limit) {
-        throw new UnsupportedOperationException();
     }
 
     @Override

@@ -31,9 +31,6 @@ public interface ExceptionRepository extends Repository<Exceptionevent> {
     public void processArchive(Consumer<Exceptionevent> operation, Boolean transaction);
 
     @Override
-    public List<Exceptionevent> search(Object term, Integer limit);
-
-    @Override
     public Collection<Exceptionevent> upsert(Collection<Exceptionevent> entities);
 
     public CertUtil getCerts();

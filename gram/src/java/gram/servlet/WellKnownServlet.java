@@ -30,7 +30,8 @@ public class WellKnownServlet extends GramServlet {
                 break;
             default:
                 if (URL.contains("/.well-known/")) {
-                    request.getServletContext().getRequestDispatcher(URL.replaceFirst("/.well-known/", FileServlet.class.getAnnotation(WebServlet.class).urlPatterns()[0] + "/")).forward(request, response);
+                    String fileURL = URL.replaceFirst("/.well-known/", FileServlet.class.getAnnotation(WebServlet.class).urlPatterns()[0] + "/");
+                    request.getServletContext().getRequestDispatcher(fileURL).forward(request, response);
                 } else if (null != ten.getFile().get(URL.substring(1))) {
                     String next = "/file" + URL;
                     request.getServletContext().getRequestDispatcher(next).forward(request, response);

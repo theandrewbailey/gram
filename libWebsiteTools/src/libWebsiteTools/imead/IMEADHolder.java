@@ -27,11 +27,6 @@ public abstract class IMEADHolder implements IMEADRepository {
     protected final Map<String, Map<Locale, Map<String, String>>> filteredCache = new HashMap<>();
     protected String localizedHash = "";
 
-    @Override
-    public List<Localization> search(Object term, Integer limit) {
-        throw new UnsupportedOperationException();
-    }
-
     /**
      * load all properties from DB
      *
@@ -76,7 +71,7 @@ public abstract class IMEADHolder implements IMEADRepository {
     public static boolean matchesAny(CharSequence subject, List<Pattern> regexes) {
         if (null != regexes) {
             for (Pattern p : regexes) {
-                if (p.matcher(subject).matches()) {
+                if (p.matcher(subject.toString()).matches()) {
                     return true;
                 }
             }
@@ -97,6 +92,9 @@ public abstract class IMEADHolder implements IMEADRepository {
      */
     @Override
     public String getValue(String key) {
+        if (null == key || key.isBlank()) {
+            throw new NullPointerException();
+        }
         try {
             return localizedCache.get(Locale.ROOT).getProperty(key);
         } catch (NullPointerException n) {
@@ -114,6 +112,9 @@ public abstract class IMEADHolder implements IMEADRepository {
      */
     @Override
     public String getLocal(String key, Collection<Locale> locales) {
+        if (null == key || key.isBlank()) {
+            throw new NullPointerException();
+        }
         for (Locale l : locales) {
             if (localizedCache.containsKey(l)) {
                 String retrun = localizedCache.get(l).getProperty(key);

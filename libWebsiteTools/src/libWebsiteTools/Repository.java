@@ -39,22 +39,6 @@ public interface Repository<Entity extends Serializable> {
     public List<Entity> getAll(Integer limit);
 
     /**
-     * Search entities on the given term.
-     *
-     * @param term
-     * @param limit will return this many (or everything if null). can be
-     * ignored, but must be noted if so.
-     * @return matching entities
-     */
-    public List<Entity> search(Object term, Integer limit);
-
-    /**
-     * Perform any of re-index operation necessary for search.
-     */
-    public default void refreshSearch() {
-    }
-
-    /**
      * Delete a single entity.
      *
      * @param id the primary key of the desired entity.
@@ -76,7 +60,18 @@ public interface Repository<Entity extends Serializable> {
      *
      * @return this
      */
-    public Repository<Entity> evict();
+    default public Repository<Entity> evict() {
+        return this;
+    }
+
+    /**
+     * Populate caches ahead of time with a reasonable amount of data.
+     *
+     * @return this
+     */
+    default public Repository<Entity> warmCache() {
+        return this;
+    }
 
     /**
      * How many things are stored?

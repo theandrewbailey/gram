@@ -151,8 +151,10 @@ public abstract class CompressedOutput extends ServletOutputStream implements Co
         public String getType() {
             return "none";
         }
+        protected ByteArrayOutputStream uncompressedStream;
 
         public None() {
+            getOutputStream(null);
         }
 
         @Override
@@ -161,12 +163,13 @@ public abstract class CompressedOutput extends ServletOutputStream implements Co
         }
 
         @Override
-        public OutputStream getOutputStream(HttpServletResponse res) throws IOException {
-            if (null == compressedStream) {
+        public ByteArrayOutputStream getOutputStream(HttpServletResponse res) {
+            if (null == uncompressedStream) {
                 collector = new ByteArrayOutputStream(65000);
+                uncompressedStream = collector;
                 compressedStream = collector;
             }
-            return compressedStream;
+            return uncompressedStream;
         }
     }
 
@@ -260,4 +263,12 @@ public abstract class CompressedOutput extends ServletOutputStream implements Co
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public String toString() {
+        return getType();
+    }
+
+    public boolean equals(Object obj) {
+        return this.getClass().getCanonicalName().equals(obj.getClass().getCanonicalName());
+    }
 }

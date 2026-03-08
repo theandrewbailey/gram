@@ -69,11 +69,6 @@ public class CommentDatabase implements Repository<Comment> {
     }
 
     @Override
-    public List<Comment> search(Object term, Integer limit) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Comment delete(Object commentId) {
         try (EntityManager em = gramPU.createEntityManager()) {
             em.getTransaction().begin();

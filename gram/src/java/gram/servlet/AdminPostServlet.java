@@ -57,7 +57,7 @@ public class AdminPostServlet extends AdminServlet {
                 articles.add(art);
             }
             ten.getArts().upsert(articles);
-            ten.getArts().evict();
+            ten.getArts().evict().warmCache();
             ten.getGlobalCache().clear();
             RequestTimer.addTiming(request, "save", Duration.between(start, Instant.now()));
             response.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(request, Boolean.FALSE));
@@ -90,7 +90,7 @@ public class AdminPostServlet extends AdminServlet {
                         }
                     }
                     ten.getArts().upsert(articles);
-                    ten.getArts().evict();
+                    ten.getArts().evict().warmCache();
                     ten.getGlobalCache().clear();
                 });
             } catch (NullPointerException n) {

@@ -26,8 +26,10 @@ import libWebsiteTools.turbo.RequestTimer;
 import libWebsiteTools.tag.AbstractInput;
 import gram.bean.GramLandlord;
 import gram.bean.GramTenant;
+import gram.bean.database.Article;
 import java.util.Collection;
 import libWebsiteTools.Markdowner;
+import libWebsiteTools.SearchableRepository;
 import libWebsiteTools.file.FileCompressorJob;
 import libWebsiteTools.file.FileUtil;
 import libWebsiteTools.file.Fileupload;
@@ -71,7 +73,9 @@ public class AdminImeadServlet extends AdminServlet {
                 // load default files
                 checkAndLoadFile(ten, "gram-vaporwave.css", "text/css");
                 checkAndLoadFile(ten, "gram.js", "text/javascript");
-                ten.getArts().refreshSearch();
+                if (ten.getArts() instanceof SearchableRepository<Article> searchableArticles) {
+                    searchableArticles.refreshSearch();
+                }
                 request.setAttribute(SecurityRepository.BASE_URL, canonicalRoot);
             }
             request.setAttribute("FIRST_TIME_SETUP", "FIRST_TIME_SETUP");
@@ -84,7 +88,7 @@ public class AdminImeadServlet extends AdminServlet {
         Collection<Fileupload> files = new ArrayList<>();
         if (ten.getFile().getFileMetadata(List.of(filename)).isEmpty()) {
             files.addAll(ten.getFile().upsert(List.of(
-                    FileUtil.loadFile(ten, filename, "text/css", AdminImeadServlet.class.getResourceAsStream("/" + filename)))));
+                    FileUtil.loadFile(ten, filename, type, AdminImeadServlet.class.getResourceAsStream("/" + filename)))));
         }
         for (Fileupload file : files) {
             FileCompressorJob.startAllJobs(ten, file);

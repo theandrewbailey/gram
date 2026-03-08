@@ -5,7 +5,6 @@ import jakarta.persistence.EntityManagerFactory;
 import java.util.Arrays;
 import libWebsiteTools.Repository;
 import libWebsiteTools.file.FileDatabase;
-import libWebsiteTools.file.FileRepository;
 import libWebsiteTools.rss.FeedBucket;
 import libWebsiteTools.security.GuardFilter;
 import libWebsiteTools.security.SecurityRepository;
@@ -51,7 +50,7 @@ public class PostgresGramTenant implements GramTenant {
     private final EntityManagerFactory gramPU;
     private final PageCacheProvider pageCacheProvider;
     private final SecurityRepository error;
-    private final FileRepository file;
+    private final FileDatabase file;
     private final GramIMEADRepository imead;
     private final Repository<Feed> feeds;
     private final ArticleRepository arts;
@@ -69,11 +68,11 @@ public class PostgresGramTenant implements GramTenant {
         perfs = new PerfStats();
         feeds = new FeedBucket();
         imead = new GramIMEADDatabase(gramPU);
-        file = new FileDatabase(gramPU);
+        file = new FileDatabase(gramPU).warmCache();
         comms = new CommentDatabase(gramPU);
-        arts = new PostgresArticleDatabase(gramPU);
-        sects = new CategoryDatabase(gramPU);
-        error = new SecurityRepository(gramPU, imead);
+        arts = new PostgresArticleDatabase(gramPU).warmCache();
+        sects = new CategoryDatabase(gramPU).warmCache();
+        error = new SecurityRepository(gramPU, imead).warmCache();
         try {
             String certName = getImeadValue(GuardFilter.CERTIFICATE_NAME);
             if (null != certName && !certName.isBlank()) {
@@ -162,7 +161,7 @@ public class PostgresGramTenant implements GramTenant {
     }
 
     @Override
-    public FileRepository getFile() {
+    public FileDatabase getFile() {
         if (!gramPU.isOpen()) {
             throw new IllegalStateException(CLOSED);
         }

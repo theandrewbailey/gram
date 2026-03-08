@@ -110,6 +110,8 @@ public class HtmlMeta extends SimpleTagSupport {
         Object baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepository.BASE_URL);
         if (null != baseURL && !baseURL.toString().isEmpty()) {
             output.println(String.format("<base href=\"%s\"/>", baseURL.toString()));
+        } else {
+            baseURL = ten.getImeadValue(SecurityRepository.BASE_URL);
         }
         try {
             for (Map.Entry<String, String> tag : (List<Map.Entry<String, String>>) getJspContext().findAttribute(META_NAME_TAGS)) {
@@ -139,7 +141,7 @@ public class HtmlMeta extends SimpleTagSupport {
             if (feed instanceof DynamicFeed) {
                 for (Map.Entry<String, String> entry : ((DynamicFeed) feed).getFeedURLs(req).entrySet()) {
                     output.println(String.format("<link rel=\"alternate\" href=\"%srss/%s\" title=\"%s\" type=\"%s\">",
-                            ten.getImeadValue(SecurityRepository.BASE_URL), entry.getKey(), entry.getValue(), feed.getMimeType().toString()));
+                            baseURL.toString(), entry.getKey(), entry.getValue(), feed.getMimeType().toString()));
                 }
             }
         }

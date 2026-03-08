@@ -5,7 +5,8 @@
         <li><c:choose><c:when test="${cate.name == curGroup}"><span id="${cate.uuid}">${cate.name}</span></c:when><c:otherwise><g:categoryUrl category="${cate}" text="${cate.name}" page="${1}"/></c:otherwise></c:choose></li></c:forEach>
     </ul></nav></c:if>
     <h:localVar key="page_patternMismatch" var="patternMismatch"/><h:localVar key="page_valueMissing" var="valueMissing"/>
-    <c:if test="${!milligram&&requestScope['libWebsiteTools.Tenant'].arts.count(null)>0}"><form class="search" action="search" method="GET" accept-charset="UTF-8">
+    <c:set var="artRepo" value="${requestScope['libWebsiteTools.Tenant'].arts}" scope="page"/>
+    <c:if test="${!milligram&&artRepo.count(null)>0}"><form class="search" action="search" method="GET" accept-charset="UTF-8">
         <input type="search" name="searchTerm" size="20" required="required" data-valuemissing="${valueMissing}" data-patternmismatch="${patternMismatch}" aria-label="Search" autocomplete="off"/>
         <button class="search" type="submit"><h:local key="page_search" /></button>
     </form></c:if>

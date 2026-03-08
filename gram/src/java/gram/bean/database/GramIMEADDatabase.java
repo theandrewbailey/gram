@@ -2,10 +2,13 @@ package gram.bean.database;
 
 import gram.AdminPermission;
 import gram.UtilStatic;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.TypedQuery;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
@@ -36,6 +39,22 @@ public class GramIMEADDatabase extends IMEADDatabase implements GramIMEADReposit
         if (!locals.isEmpty()) {
             upsert(locals);
         }
+    }
+
+    @Override
+    public List<Localization> search(Object term, Integer limit) {
+        try (EntityManager em = PU.createEntityManager()) {
+            TypedQuery<Localization> q = em.createNamedQuery("Localization.searchKeys", Localization.class).setParameter("term", term.toString());
+            if (null != limit) {
+                q.setMaxResults(limit);
+            }
+            return q.getResultList();
+        }
+    }
+
+    @Override
+    public List<Localization> search(Localization term, Integer limit) {
+        throw new UnsupportedOperationException("Not supported.");
     }
 
     @Override

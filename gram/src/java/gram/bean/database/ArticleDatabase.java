@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import libWebsiteTools.SearchableRepository;
 
 /**
  *
@@ -127,7 +128,9 @@ public abstract class ArticleDatabase implements ArticleRepository {
                 }
                 em.createNativeQuery("ALTER SEQUENCE gram.comment_commentid_seq RESTART; ALTER SEQUENCE gram.article_articleid_seq RESTART;").executeUpdate();
                 em.getTransaction().commit();
-                refreshSearch();
+                if (this instanceof SearchableRepository<Article> searchableArticles) {
+                    searchableArticles.refreshSearch();
+                }
                 LOG.log(Level.FINE, "All articles and comments deleted");
                 return null;
             } else {
@@ -168,6 +171,12 @@ public abstract class ArticleDatabase implements ArticleRepository {
     @Override
     public ArticleRepository evict() {
         gramPU.getCache().evict(Article.class);
+        return this;
+    }
+
+    @Override
+    public ArticleDatabase warmCache() {
+        getAll(25);
         return this;
     }
 

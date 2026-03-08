@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import libWebsiteTools.imead.HtmlPageServlet;
+import libWebsiteTools.imead.IMEADHolder;
+import libWebsiteTools.tag.AbstractInput;
 
 /**
  * Sends HTTP 405 for all HTTP methods. If one is overridden, it won't.
@@ -20,6 +22,7 @@ public abstract class BaseServlet extends HttpServlet {
 
     public static final String ERROR_PREFIX = HtmlPageServlet.IMEAD_KEY_PREFIX + "error";
     public static final String ERROR_MESSAGE_PARAM = "ERROR_MESSAGE";
+    public static final String SITE_404_TO_410 = "site_404_to_410";
     @EJB
     protected Landlord landlord;
 
@@ -29,16 +32,20 @@ public abstract class BaseServlet extends HttpServlet {
      *
      * @param req
      * @param res
-     * @param errorCode
+     * @param status
      * @throws jakarta.servlet.ServletException
      * @throws java.io.IOException
      */
-    public static void showError(HttpServletRequest req, HttpServletResponse res, Integer errorCode) throws ServletException, IOException {
-        if (400 <= errorCode && errorCode < 600) {
-            res.setStatus(errorCode);
+    public static void showError(HttpServletRequest req, HttpServletResponse res, Integer status) throws ServletException, IOException {
+        Tenant ten = Landlord.getTenant(req);
+        if (404 == status && IMEADHolder.matchesAny(AbstractInput.getTokenURL(req), ten.getImead().getPatterns(SITE_404_TO_410))) {
+            status = 410;
         }
-        req.setAttribute("title", "HTTP ERROR " + errorCode);
-        HtmlPageServlet.showPage(req, res, "error" + errorCode);
+        if (400 <= status && status < 600) {
+            res.setStatus(status);
+        }
+        req.setAttribute("title", "HTTP ERROR " + status);
+        HtmlPageServlet.showPage(req, res, "error" + status);
     }
 
     /**

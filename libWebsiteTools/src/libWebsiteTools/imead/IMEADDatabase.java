@@ -14,24 +14,13 @@ import libWebsiteTools.security.HashUtil;
  *
  * @author alpha
  */
-public class IMEADDatabase extends IMEADHolder {
+public class IMEADDatabase extends IMEADHolder{
 
     protected final EntityManagerFactory PU;
 
     public IMEADDatabase(EntityManagerFactory PU) {
         this.PU = PU;
         evict();
-    }
-
-    @Override
-    public List<Localization> search(Object term, Integer limit) {
-        try (EntityManager em = PU.createEntityManager()) {
-            TypedQuery<Localization> q = em.createNamedQuery("Localization.searchKeys", Localization.class).setParameter("term", term.toString());
-            if (null != limit) {
-                q.setMaxResults(limit);
-            }
-            return q.getResultList();
-        }
     }
 
     /**

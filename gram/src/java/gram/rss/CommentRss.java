@@ -68,23 +68,32 @@ public class CommentRss implements DynamicFeed {
     }
 
     public RssChannel createChannel(GramTenant ten, List<Locale> locales, Collection<Comment> lComments) {
+        String lang = locales.get(0).toLanguageTag();
+        String baseURL = ten.getImeadValue(SecurityRepository.BASE_URL);
+        if ("und".equals(lang)) {
+            lang = "";
+        } else {
+            baseURL += lang + "/";
+        }
         RssChannel entries = new RssChannel(ten.getImead().getLocal(GramServlet.SITE_TITLE, locales) + " - Comments", ten.getImeadValue(SecurityRepository.BASE_URL), ten.getImead().getLocal(GramServlet.TAGLINE, locales));
         entries.setWebMaster(ten.getImeadValue(Feed.MASTER));
         entries.setManagingEditor(entries.getWebMaster());
-        entries.setLanguage(locales.get(0).toLanguageTag());
+        if (!"".equals(lang)) {
+            entries.setLanguage(lang);
+        }
         List<Duration> timings = new ArrayList<>(lComments.size() + 1);
         OffsetDateTime lastTime = OffsetDateTime.now();
         for (Comment c : lComments) {
             RssItem i = new RssItem(c.getPostedhtml());
             entries.addItem(i);
             i.addCategory(c.getArticleid().getSectionid().getName(), Categorizer.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), c.getArticleid().getSectionid().getName(), null));
-            i.setLink(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), c.getArticleid(), "comments"));
+            i.setLink(ArticleUrl.getUrl(baseURL, c.getArticleid(), "comments"));
             i.setGuid(c.getUuid().toString());
             i.setPubDate(c.getPosted());
             i.setTitle(c.getArticleid().getArticletitle());
             i.setAuthor(c.getPostedname());
             if (c.getArticleid().getComments()) {
-                i.setComments(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), c.getArticleid(), "comments"));
+                i.setComments(ArticleUrl.getUrl(baseURL, c.getArticleid(), "comments"));
             }
             timings.add(Duration.between(c.getPosted(), lastTime).abs());
             lastTime = c.getPosted();

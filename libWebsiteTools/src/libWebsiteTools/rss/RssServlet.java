@@ -13,6 +13,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.core.HttpHeaders;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
@@ -22,6 +23,7 @@ import libWebsiteTools.BaseServlet;
 import org.w3c.dom.Document;
 import libWebsiteTools.Landlord;
 import libWebsiteTools.Tenant;
+import libWebsiteTools.security.SecurityRepository;
 
 /**
  * Servlet for serving RSS/Atom feeds.
@@ -75,6 +77,8 @@ public class RssServlet extends BaseServlet {
 
     @Override
     protected void doHead(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader(HttpHeaders.CACHE_CONTROL, "private, max-age=86400");
         Feed feed = getFeed(request);
         if (feed == null) {
             LOG.log(Level.FINE, "RSS feed {0} not found", getRssName(request.getRequestURI()));
@@ -98,6 +102,12 @@ public class RssServlet extends BaseServlet {
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader(HttpHeaders.CACHE_CONTROL, "private, max-age=86400");
+        if (null != request.getHeader("Origin")) {
+            Tenant ten = Landlord.getTenant(request);
+            request.getSession().setAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + RssServlet.class.getCanonicalName(), request.getHeader("Origin"));
+        }
         try {
             Feed feed = getFeed(request);
             if (null == feed) {

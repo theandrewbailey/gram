@@ -5,6 +5,9 @@
 <c:if test="${ERROR_MESSAGE != null}"><p class="error">${ERROR_MESSAGE}</p></c:if>
 <form action="adminArticle" method="post" class="adminform adminArticleAdd" accept-charset="UTF-8">
     <h:localVar key="page_patternMismatch" var="patternMismatch" /><h:localVar key="page_valueMissing" var="valueMissing" />
+    <details class="recent"><summary><h:local key="page_articleRecentImages"/></summary><ol>
+        <c:forEach items="${recentPictures}" var="pic"><li>${pic}</li>
+    </c:forEach></ol></details>
     <div><h:localVar key="page_articleCategory"/><h:textbox name="section" label="${page_articleCategory}: " labelNextLine="false" patternMismatch="${patternMismatch}" datalist="${groups}" value="${Article.sectionid.name}"/></div>
     <div><h:localVar key="page_articleTitle"/><h:textbox name="articletitle" label="${page_articleTitle}: " maxLength="250" size="64" labelNextLine="false" value="${Article.articletitle}" required="true" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /></div>
     <div><h:localVar key="page_articleDescription"/><h:textbox name="description" label="${page_articleDescription}: " maxLength="250" size="64" labelNextLine="false" value="${Article.description}" required="true" valueMissing="${valueMissing}" patternMismatch="${patternMismatch}" /></div>

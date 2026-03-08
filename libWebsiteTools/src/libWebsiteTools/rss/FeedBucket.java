@@ -134,11 +134,6 @@ public class FeedBucket implements Repository<Feed> {
     }
 
     @Override
-    public List<Feed> search(Object term, Integer limit) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public List<Feed> getAll(Integer limit) {
         return new ArrayList<>(feeds.values());
     }

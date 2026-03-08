@@ -13,12 +13,13 @@ import java.util.NoSuchElementException;
 import jakarta.persistence.TypedQuery;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import libWebsiteTools.SearchableRepository;
 
 /**
  *
  * @author alpha
  */
-public class PostgresArticleDatabase extends ArticleDatabase {
+public class PostgresArticleDatabase extends ArticleDatabase implements SearchableRepository<Article>{
 
     private static final Logger LOG = Logger.getLogger(PostgresArticleDatabase.class.getName());
     private final Map<String, List<Article>> articleCache = Collections.synchronizedMap(new LinkedHashMap<>(100));

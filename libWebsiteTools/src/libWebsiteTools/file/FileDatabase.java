@@ -10,20 +10,35 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
+import libWebsiteTools.SearchableRepository;
 
-public class FileDatabase implements FileRepository {
+public class FileDatabase implements FileRepository, SearchableRepository<Fileupload> {
 
     protected final EntityManagerFactory PU;
     private static final Logger LOG = Logger.getLogger(FileDatabase.class.getName());
 
     public FileDatabase(EntityManagerFactory PU) {
         this.PU = PU;
-        evict();
+        evict().warmCache();
     }
 
     @Override
     public synchronized FileDatabase evict() {
         PU.getCache().evict(Fileupload.class);
+        return this;
+    }
+
+    @Override
+    public synchronized FileDatabase warmCache() {
+        Fileupload term = new Fileupload();
+        term.setMimetype("text/css");
+        for (Fileupload metadata : search(term, 10)) {
+            get(metadata.getFilename());
+        }
+        term.setMimetype("text/javascript");
+        for (Fileupload metadata : search(term, 10)) {
+            get(metadata.getFilename());
+        }
         return this;
     }
 
@@ -139,7 +154,7 @@ public class FileDatabase implements FileRepository {
     @Override
     public List<Fileupload> getAll(Integer limit) {
         try (EntityManager em = PU.createEntityManager()) {
-            TypedQuery<Fileupload> q = em.createNamedQuery("Fileupload.findAll", Fileupload.class);
+            TypedQuery<Fileupload> q = em.createNamedQuery("Filemetadata.findAllRecent", Fileupload.class);
             if (null != limit) {
                 q.setMaxResults(limit);
             }

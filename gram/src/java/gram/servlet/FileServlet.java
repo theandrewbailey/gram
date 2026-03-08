@@ -12,8 +12,14 @@ import jakarta.ws.rs.core.HttpHeaders;
 import libWebsiteTools.file.BaseFileServlet;
 import libWebsiteTools.file.Fileupload;
 import gram.bean.GramTenant;
+import libWebsiteTools.BaseServlet;
+import libWebsiteTools.Landlord;
+import libWebsiteTools.Tenant;
+import libWebsiteTools.imead.IMEADHolder;
+import libWebsiteTools.security.GuardFilter;
+import libWebsiteTools.tag.AbstractInput;
 
-@WebServlet(name = "FileServlet", description = "Handles uploading files, and serves files through inherited class", urlPatterns = {"/file/*", "/fileImmutable/*", "/file", "/*/file"})
+@WebServlet(name = "FileServlet", description = "Handles uploading files, and serves files through inherited class", urlPatterns = {"/file", "/file/*", "/fileImmutable/*", "/*/file"})
 public class FileServlet extends BaseFileServlet {
 
     public static final String DEFAULT_TYPE = "text/html;charset=UTF-8";
@@ -41,6 +47,14 @@ public class FileServlet extends BaseFileServlet {
         response.setContentType(DEFAULT_TYPE);
         super.doGet(request, response);
         if (HttpServletResponse.SC_OK != response.getStatus()) {
+            Tenant ten = Landlord.getTenant(request);
+            if (HttpServletResponse.SC_UNAUTHORIZED == response.getStatus()
+                    || (HttpServletResponse.SC_NOT_FOUND == response.getStatus() && IMEADHolder.matchesAny(AbstractInput.getTokenURL(request), ten.getImead().getPatterns(BaseServlet.SITE_404_TO_410)))) {
+                ten.getError().logException(request, null, "File requested incorrectly, bombing...", null);
+                GuardFilter.zipBomb(request, response);
+                request.setAttribute(GuardFilter.HANDLED_ERROR, true);
+                return;
+            }
             String accept = request.getHeader(HttpHeaders.ACCEPT);
             if (null != accept && accept.contains("text/html")) {
                 response.setContentType(DEFAULT_TYPE);

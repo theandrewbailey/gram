@@ -38,7 +38,7 @@ import gram.bean.database.Section;
 import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import libWebsiteTools.Repository;
+import libWebsiteTools.SearchableRepository;
 
 @WebServlet(name = "ArticleServlet", description = "Gets a single article from the DB with comments", urlPatterns = {"/article/*", "/amp/*"})
 public class ArticleServlet extends GramServlet {
@@ -137,10 +137,12 @@ public class ArticleServlet extends GramServlet {
         List<Article> pageArticles = Collections.synchronizedList(new ArrayList<>());
         pageArticles.add(art);
         Instant start = Instant.now();
-        Collection<Article> seeAlso = getArticleSuggestions(ten.getArts(), art);
-        request.setAttribute("seeAlso", seeAlso);
-        RequestTimer.addTiming(request, "seeAlsoQuery", Duration.between(start, Instant.now()));
-        pageArticles.addAll(seeAlso);
+        if (ten.getArts() instanceof SearchableRepository<Article> searchableArticles) {
+            Collection<Article> seeAlso = getArticleSuggestions(searchableArticles, art);
+            request.setAttribute("seeAlso", seeAlso);
+            RequestTimer.addTiming(request, "seeAlsoQuery", Duration.between(start, Instant.now()));
+            pageArticles.addAll(seeAlso);
+        }
         List<Locale> resolvedLocales = Local.resolveLocales(ten.getImead(), request);
         request.setAttribute("seeAlsoTerm", null != art.getSuggestion() ? art.getSuggestion() : ArticleRepository.getArticleSuggestionTerm(art));
         // keep track of articles referenced on the page, to help de-duplicate links and maximize unique articles linked to
@@ -230,7 +232,7 @@ public class ArticleServlet extends GramServlet {
      * @return similar articles, or null if something exploded
      */
     @SuppressWarnings("unchecked")
-    public static Collection<Article> getArticleSuggestions(Repository<Article> arts, Article art) {
+    public static Collection<Article> getArticleSuggestions(SearchableRepository<Article> arts, Article art) {
         try {
             // search with article's search term, up to 12
             Collection<Article> seeAlso = new LinkedHashSet<>(arts.search(null != art.getSuggestion() ? art.getSuggestion() : ArticleRepository.getArticleSuggestionTerm(art), 13));
@@ -239,21 +241,21 @@ public class ArticleServlet extends GramServlet {
                 // search for other articles that link to this one, up to 6
                 Article temp = new Article();
                 temp.setUrl(ArticleUrl.getUrl("", art, null));
-                seeAlso.addAll(arts.search(temp, 6));
+                seeAlso.addAll(arts.search(temp, 7));
                 seeAlso.remove(art);
             }
             if (seeAlso.size() < 6 && null != art.getSectionid()) {
                 // add most recent articles from the current section, up to 6
-                seeAlso.addAll(arts.search(art.getSectionid(), 6));
+                seeAlso.addAll(arts.search(art.getSectionid(), 7));
                 seeAlso.remove(art);
             }
             if (seeAlso.size() < 6) {
                 // add other articles from any category, up to 6
-                seeAlso.addAll(arts.getAll(6));
+                seeAlso.addAll(arts.getAll(7));
                 seeAlso.remove(art);
             }
-            // limit to 6 or 12
-            List<Article> temp = Arrays.asList(Arrays.copyOf(seeAlso.toArray(Article[]::new), seeAlso.size() >= 12 ? 12 : 6));
+            // limit to 6
+            List<Article> temp = Arrays.asList(Arrays.copyOf(seeAlso.toArray(Article[]::new), 6));
             seeAlso = new ArrayList(temp);
             seeAlso.removeAll(Collections.singleton(null));
             // sort articles without images last

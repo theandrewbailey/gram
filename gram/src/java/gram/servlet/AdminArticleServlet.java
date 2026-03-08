@@ -22,16 +22,23 @@ import libWebsiteTools.turbo.RequestTimer;
 import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.tag.AbstractInput;
 import gram.ArticleProcessor;
+import gram.PictureTag;
 import gram.bean.database.ArticleRepository;
 import gram.bean.GramLandlord;
 import gram.bean.database.Article;
 import gram.bean.database.Section;
 import gram.tag.ArticleUrl;
 import gram.bean.GramTenant;
+import java.io.UnsupportedEncodingException;
 import java.text.MessageFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
+import libWebsiteTools.JVMNotSupportedError;
+import libWebsiteTools.SearchableRepository;
+import libWebsiteTools.file.Fileupload;
 import libWebsiteTools.tag.FileSize;
 
 /**
@@ -56,38 +63,37 @@ public class AdminArticleServlet extends AdminServlet {
 
     private static ArticleProcessor getProcessor(HttpServletRequest req, Article art) {
         GramTenant ten = GramLandlord.getTenant(req);
-        ArticleProcessor artPro = (ArticleProcessor) req.getSession().getAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + ArticleProcessor.class.getCanonicalName());
         if (art == null) {
             art = (Article) req.getSession().getAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName());
         }
         if (art == null) {
             art = ArticleServlet.getArticleFromURL(ten, req.getRequestURI());
         }
-        if (art != null) {
-            req.getSession().setAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName(), art);
+        if (art == null) {
+            art = new Article(UUID.randomUUID());
         }
-        if (artPro == null) {
-            artPro = new ArticleProcessor(ten, art);
-            req.getSession().setAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + ArticleProcessor.class.getCanonicalName(), artPro);
-        }
+        req.getSession().setAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName(), art);
+        ArticleProcessor artPro = new ArticleProcessor(ten, art);
         return artPro;
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         GramTenant ten = GramLandlord.getTenant(request);
+        request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName());
         if (null != request.getParameter("iframe") && "Preview".equals(request.getParameter("action"))) {
             ArticleProcessor artPro = getProcessor(request, null);
             Article art = artPro.getArt();
             if (null != art.getArticletitle() && null != art.getPostedhtml() && null != art.getPosted()) {
                 request.setAttribute(Article.class.getSimpleName(), art);
                 checkSize(ten, request, artPro);
-                Collection<Article> seeAlso = ArticleServlet.getArticleSuggestions(ten.getArts(), art);
-                request.setAttribute("seeAlso", seeAlso);
+                if (ten.getArts() instanceof SearchableRepository<Article> searchableArticles) {
+                    Collection<Article> seeAlso = ArticleServlet.getArticleSuggestions(searchableArticles, art);
+                    request.setAttribute("seeAlso", seeAlso);
+                }
                 request.getRequestDispatcher(ADMIN_ADD_ARTICLE_IFRAME).forward(request, response);
             }
         } else {
-            request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + ArticleProcessor.class.getCanonicalName());
             request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName());
             Instant start = Instant.now();
             Article art = ArticleServlet.getArticleFromURL(ten, request.getRequestURI());
@@ -128,16 +134,15 @@ public class AdminArticleServlet extends AdminServlet {
         }
         RequestTimer.addTiming(request, "save", Duration.between(start, Instant.now()));
         response.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(request, Boolean.FALSE));
-        ten.getArts().evict();
+        ten.getArts().evict().warmCache();
         ten.getGlobalCache().clear();
-        request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + ArticleProcessor.class.getCanonicalName());
         request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName());
         request.getSession().invalidate();
         response.setHeader("Clear-Site-Data", "*");
         response.sendRedirect(ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null));
-        ten.getExec().submit(() -> {
-            ten.getArts().refreshSearch();
-        });
+        if (ten.getArts() instanceof SearchableRepository<Article> searchableArticles) {
+            ten.getExec().submit(searchableArticles::refreshSearch);
+        }
     }
 
     private ArticleProcessor updateArticleFromPage(HttpServletRequest req) {
@@ -194,8 +199,10 @@ public class AdminArticleServlet extends AdminServlet {
     public static void displayArticleEdit(GramTenant ten, HttpServletRequest request, HttpServletResponse response, ArticleProcessor artPro) throws ServletException, IOException {
         Instant start = Instant.now();
         Article art = artPro.getArt();
-        Collection<Article> seeAlso = ArticleServlet.getArticleSuggestions(ten.getArts(), art);
-        request.setAttribute("seeAlso", seeAlso);
+        if (ten.getArts() instanceof SearchableRepository<Article> searchableArticles) {
+            Collection<Article> seeAlso = ArticleServlet.getArticleSuggestions(searchableArticles, art);
+            request.setAttribute("seeAlso", seeAlso);
+        }
         RequestTimer.addTiming(request, "seeAlsoQuery", Duration.between(start, Instant.now()));
         if (art.getCommentCollection() == null) {
             art.setCommentCollection(new ArrayList<>());
@@ -214,13 +221,13 @@ public class AdminArticleServlet extends AdminServlet {
         request.setAttribute("seeAlsoTerm", null != art.getSuggestion() ? art.getSuggestion() : ArticleRepository.getArticleSuggestionTerm(art));
         String formattedDate = null != art.getPosted() ? DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(art.getPosted()) : "";
         request.setAttribute("formattedDate", formattedDate);
+        getRecentImages(ten, request);
         if (null != request.getParameter("iframe")) {
             checkSize(ten, request, artPro);
             request.getRequestDispatcher(ADMIN_ADD_ARTICLE_IFRAME).forward(request, response);
         } else {
             request.getRequestDispatcher(ADMIN_ADD_ARTICLE).forward(request, response);
         }
-        request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + ArticleProcessor.class.getCanonicalName());
     }
 
     public static void checkSize(GramTenant ten, HttpServletRequest request, ArticleProcessor artPro) {
@@ -238,5 +245,32 @@ public class AdminArticleServlet extends AdminServlet {
             String message = ten.getImead().getLocal("page_admin_resource_count_error", Local.resolveLocales(ten.getImead(), request));
             request.setAttribute(ERROR_MESSAGE_PARAM, MessageFormat.format(message, resources));
         }
+    }
+
+    public static void getRecentImages(GramTenant ten, HttpServletRequest request) {
+        List<Fileupload> queryResult = ten.getFile().getAll(50);
+        LinkedHashMap<String, PictureTag> picMap = new LinkedHashMap<>(20);
+        List<String> picList = new ArrayList<>(picMap.size());
+        for (Fileupload file : queryResult) {
+            if (file.getMimetype().startsWith("image/")) {
+                Matcher matcher = PictureTag.IMG_MULTIPLIER.matcher(file.getFilename());
+                matcher.find();
+                String stem = matcher.group(1);
+                if (!picMap.containsKey(stem)) {
+                    try {
+                        Map<String, String> attribs = Map.of("src", file.getUrl(), "alt", stem);
+                        PictureTag pic = new PictureTag(ten, attribs);
+                        picMap.put(stem, pic);
+                        List<Fileupload> uploads = pic.getFileUploads();
+                        String newtag = new StringBuilder(500).append("<a href=\"file/").append(uploads.get(uploads.size() - 1).getFilename()).append("\">")
+                                .append(pic.get()).append(PictureTag.createTag("img", attribs).append("/>")).append("</picture></a>").toString();
+                        picList.add(newtag);
+                    } catch (UnsupportedEncodingException ex) {
+                        throw new JVMNotSupportedError(ex);
+                    }
+                }
+            }
+        }
+        request.setAttribute("recentPictures", picList);
     }
 }

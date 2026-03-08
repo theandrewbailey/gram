@@ -274,9 +274,67 @@ html,body,blockquote,button,div,span,article,section,header,figure,figcaption,fo
   display: flex;
   align-items: center;
 }picture.zoomed>img{
+  scale: 100%;
   max-height: 100%;
   object-fit: contain;
   width: 100%;
+}@media(prefers-reduced-motion: no-preference){
+  picture.zoomed{animation: 300ms ease-out zoomInPicture;}
+  picture.zoomed>img{animation: 300ms ease-out zoomInImg;}
+}@keyframes zoomInPicture{
+ 0%{
+  background: rgba(0,0,0,0);
+  backdrop-filter: none;}
+ 100%{
+  transform-origin: center;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(2px);}
+}@keyframes zoomInImg{
+  0%{scale: 0%;}
+  100%{scale: 100%;}
+}.adminArticleAdd{
+  position: relative;
+}.adminArticleAdd .recent{
+  position: absolute;
+  top: 0;
+  right: 0;
+  text-align: right;
+  max-width: min(63em,80vw);
+}.adminArticleAdd .recent[open]{
+  background-color: #fbf;
+}.adminArticleAdd .recent li{
+  display: inline;
+}.adminArticleAdd .recent img{
+  max-width: 15em;
+  max-height: 15em;
+  margin: 0.2em;
+  object-fit: contain;
+}.fadeOut{
+  animation: 400ms ease-in fadeOut;
+  overflow-x: hidden;
+}.fadeIn{
+  animation: 400ms ease-out fadeIn;
+  overflow-x: hidden;
+}.backOut{
+  animation: 400ms ease-in reverse fadeIn;
+  overflow-x: hidden;
+}.backIn{
+  animation: 400ms ease-out reverse fadeOut;
+  overflow-x: hidden;
+}@keyframes fadeOut{
+ 0%{
+  opacity: 1;
+  transform: translate(0, 0);}
+ 100%{
+  opacity: 0;
+  transform: translate(-2vw, 0);}
+}@keyframes fadeIn{
+ 0%{
+  opacity: 0;
+  transform: translate(2vw, 0);}
+ 100%{
+  opacity: 1;
+  transform: translate(0, 0);}
 }} /* DESKTOP STYLES */
 @media screen and (min-width: 901px){body>*{
   max-width: 1160px;

@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 import libWebsiteTools.Repository;
-import libWebsiteTools.file.FileRepository;
+import libWebsiteTools.file.FileDatabase;
 import libWebsiteTools.imead.IMEADHolder;
 import libWebsiteTools.imead.Localization;
 import libWebsiteTools.rss.Feed;
@@ -67,7 +67,7 @@ public class NullTenant implements GramTenant {
     }
 
     @Override
-    public FileRepository getFile() {
+    public FileDatabase getFile() {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
@@ -154,6 +154,11 @@ class NullIMEAD extends IMEADHolder implements GramIMEADRepository {
     }
 
     @Override
+    public List<Localization> search(Localization term, Integer limit) {
+        return Collections.unmodifiableList(new ArrayList<>());
+    }
+
+    @Override
     public Localization delete(Object id) {
         return null;
     }
@@ -196,11 +201,6 @@ class NullErrors implements ExceptionRepository {
 
     @Override
     public List<Exceptionevent> getAll(Integer limit) {
-        return Collections.unmodifiableList(new ArrayList<>());
-    }
-
-    @Override
-    public List<Exceptionevent> search(Object term, Integer limit) {
         return Collections.unmodifiableList(new ArrayList<>());
     }
 
@@ -276,11 +276,6 @@ class NullArticles implements ArticleRepository {
     }
 
     @Override
-    public List<Article> search(Object term, Integer limit) {
-        return Collections.unmodifiableList(new ArrayList<>());
-    }
-
-    @Override
     public Article delete(Object id) {
         return null;
     }
@@ -314,11 +309,6 @@ class NullComments implements Repository<Comment> {
 
     @Override
     public List<Comment> getAll(Integer limit) {
-        return Collections.unmodifiableList(new ArrayList<>());
-    }
-
-    @Override
-    public List<Comment> search(Object term, Integer limit) {
         return Collections.unmodifiableList(new ArrayList<>());
     }
 
@@ -360,11 +350,6 @@ class NullCategories implements Repository<Section> {
     }
 
     @Override
-    public List<Section> search(Object term, Integer limit) {
-        return Collections.unmodifiableList(new ArrayList<>());
-    }
-
-    @Override
     public Section delete(Object id) {
         return null;
     }
@@ -398,11 +383,6 @@ class NullFeed implements Repository<Feed> {
 
     @Override
     public List<Feed> getAll(Integer limit) {
-        return Collections.unmodifiableList(new ArrayList<>());
-    }
-
-    @Override
-    public List<Feed> search(Object term, Integer limit) {
         return Collections.unmodifiableList(new ArrayList<>());
     }
 

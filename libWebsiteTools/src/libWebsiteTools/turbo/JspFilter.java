@@ -40,7 +40,7 @@ public class JspFilter implements Filter {
     public static final String VARY_HEADER = String.join(", ", new String[]{
         HttpHeaders.ACCEPT_ENCODING, HttpHeaders.ACCEPT_LANGUAGE});
 //    private static final String CSP_TEMPLATE = "default-src 'self'; img-src 'self' data:; font-src data:; object-src 'none'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'; upgrade-insecure-requests; script-src %s; style-src %s; report-uri %sreport; report-to cspend;";
-    private static final String CSP_TEMPLATE = "default-src 'self'; img-src 'self' data:; font-src data:; object-src 'none'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'; upgrade-insecure-requests; script-src %s; style-src %s; report-uri %sreport;";
+    public static final String CSP_TEMPLATE = "default-src 'self'; img-src 'self' data:; font-src data:; object-src 'none'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'; upgrade-insecure-requests; script-src %s; style-src %s; report-uri %sreport;";
 //    private static final String REPORTING_TEMPLATE = "cspend=\"%sreport\"";
 
     @Override
@@ -109,20 +109,24 @@ public class JspFilter implements Filter {
         RequestTimer.getFrontTime(req);
         try (CompressedServletWrapper wrap = CompressedServletWrapper.getInstance(req, res)) {
             chain.doFilter(req, wrap);
-            // csp calculation probably shouldn't be here...
+            if (null == req.getAttribute(CONTENT_SECURITY_POLICY)) {
+                // csp calculation probably shouldn't be here...
 //            String stylesheetHashes = String.join(" ", StyleSheet.getHashes(req));
 //            if (stylesheetHashes.isEmpty()) {
 //                stylesheetHashes = "'none'";
 //            }
-            String stylesheetHashes = "'self'";
-            String scriptHashes = String.join(" ", HtmlScript.getHashes(req));
-            if (scriptHashes.isEmpty()) {
-                scriptHashes = "'none'";
-            }
+                String stylesheetHashes = "'self'";
+                String scriptHashes = String.join(" ", HtmlScript.getHashes(req));
+                if (scriptHashes.isEmpty()) {
+                    scriptHashes = "'none'";
+                }
 //            String scriptHashes = "'self'";
-            String csp = String.format(CSP_TEMPLATE, scriptHashes, stylesheetHashes, ten.getImeadValue(SecurityRepository.BASE_URL));
-            res.setHeader(CONTENT_SECURITY_POLICY, csp);
+                String csp = String.format(CSP_TEMPLATE, scriptHashes, stylesheetHashes, ten.getImeadValue(SecurityRepository.BASE_URL));
+                res.setHeader(CONTENT_SECURITY_POLICY, csp);
+            }
+            if (null == req.getAttribute(REPORTING_ENDPOINTS)) {
 //            res.setHeader(REPORTING_ENDPOINTS, String.format(REPORTING_TEMPLATE, ten.getImeadValue(SecurityRepo.BASE_URL)));
+            }
             wrap.flushBuffer();
             byte[] responseBytes = wrap.getOutputStream().getResult();
             res.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(req, Boolean.FALSE));

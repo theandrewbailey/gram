@@ -16,7 +16,7 @@ public class CompressedServletWrapper extends HttpServletResponseWrapper impleme
 
     public static CompressedServletWrapper getInstance(HttpServletRequest req, HttpServletResponse res) throws IOException {
         CompressedServletWrapper wrap = new CompressedServletWrapper(CompressedOutput.getInstance(req), res);
-        wrap.getOutputStream().getOutputStream(res);
+        wrap.getOutputStream().getOutputStream(res); // initialize OutputStream
         return wrap;
     }
 

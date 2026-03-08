@@ -46,11 +46,6 @@ public class CategoryDatabase implements Repository<Section> {
     }
 
     @Override
-    public List<Section> search(Object term, Integer limit) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Section delete(Object id) {
         throw new UnsupportedOperationException();
     }
@@ -120,6 +115,12 @@ public class CategoryDatabase implements Repository<Section> {
     @Override
     public CategoryDatabase evict() {
         gramPU.getCache().evict(Section.class);
+        return this;
+    }
+
+    @Override
+    public CategoryDatabase warmCache() {
+        getAll(null);
         return this;
     }
 }

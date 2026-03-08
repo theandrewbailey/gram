@@ -49,6 +49,6 @@
     </error-page>
     <error-page>
         <exception-type>java.lang.Throwable</exception-type>
-        <location>/coroner</location>
+        <location>/error/500</location>
     </error-page>
 </web-app>

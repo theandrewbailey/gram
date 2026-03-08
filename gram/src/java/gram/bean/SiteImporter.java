@@ -36,6 +36,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import javax.xml.parsers.DocumentBuilderFactory;
 import libWebsiteTools.JVMNotSupportedError;
+import libWebsiteTools.SearchableRepository;
 import libWebsiteTools.XmlNodeSearcher;
 import libWebsiteTools.file.BaseFileServlet;
 import libWebsiteTools.file.FileCompressorJob;
@@ -203,8 +204,14 @@ public class SiteImporter implements Runnable {
         }, true));
         UtilStatic.finish(restoreTasks).clear();
         ten.reset();
+        ten.getFile().warmCache();
+        ten.getArts().warmCache();
+        ten.getCategories().warmCache();
+        ten.getError().warmCache();
         ten.getExec().submit(() -> {
-            ten.getArts().refreshSearch();
+            if (ten.getArts() instanceof SearchableRepository<Article> searchableArticles) {
+                searchableArticles.refreshSearch();
+            }
             ten.getFile().processArchive((f) -> {
                 FileCompressorJob.startAllJobs(ten, f);
             }, false);

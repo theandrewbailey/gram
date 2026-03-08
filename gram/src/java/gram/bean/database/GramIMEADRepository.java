@@ -5,13 +5,15 @@ import gram.UtilStatic;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import libWebsiteTools.SearchableRepository;
 import libWebsiteTools.imead.IMEADRepository;
+import libWebsiteTools.imead.Localization;
 
 /**
  *
  * @author alpha
  */
-public interface GramIMEADRepository extends IMEADRepository {
+public interface GramIMEADRepository extends IMEADRepository, SearchableRepository<Localization> {
 
     /**
      *

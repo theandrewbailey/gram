@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import libWebsiteTools.SearchableRepository;
 import libWebsiteTools.imead.IMEADHolder;
 import libWebsiteTools.imead.Localization;
 
@@ -25,6 +26,10 @@ public final class UtilStatic {
 
     public UtilStatic() {
         throw new UnsupportedOperationException("You cannot instantiate this class");
+    }
+
+    public static boolean isSearchable(java.lang.Object instance) {
+        return SearchableRepository.class.isInstance(instance);
     }
 
     /**
