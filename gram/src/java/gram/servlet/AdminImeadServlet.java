@@ -187,7 +187,7 @@ public class AdminImeadServlet extends AdminServlet {
     public static void showProperties(GramTenant ten, HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         Map<Locale, List<Localization>> imeadProperties = new HashMap<>();
         for (Localization L : ten.getImead().getAll(null)) {
-            Locale locale = new Locale(L.getLocalizationPK().getLocalecode());
+            Locale locale = Locale.forLanguageTag(L.getLocalizationPK().getLocalecode());
             if (!imeadProperties.containsKey(locale)) {
                 imeadProperties.put(locale, new ArrayList<>());
             }
@@ -202,8 +202,16 @@ public class AdminImeadServlet extends AdminServlet {
         for (Localization property : security) {
             imeadProperties.get(Locale.forLanguageTag("")).remove(property);
         }
+        Map<String, List<Localization>> imeadProps = new HashMap<>();
+        for (Map.Entry<Locale, List<Localization>> e : imeadProperties.entrySet()) {
+            if ("und".equals(e.getKey().toLanguageTag())) {
+                imeadProps.put("", e.getValue());
+            } else {
+                imeadProps.put(e.getKey().toLanguageTag(), e.getValue());
+            }
+        }
         request.setAttribute("security", security);
-        request.setAttribute("imeadProperties", imeadProperties);
+        request.setAttribute("imeadProperties", imeadProps);
         List<String> locales = new ArrayList<>();
         for (Locale l : ten.getImead().getLocales()) {
             locales.add(l.toLanguageTag());

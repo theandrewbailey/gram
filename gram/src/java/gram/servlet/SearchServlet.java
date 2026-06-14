@@ -56,18 +56,20 @@ public class SearchServlet extends GramServlet {
             String searchTerm = request.getParameter("searchTerm");
             String searchSuggestion = request.getParameter("suggestion");
             if (null != searchTerm && !searchTerm.isEmpty()) {
-                if (50 < searchTerm.length()) {
+                if (20 < searchTerm.length()) {
                     response.sendError(422);
                     return;
                 }
                 Instant start = Instant.now();
-                List<Article> results = new ArrayList<>(searchableArticles.search(searchTerm, articleLimit));
+                Article searchTermArticle=new Article();
+                searchTermArticle.setSuggestion(searchTerm);
+                List<Article> results = new ArrayList<>(searchableArticles.search(searchTermArticle, articleLimit));
                 Locale loc = Local.resolveLocales(ten.getImead(), request).get(0);
                 try {
                     if (!results.stream().anyMatch((art) -> {
                         return art.getArticletitle().toLowerCase(loc).contains(searchTerm.toLowerCase(loc)) || art.getPostedmarkdown().toLowerCase(loc).contains(searchTerm.toLowerCase(loc));
                     })) {
-                        List<Article> didYouMeanOptions = searchableArticles.search(new Article().setSuggestion(searchTerm), 1);
+                        List<Article> didYouMeanOptions = searchableArticles.search(searchTerm, 1);
                         String suggestion = didYouMeanOptions.get(0).getSuggestion();
                         if (!suggestion.equals(searchTerm)) {
                             request.setAttribute("searchSuggestion", suggestion);
@@ -82,7 +84,7 @@ public class SearchServlet extends GramServlet {
                     return;
                 } else if (1 == results.size()) {
                     Article art = (Article) results.get(0);
-                    String url = ArticleUrl.getUrl("/", art, null);
+                    String url = ArticleUrl.getUrl("/", art, null, null, false);
                     request.setAttribute(Article.class.getCanonicalName(), art);
                     request.getServletContext().getRequestDispatcher(url).forward(request, response);
                     return;
@@ -129,11 +131,11 @@ public class SearchServlet extends GramServlet {
                     if (word.startsWith("\"") || word.startsWith("-") || word.contains("|")) {
                         wordMap.put(word, Arrays.asList(word));
                     } else {
-                        List<String> suggs = searchableArticles.search(new Article().setSuggestion(word), Integer.valueOf(ten.getImeadValue(CategoryFetcher.POSTS_PER_PAGE))).stream().map((art) -> art.getSuggestion()).toList();
+                        List<String> suggs = searchableArticles.search(word, Integer.valueOf(ten.getImeadValue(CategoryFetcher.POSTS_PER_PAGE))).stream().map((art) -> art.getSuggestion()).toList();
                         wordMap.put(word, suggs);
                     }
                 }
-                for (Article word : searchableArticles.search(new Article().setSuggestion(baseJoin.toString()), Integer.valueOf(ten.getImeadValue(CategoryFetcher.POSTS_PER_PAGE)))) {
+                for (Article word : searchableArticles.search(baseJoin.toString(), Integer.valueOf(ten.getImeadValue(CategoryFetcher.POSTS_PER_PAGE)))) {
                     List<Article> result = searchableArticles.search(base + word.getSuggestion(), articleLimit);
                     if (!result.isEmpty()) {
                         countResults.add(Integer.MIN_VALUE, base + word.getSuggestion());

@@ -76,9 +76,13 @@ public class FileUtil {
     }
 
     public static byte[] runProcess(String command, byte[] stdin, int expectedOutputSize) throws IOException {
+        return runProcess(new ProcessBuilder(command), stdin, expectedOutputSize);
+    }
+
+    public static byte[] runProcess(ProcessBuilder command, byte[] stdin, int expectedOutputSize) throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream(expectedOutputSize);
         ByteArrayOutputStream error = new ByteArrayOutputStream(4000);
-        Process encoder = Runtime.getRuntime().exec(command);
+        Process encoder = command.start();
         if (null != stdin) {
             try (OutputStream out = encoder.getOutputStream()) {
                 out.write(stdin);

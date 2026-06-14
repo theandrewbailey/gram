@@ -8,7 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import libWebsiteTools.JVMNotSupportedError;
 import gram.bean.database.Article;
-import gram.bean.database.Section;
+import gram.bean.database.Category;
 import java.util.Iterator;
 import java.util.stream.Collectors;
 
@@ -22,7 +22,7 @@ public class CategoryFetcher implements Iterable<Article> {
     public static final String PAGES_AROUND_CURRENT = "site_pagenation_around_current";
     public static final Pattern INDEX_PATTERN = Pattern.compile(".*?(?:/index)?(?:/(\\D*?))?(?:/([0-9]*)(?:\\?.*)?)?(?:\\.html)?$");
     private int page = 1;
-    private Section category = new Section();
+    private Category category = new Category();
     private final int postsPerPage;
     private final int pagesAroundCurrent;
     private List<Article> articles;
@@ -69,7 +69,6 @@ public class CategoryFetcher implements Iterable<Article> {
         this.ten = ten;
         postsPerPage = Integer.parseInt(ten.getImeadValue(POSTS_PER_PAGE));
         pagesAroundCurrent = Integer.parseInt(ten.getImeadValue(PAGES_AROUND_CURRENT));
-//        try {
         String pagenum = getPageNumber(URL);
         if (null != pagenum) {
             page = pagenum.isEmpty() ? 1 : Integer.parseInt(pagenum);
@@ -86,9 +85,6 @@ public class CategoryFetcher implements Iterable<Article> {
         } else if (null != catName && getArticles().isEmpty()) {
             throw new IllegalArgumentException("Category " + catName + ", page " + getCurrentPage() + " not found.");
         }
-//        } catch (RuntimeException e) {
-//            return;
-//        }
     }
 
     public List<Article> getArticles() {
@@ -142,7 +138,7 @@ public class CategoryFetcher implements Iterable<Article> {
         return Math.min(getFirstPage() + pagesAroundCurrent * 2, getPageCount());
     }
 
-    public Section getCategory() {
+    public Category getCategory() {
         return category;
     }
 

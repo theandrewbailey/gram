@@ -9,11 +9,11 @@ import jakarta.servlet.jsp.PageContext;
 import jakarta.servlet.jsp.tagext.SimpleTagSupport;
 import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.JVMNotSupportedError;
-import gram.bean.database.Section;
+import gram.bean.database.Category;
 
 public class CategoryUrl extends SimpleTagSupport {
 
-    private Section category;
+    private Category category;
     private boolean link = true;
     private String cssClass;
     private String target;
@@ -28,7 +28,7 @@ public class CategoryUrl extends SimpleTagSupport {
             b.append("<a href=\"");
         }
         String baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepository.BASE_URL).toString();
-        b.append(getUrl(baseURL, null != category.getSectionid() ? category.getName() : null, page));
+        b.append(getUrl(baseURL, null != category.getCategoryid() ? category.getName() : null, page));
         if (link && id != null) {
             b.append("\" id=\"").append(id);
         } else if (link) {
@@ -62,7 +62,7 @@ public class CategoryUrl extends SimpleTagSupport {
         return url.append(".html").toString();
     }
 
-    public void setCategory(Section category) {
+    public void setCategory(Category category) {
         this.category = category;
     }
 

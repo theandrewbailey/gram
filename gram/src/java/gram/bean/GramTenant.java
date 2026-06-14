@@ -5,9 +5,9 @@ import jakarta.ejb.Local;
 import libWebsiteTools.Repository;
 import gram.bean.database.Comment;
 import gram.bean.database.GramIMEADRepository;
-import gram.bean.database.Section;
+import gram.bean.database.Category;
 import libWebsiteTools.Tenant;
-import libWebsiteTools.file.FileDatabase;
+import libWebsiteTools.file.FileRepository;
 
 /**
  * Provides access to all blog data for a single tenant.
@@ -21,11 +21,11 @@ public interface GramTenant extends Tenant {
     public GramIMEADRepository getImead();
 
     @Override
-    public FileDatabase getFile();
+    public FileRepository getFile();
 
     public ArticleRepository getArts();
 
     public Repository<Comment> getComms();
 
-    public Repository<Section> getCategories();
+    public Repository<Category> getCategories();
 }

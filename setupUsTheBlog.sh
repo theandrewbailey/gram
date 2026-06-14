@@ -11,11 +11,12 @@ readonly u="\033[4m" # underlined text
 readonly databaseHost="localhost"
 readonly databasePort="5432"
 
-readonly postgresJdbcJarVersion="42.7.5"
+readonly postgresJdbcJarVersion="42.7.11"
 readonly postgresJdbcJar="postgresql-${postgresJdbcJarVersion}.jar"
 
-readonly payaraVersion="6.2023.3"
-readonly payaraDir="payara6"
+#readonly payaraVersion="6.2023.3"
+readonly payaraVersion="7.2026.4"
+readonly payaraDir="payara7"
 readonly payaraZip="payara-web-${payaraVersion}.zip"
 
 readonly gramDirectory="$HOME/gram"
@@ -33,6 +34,10 @@ function validateIntegerOrExit(){ # value, name
 	fi
 }
 
+function createPassword(){ # length
+	password=$(tr -dc 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789(){}[]<>!$%&*+,.?@^_`|~' < /dev/urandom | head -c $1)
+}
+
 function initializeVars(){
 	declare -g development=False
 	declare -g skipDatabase=False
@@ -40,7 +45,7 @@ function initializeVars(){
 }
 initializeVars
 
-while getopts 'hvsr:l:n:p:b:a:' opt; do case "$opt" in
+while getopts 'hdsr:l:n:p:b:a:' opt; do case "$opt" in
 h)
 	initializeVars # reset defaults to clear any argument changes
 	columns=$(tput cols)
@@ -57,7 +62,7 @@ ${b}OPTIONS$n
 	$b-h$n
 		Show this and exit.
 
-	$b-v$n
+	$b-d$n
 		Set up server in development mode. This will not deploy code.
 
 	$b-s$n
@@ -102,7 +107,7 @@ ${b}CAVEATS$n
 	exit 0
 ;; s)
 	skipDatabase=True
-;; v)
+;; d)
 	development=True
 ;; r)
 	databaseRole="$OPTARG"
@@ -158,6 +163,18 @@ function checkArgsEnv(){
 	if [[ -z "$payaraDomain" ]]; then
 		declare -g payaraDomain="gramPayara-$portBase"
 	fi
+
+	if [[ -z "$databaseRole" ]]; then
+		databaseRole="gramPostgres-$portBase"
+	fi
+	if [[ -z "$databasePass" ]]; then
+		createPassword 20
+		databasePass=$password
+	fi
+	if [[ -z "$payaraPass" ]]; then
+		createPassword 20
+		payaraPass=$password
+	fi
 }
 checkArgsEnv
 
@@ -172,21 +189,23 @@ function download(){ # https://download, directory
 }
 
 function downloadLibraries(){
-	local cmv="0.24.0" # commonmark version
-	local slfv="2.0.16" # slf4j version
+	local cmv="0.28.0" # commonmark version
+	local slfv="2.0.18" # slf4j version
 	local brOs="linux"
 	local brArch="$(arch)"
-	local brVersion="1.18.0"
+	local brVersion="1.23.0"
 	local zstdOs="linux"
 	local zstdArch="amd64"
-	local zstdVersion="1.5.6-9"
+	local zstdVersion="1.5.7-9"
+	local password4j="1.8.4"
+	local autolink="0.12.0"
 
 	local -a libraries=("https://jdbc.postgresql.org/download/$postgresJdbcJar" 
 "https://nexus.payara.fish/repository/payara-community/fish/payara/distributions/payara-web/${payaraVersion}/${payaraZip}")
 	if [ $development = True ] ; then
 		libraries+=(
-"https://repo1.maven.org/maven2/com/password4j/password4j/1.8.2/password4j-1.8.2.jar" 
-"https://repo1.maven.org/maven2/org/nibor/autolink/autolink/0.11.0/autolink-0.11.0.jar" 
+"https://repo1.maven.org/maven2/com/password4j/password4j/${password4j}/password4j-${password4j}.jar" 
+"https://repo1.maven.org/maven2/org/nibor/autolink/autolink/${autolink}/autolink-${autolink}.jar" 
 "https://repo1.maven.org/maven2/org/slf4j/slf4j-simple/${slfv}/slf4j-simple-${slfv}.jar" 
 "https://repo1.maven.org/maven2/org/slf4j/slf4j-api/${slfv}/slf4j-api-${slfv}.jar" 
 "https://repo1.maven.org/maven2/org/commonmark/commonmark/${cmv}/commonmark-${cmv}.jar" 
@@ -209,20 +228,9 @@ function downloadLibraries(){
 	done
 }
 
-function createPassword(){ # length
-	password=$(tr -dc 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789(){}[]<>!$%&*+,.?@^_`|~' < /dev/urandom | head -c $1)
-}
-
 function setupDb(){
 	if [ $skipDatabase = True ] ; then
 		return
-	fi
-	if [[ -z "$databaseRole" ]]; then
-		databaseRole="gramPostgres-$portBase"
-	fi
-	if [[ -z "$databasePass" ]]; then
-		createPassword 20
-		databasePass=$password
 	fi
 	cd "/tmp"
 	echo "CREATE USER \"$databaseRole\" PASSWORD '$databasePass';
@@ -262,18 +270,11 @@ function setupPayara(){
 	fi
 
 	# set payara password and environment variables
-	if [[ -z "$payaraPass" ]]; then
-		createPassword 20
-		payaraPass=$password
-	fi
 	echo "AS_ADMIN_PASSWORD=$payaraPass
 AS_ADMIN_ADMINPASSWORD=$payaraPass
 AS_ADMIN_USERPASSWORD=$payaraPass
 AS_ADMIN_MASTERPASSWORD=$payaraPass
 ">passwords.txt
-	export AS_ADMIN_HOST="localhost"
-	export AS_ADMIN_PORT=$((portBase+48))
-	export AS_ADMIN_USER="$payaraDomain"
 	export AS_ADMIN_PASSWORDFILE="$HOME/$payaraDir/passwords.txt"
 
 	# set up payara with better configuration
@@ -289,14 +290,16 @@ AS_ADMIN_MASTERPASSWORD=$payaraPass
 			# enable remote admin
 			./asadmin enable-secure-admin
 		else
-			asadmin set-log-levels gram=FINER:libWebsiteTools=FINER
+			./asadmin set-log-levels gram=FINER:libWebsiteTools=FINER
 		fi
 		# set heap size, disable hazelcast
 		./asadmin delete-jvm-options '-Xmx512m'
 		./asadmin create-jvm-options '-Xmx2g:-Xms2g:-Dhazelcast.phone.home.enabled=false'
 		./asadmin set-hazelcast-configuration --enabled=false --dynamic=true
-		# set thread pools, timeouts, upload limits, ciphers, disable server, x-powered-by, x-frame-options headers
-		./asadmin set resources.managed-executor-service.concurrent/__defaultManagedExecutorService.maximum-pool-size=$threads resources.managed-executor-service.concurrent/__defaultManagedExecutorService.core-pool-size=$threads configs.config.server-config.thread-pools.thread-pool.http-thread-pool.min-thread-pool-size=$threads configs.config.server-config.thread-pools.thread-pool.http-thread-pool.max-thread-pool-size=$threads configs.config.server-config.thread-pools.thread-pool.admin-thread-pool.min-thread-pool-size=2 configs.config.server-config.thread-pools.thread-pool.admin-thread-pool.max-thread-pool-size=2 configs.config.server-config.network-config.transports.transport.tcp.acceptor-threads=2  configs.config.server-config.network-config.transports.transport.tcp.read-timeout-millis=10000 configs.config.server-config.network-config.transports.transport.tcp.write-timeout-millis=10000 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.connection-upload-timeout-millis=30000 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.request-timeout-seconds=30 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.timeout-seconds=30 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.upload-timeout-enabled=true configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.connection-upload-timeout-millis=30000 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.request-timeout-seconds=30 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.timeout-seconds=30 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.upload-timeout-enabled=true configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.max-form-post-size-bytes=999999999 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.max-post-size-bytes=999999999 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.max-form-post-size-bytes=999999999 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.max-post-size-bytes=999999999 configs.config.server-config.network-config.protocols.protocol.http-listener-2.ssl.ssl3-tls-ciphers=+TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,+TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,+TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,+TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.xpowered-by=false configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.xpowered-by=false configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.server-header=false configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.server-header=false configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.xframe-options=false configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.xframe-options=false
+		# set thread pools, timeouts, upload limits, ciphers, disable server, x-frame-options headers
+		#./asadmin set resources.managed-executor-service.concurrent/__defaultManagedExecutorService.maximum-pool-size=$threads resources.managed-executor-service.concurrent/__defaultManagedExecutorService.core-pool-size=$threads configs.config.server-config.thread-pools.thread-pool.http-thread-pool.min-thread-pool-size=$threads configs.config.server-config.thread-pools.thread-pool.http-thread-pool.max-thread-pool-size=$threads configs.config.server-config.thread-pools.thread-pool.admin-thread-pool.min-thread-pool-size=4 configs.config.server-config.thread-pools.thread-pool.admin-thread-pool.max-thread-pool-size=4 configs.config.server-config.network-config.transports.transport.tcp.acceptor-threads=2  configs.config.server-config.network-config.transports.transport.tcp.read-timeout-millis=10000 configs.config.server-config.network-config.transports.transport.tcp.write-timeout-millis=10000 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.connection-upload-timeout-millis=30000 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.request-timeout-seconds=30 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.timeout-seconds=30 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.upload-timeout-enabled=true configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.connection-upload-timeout-millis=30000 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.request-timeout-seconds=30 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.timeout-seconds=30 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.upload-timeout-enabled=true configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.max-form-post-size-bytes=999999999 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.max-post-size-bytes=999999999 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.max-form-post-size-bytes=999999999 configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.max-post-size-bytes=999999999 configs.config.server-config.network-config.protocols.protocol.http-listener-2.ssl.ssl3-tls-ciphers=+TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,+TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,+TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,+TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.server-header=false configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.server-header=false configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.xframe-options=false configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.xframe-options=false
+		# disable x-powered-by
+		#./asadmin set configs.config.server-config.network-config.protocols.protocol.http-listener-1.http.xpowered-by=false configs.config.server-config.network-config.protocols.protocol.http-listener-2.http.xpowered-by=false
 		# create database connection info
 		setupDatabaseConnection "default" "$databaseHost" "$databasePort" "$databaseRole" "$databasePass"
 		# restart DAS to effect all changes (like heap size)
@@ -324,6 +327,8 @@ function setupGram(){
 		# set default app
 		./asadmin set configs.config.server-config.http-service.virtual-server.server.default-web-module=gram
 
+		echo "Waiting 20 seconds to make sure server is running..."
+		sleep 20
 		# visit homepage to prime blog
 		wget --no-check-certificate -O - "https://$hostname:$((portBase+81))" > /dev/null
 
@@ -334,10 +339,9 @@ function setupGram(){
 }
 
 if [[ -z "$additionalDomain" ]]; then
-	downloadLibraries
-	setupDb
-	setupPayara
-
+	export AS_ADMIN_HOST="localhost"
+	export AS_ADMIN_PORT=$((portBase+48))
+	export AS_ADMIN_USER="$payaraDomain"
 	if [ $development = False ] ; then
 		summary="Postgres username: $databaseRole
 Postgres password: $databasePass
@@ -352,9 +356,12 @@ Payara username: $AS_ADMIN_USER
 Payara password: $payaraPass
 Payara admin console is at http://$hostname:$AS_ADMIN_PORT"
 	fi
-
 	cd "$gramDirectory"
 	echo "$summary">>passwords.txt
+
+	downloadLibraries
+	setupDb
+	setupPayara
 	setupGram
 else
 	export AS_ADMIN_HOST="localhost"

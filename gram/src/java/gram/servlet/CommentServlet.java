@@ -23,7 +23,6 @@ import libWebsiteTools.turbo.PageCache;
 import libWebsiteTools.imead.Local;
 import libWebsiteTools.tag.AbstractInput;
 import libWebsiteTools.tag.HtmlMeta;
-import gram.CategoryFetcher;
 import gram.UtilStatic;
 import gram.bean.GramLandlord;
 import gram.bean.database.Article;
@@ -112,7 +111,7 @@ public class CommentServlet extends GramServlet {
         if (null != art) {
             request.setAttribute(Article.class.getSimpleName(), art);
             request.setAttribute("title", art.getArticletitle());
-            request.setAttribute("articleCategory", art.getSectionid());
+            request.setAttribute("articleCategory", art.getCategoryid());
             request.setAttribute("commentForm", request.getAttribute(SecurityRepository.BASE_URL).toString() + "comments/" + art.getArticleid() + (null == request.getParameter("iframe") ? "" : "?iframe"));
             request.getServletContext().getRequestDispatcher(null == request.getParameter("iframe") ? COMMENT_JSP : IFRAME_JSP).forward(request, response);
         }

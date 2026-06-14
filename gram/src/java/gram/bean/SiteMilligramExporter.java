@@ -3,7 +3,7 @@ package gram.bean;
 import gram.CategoryFetcher;
 import gram.UtilStatic;
 import gram.bean.database.Article;
-import gram.bean.database.Section;
+import gram.bean.database.Category;
 import gram.rss.ArticleRss;
 import gram.rss.CommentRss;
 import gram.tag.ArticleUrl;
@@ -109,17 +109,17 @@ public class SiteMilligramExporter implements Runnable {
         String baseURL = ten.getImeadValue(SecurityRepository.BASE_URL);
         subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + "index.html", baseURL + locale + "index.html"));
         subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + "rss/" + ArticleRss.NAME, baseURL + "rss/" + ArticleRss.NAME));
-        subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + "rss/" + CommentRss.NAME, baseURL + "rss/" + CommentRss.NAME));
+        //subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + "rss/" + CommentRss.NAME, baseURL + "rss/" + CommentRss.NAME));
         for (Article a : ten.getArts().getAll(null)) {
-            String url = ArticleUrl.getUrl(baseURL + locale, a, null);
-            String zipPath = ArticleUrl.getUrl(locale, a, null);
+            String url = ArticleUrl.getUrl(baseURL + locale, a, null, null, false);
+            String zipPath = ArticleUrl.getUrl(locale, a, null, null, false);
             subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, zipPath, url));
-            if (null != a.getComments() && a.getComments()) {
-                String feedURL = locale + "rss/Comments" + a.getArticleid() + ".rss";
-                subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, feedURL, baseURL + feedURL));
-            }
+//            if (null != a.getComments() && a.getComments()) {
+//                String feedURL = locale + "rss/Comments" + a.getArticleid() + ".rss";
+//                subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, feedURL, baseURL + feedURL));
+//            }
         }
-        for (Section category : ten.getCategories().getAll(null)) {
+        for (Category category : ten.getCategories().getAll(null)) {
             subtasks.addAll(getAllPagesOfCategory(ten, locale, category.getName(), hclient, rateLimiter, zip));
             subtasks.add(milligramAddPageToZip(ten, locale, hclient, rateLimiter, zip, locale + "rss/" + category.getName() + ArticleRss.NAME, baseURL + "rss/" + category.getName() + ArticleRss.NAME));
         }

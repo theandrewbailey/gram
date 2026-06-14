@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import libWebsiteTools.SearchableRepository;
 
 /**
  *
@@ -23,7 +22,7 @@ import libWebsiteTools.SearchableRepository;
 public abstract class ArticleDatabase implements ArticleRepository {
 
     private static final Logger LOG = Logger.getLogger(ArticleRepository.class.getName());
-    private static final List<Integer> EXCLUDE_NOTHING = Arrays.asList(new Integer[]{Integer.MIN_VALUE});
+    protected static final List<Integer> EXCLUDE_NOTHING = Arrays.asList(new Integer[]{Integer.MIN_VALUE});
     protected final EntityManagerFactory gramPU;
 
     public ArticleDatabase(EntityManagerFactory emf) {
@@ -31,7 +30,7 @@ public abstract class ArticleDatabase implements ArticleRepository {
     }
 
     @Override
-    public List<Article> search(Section term, Integer limit) {
+    public List<Article> search(Category term, Integer limit) {
         if (null != term.getName()) {
             try (EntityManager em = gramPU.createEntityManager()) {
                 TypedQuery<Article> q = em.createNamedQuery("Article.findByCategory", Article.class).setParameter("category", term.getName());
@@ -72,16 +71,16 @@ public abstract class ArticleDatabase implements ArticleRepository {
         try (EntityManager em = gramPU.createEntityManager()) {
             em.getTransaction().begin();
             for (Article art : articles) {
-                if (null != art.getSectionid()) {
-                    Section category;
-                    TypedQuery<Section> q = em.createNamedQuery("Category.findByName", Section.class).setParameter("name", art.getSectionid().getName());
+                if (null != art.getCategoryid()) {
+                    Category category;
+                    TypedQuery<Category> q = em.createNamedQuery("Category.findByName", Category.class).setParameter("name", art.getCategoryid().getName());
                     try {
                         category = q.getSingleResult();
                     } catch (NoResultException ex) {
-                        category = new Section(art.getSectionid().getName());
+                        category = new Category(art.getCategoryid().getName());
                         em.persist(category);
                     }
-                    art.setSectionid(category);
+                    art.setCategoryid(category);
                 }
                 art.setModified(OffsetDateTime.now());
                 art.setEtag(Base64.getEncoder().encodeToString(ArticleRepository.hashArticle(art, art.getCommentCollection())));
@@ -97,8 +96,13 @@ public abstract class ArticleDatabase implements ArticleRepository {
     @Override
     public Article get(Object articleId) {
         try (EntityManager em = gramPU.createEntityManager()) {
-            return em.find(Article.class, articleId);
+            if (articleId instanceof Integer) {
+                return em.find(Article.class, articleId);
+            } else if (articleId instanceof String artStr) {
+                return em.createNamedQuery("Article.findByURL", Article.class).setParameter("url", artStr.toLowerCase()).setParameter("exclude", EXCLUDE_NOTHING).getSingleResult();
+            }
         }
+        return null;
     }
 
     @Override
@@ -115,38 +119,18 @@ public abstract class ArticleDatabase implements ArticleRepository {
     @Override
     public Article delete(Object articleId) {
         try (EntityManager em = gramPU.createEntityManager()) {
-            if (null == articleId) {
-                em.getTransaction().begin();
-                for (Comment c : em.createNamedQuery("Comment.findAll", Comment.class).getResultList()) {
-                    em.remove(c);
-                }
-                for (Article a : em.createNamedQuery("Article.findAll", Article.class).setParameter("exclude", EXCLUDE_NOTHING).getResultList()) {
-                    em.remove(a);
-                }
-                for (Section s : em.createNamedQuery("Category.findAll", Section.class).getResultList()) {
-                    em.remove(s);
-                }
-                em.createNativeQuery("ALTER SEQUENCE gram.comment_commentid_seq RESTART; ALTER SEQUENCE gram.article_articleid_seq RESTART;").executeUpdate();
-                em.getTransaction().commit();
-                if (this instanceof SearchableRepository<Article> searchableArticles) {
-                    searchableArticles.refreshSearch();
-                }
-                LOG.log(Level.FINE, "All articles and comments deleted");
-                return null;
+            Article e = em.find(Article.class, articleId);
+            em.getTransaction().begin();
+            TypedQuery<Long> qn = em.createNamedQuery("Article.countByCategory", Long.class).setParameter("category", e.getCategoryid().getName());
+            if (qn.getSingleResult() == 1) {
+                em.remove(e);
+                em.remove(e.getCategoryid());
             } else {
-                Article e = em.find(Article.class, articleId);
-                em.getTransaction().begin();
-                TypedQuery<Long> qn = em.createNamedQuery("Article.countByCategory", Long.class).setParameter("category", e.getSectionid().getName());
-                if (qn.getSingleResult() == 1) {
-                    em.remove(e);
-                    em.remove(e.getSectionid());
-                } else {
-                    em.remove(e);
-                }
-                em.getTransaction().commit();
-                LOG.log(Level.FINE, "Article deleted");
-                return e;
+                em.remove(e);
             }
+            em.getTransaction().commit();
+            LOG.log(Level.FINE, "Article deleted");
+            return e;
         }
     }
 
@@ -189,7 +173,7 @@ public abstract class ArticleDatabase implements ArticleRepository {
     public Long count(Object term) {
         try (EntityManager em = gramPU.createEntityManager()) {
             TypedQuery<Long> qn;
-            if (term instanceof Section cat) {
+            if (term instanceof Category cat) {
                 qn = em.createNamedQuery("Article.countByCategory", Long.class).setParameter("category", cat.getName());
             } else {
                 qn = em.createNamedQuery("Article.count", Long.class);

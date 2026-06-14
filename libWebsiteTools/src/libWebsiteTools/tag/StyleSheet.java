@@ -27,8 +27,8 @@ public class StyleSheet extends SimpleTagSupport {
 //    private static final String CSP_STYLES = "$_CSP_STYLES";
 //    private static final String EXTERNAL_INTEGRITY_TEMPLATE = "<link rel=\"stylesheet\" href=\"%s\" integrity=\"%s-%s\" nonce=\"%s\"/>";
 //    private static final String EXTERNAL_TEMPLATE = "<link rel=\"stylesheet\" href=\"%s\" nonce=\"%s\"/>";
-    private static final String EXTERNAL_INTEGRITY_TEMPLATE = "<link rel=\"stylesheet\" href=\"%s\" integrity=\"%s-%s\"/>";
-    private static final String EXTERNAL_TEMPLATE = "<link rel=\"stylesheet\" href=\"%s\"/>";
+//    private static final String EXTERNAL_INTEGRITY_TEMPLATE = "<link rel=\"stylesheet\" href=\"%s\" integrity=\"%s-%s\"/>";
+//    private static final String EXTERNAL_TEMPLATE = "<link rel=\"stylesheet\" href=\"%s\"/>";
 //    private static final String STYLE_TAG_TEMPLATE = "<style nonce=\"%s\">%s</style>";
 //    private static final String WARNING = "Encountered style tag '%s' in JSP '%s'. This is contrary to best practices. Try to refactor into an external stylesheet.";
 //    private static final Logger LOG = Logger.getLogger(StyleSheet.class.getName());
@@ -88,8 +88,9 @@ public class StyleSheet extends SimpleTagSupport {
 //        }
         JspWriter output = getJspContext().getOut();
         Tenant ten = Landlord.getTenant(req);
+        StringBuilder out = new StringBuilder(300);
         for (Fileupload f : getCssFiles(ten, (HttpServletRequest) ((PageContext) getJspContext()).getRequest())) {
-            String nonce = UUID.randomUUID().toString();
+//            String nonce = UUID.randomUUID().toString();
             // TOTAL HACK: this assumes that the StyleSheet is hosted locally 
             try {
                 // will create a unique URL based on the file's last update time, so browsers will get and cache a new resource
@@ -97,22 +98,23 @@ public class StyleSheet extends SimpleTagSupport {
                 // TOTAL HACK: this assumes that the etag is a base64 sha-2 hash of the file contents ONLY, for subresource integrity
                 switch (f.getEtag().length()) { // different flavors of sha-2 will have different digest lengths
                     case 44:
-                        output.println(String.format(EXTERNAL_INTEGRITY_TEMPLATE, url, "sha256", f.getEtag(), nonce));
+                        out.append("<link rel=\"stylesheet\" href=\"").append(url).append("\" integrity=\"sha256-").append(f.getEtag()).append("\"/>\n");
 //                        hashes.add("'sha256-" + f.getEtag() + "'");
                         break;
                     case 64:
-                        output.println(String.format(EXTERNAL_INTEGRITY_TEMPLATE, url, "sha384", f.getEtag(), nonce));
+                        out.append("<link rel=\"stylesheet\" href=\"").append(url).append("\" integrity=\"sha384-").append(f.getEtag()).append("\"/>\n");
 //                        hashes.add("'sha384-" + f.getEtag() + "'");
                         break;
                     case 88:
-                        output.println(String.format(EXTERNAL_INTEGRITY_TEMPLATE, url, "sha512", f.getEtag(), nonce));
+                        out.append("<link rel=\"stylesheet\" href=\"").append(url).append("\" integrity=\"sha512-").append(f.getEtag()).append("\"/>\n");
 //                        hashes.add("'sha512-" + f.getEtag() + "'");
                         break;
                     default: // can't recognize
-                        output.println(String.format(EXTERNAL_TEMPLATE, url, nonce));
+                        out.append("<link rel=\"stylesheet\" href=\"").append(url).append("\"/>\n");
                         break;
                 }
 //                hashes.add("'nonce-" + nonce + "'");
+                HtmlMeta.emptyBuilder(output, out);
             } catch (IOException | NullPointerException e) {
                 //output.print(String.format(TEMPLATE, css));
             }

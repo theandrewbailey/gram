@@ -16,10 +16,12 @@ import libWebsiteTools.turbo.CompressedOutput;
 import libWebsiteTools.turbo.CompressedServletWrapper;
 
 /**
+ * Searches for relative article and index links, and replaces them with
+ * absolute equivalents.
  *
  * @author alpha
  */
-@WebFilter(filterName = "UrlInserterFilter", urlPatterns = {"*.jsp"}, dispatcherTypes = {DispatcherType.REQUEST, DispatcherType.FORWARD})
+@WebFilter(filterName = "UrlInserterFilter", urlPatterns = {"*.jsp"}, dispatcherTypes = {DispatcherType.REQUEST, DispatcherType.FORWARD}, description = "Searches for relative article and index links, and replaces them with absolute equivalents.")
 public class UrlInserterFilter implements Filter {
 
     @Override

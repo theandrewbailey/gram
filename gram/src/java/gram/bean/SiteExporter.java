@@ -176,7 +176,7 @@ public class SiteExporter implements Runnable {
             try {
                 LOG.log(Level.FINE, "Writing Articles.rss");
                 writeFile(master + File.separator + ArticleRss.NAME, localNow,
-                        xmlToBytes(new ArticleRss().createFeed(ten, Local.resolveLocales(null, null), null, null)));
+                        xmlToBytes(new ArticleRss().createFeed(ten, Local.resolveLocales(null, null), null, null, null)));
             } catch (IOException ex) {
                 LOG.log(Level.SEVERE, "Error writing Articles.rss to file: " + master + File.separator + ArticleRss.NAME, ex);
                 ten.getError().logException(null, "Backup failure", "Error writing Articles.rss to file: " + master + File.separator + ArticleRss.NAME, ex);
@@ -186,8 +186,7 @@ public class SiteExporter implements Runnable {
             try {
                 LOG.log(Level.FINE, "Writing Comments.rss");
                 writeFile(master + File.separator + CommentRss.NAME, localNow,
-                        xmlToBytes(Feed.refreshFeed(Arrays.asList(
-                                new CommentRss().createChannel(ten, Local.resolveLocales(null, null), ten.getComms().getAll(null))))));
+                        xmlToBytes(Feed.refreshFeed(Arrays.asList(new CommentRss().createChannel(ten, Local.resolveLocales(null, null), null, ten.getComms().getAll(null))))));
             } catch (IOException ex) {
                 LOG.log(Level.SEVERE, "Error writing Comments.rss to file: " + master + File.separator + CommentRss.NAME, ex);
                 ten.getError().logException(null, "Backup failure", "Error writing Comments.rss to file: " + master + File.separator + CommentRss.NAME, ex);
@@ -268,7 +267,7 @@ public class SiteExporter implements Runnable {
         try (ZipOutputStream zip = new ZipOutputStream(wrapped)) {
             if (types.contains(BackupTypes.ARTICLES)) {
                 backupTasks.add(ten.getExec().submit(() -> {
-                    byte[] xmlBytes = xmlToBytes(new ArticleRss().createFeed(ten, Local.resolveLocales(ten.getImead(), null), null, null));
+                    byte[] xmlBytes = xmlToBytes(new ArticleRss().createFeed(ten, Local.resolveLocales(ten.getImead(), null), null, null, null));
                     try {
                         addFileToZip(zip, ArticleRss.NAME, "text/xml", localNow, xmlBytes);
                     } catch (IOException ix) {
@@ -278,7 +277,7 @@ public class SiteExporter implements Runnable {
             }
             if (types.contains(BackupTypes.COMMENTS)) {
                 backupTasks.add(ten.getExec().submit(() -> {
-                    byte[] xmlBytes = xmlToBytes(Feed.refreshFeed(Arrays.asList(new CommentRss().createChannel(ten, Local.resolveLocales(null, null), ten.getComms().getAll(null)))));
+                    byte[] xmlBytes = xmlToBytes(Feed.refreshFeed(Arrays.asList(new CommentRss().createChannel(ten, Local.resolveLocales(null, null), null, ten.getComms().getAll(null)))));
                     try {
                         addFileToZip(zip, CommentRss.NAME, "text/xml", localNow, xmlBytes);
                     } catch (IOException ix) {

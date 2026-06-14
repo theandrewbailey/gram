@@ -268,6 +268,7 @@ public abstract class CompressedOutput extends ServletOutputStream implements Co
         return getType();
     }
 
+    @Override
     public boolean equals(Object obj) {
         return this.getClass().getCanonicalName().equals(obj.getClass().getCanonicalName());
     }

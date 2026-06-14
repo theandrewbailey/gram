@@ -27,7 +27,7 @@ import libWebsiteTools.rss.RssChannel;
 import libWebsiteTools.rss.RssServlet;
 import org.w3c.dom.Document;
 import gram.bean.database.Article;
-import gram.bean.database.Section;
+import gram.bean.database.Category;
 import gram.servlet.GramServlet;
 import gram.tag.ArticleUrl;
 import gram.tag.Categorizer;
@@ -48,7 +48,7 @@ public class ArticleRss implements DynamicFeed {
     public ArticleRss() {
     }
 
-    public Document createFeed(GramTenant ten, List<Locale> locales, String catName, Integer numEntries) {
+    public Document createFeed(GramTenant ten, List<Locale> locales, String catName, String source, Integer numEntries) {
         String lang = locales.get(0).toLanguageTag();
         String baseURL = ten.getImeadValue(SecurityRepository.BASE_URL);
         if ("und".equals(lang)) {
@@ -56,6 +56,7 @@ public class ArticleRss implements DynamicFeed {
         } else {
             baseURL += lang + "/";
         }
+        Map params = null != source ? Map.of("from", source) : null;
         RssChannel entries = new RssChannel(null == catName
                 ? ten.getImead().getLocal(GramServlet.SITE_TITLE, locales)
                 : ten.getImead().getLocal(GramServlet.SITE_TITLE, locales) + " - " + catName,
@@ -66,7 +67,7 @@ public class ArticleRss implements DynamicFeed {
             entries.setLanguage(lang);
         }
         entries.setCopyright(ten.getImeadValue(Feed.COPYRIGHT));
-        List<Article> articles = ten.getArts().search(new Section(catName), numEntries);
+        List<Article> articles = ten.getArts().search(new Category(catName), numEntries);
         List<Duration> timings = new ArrayList<>(articles.size() + 1);
         OffsetDateTime lastTime = OffsetDateTime.now();
         for (Article art : articles) {
@@ -75,7 +76,7 @@ public class ArticleRss implements DynamicFeed {
             entries.addItem(i);
             i.setTitle(art.getArticletitle());
             i.setAuthor(art.getPostedname());
-            i.setLink(ArticleUrl.getUrl(baseURL, art, null));
+            i.setLink(ArticleUrl.getUrl(baseURL, art, params, null, false));
             i.setGuid(art.getUuid().toString());
             i.setPubDate(art.getPosted());
             i.setMarkdownSource(art.getPostedmarkdown());
@@ -84,8 +85,8 @@ public class ArticleRss implements DynamicFeed {
             i.setMetadescription(art.getDescription());
             i.setSummary(art.getSummary());
             i.setImageURL(art.getImageurl());
-            if (null != art.getSectionid()) {
-                i.addCategory(art.getSectionid().getName(), Categorizer.getUrl(baseURL, catName, null));
+            if (null != art.getCategoryid()) {
+                i.addCategory(art.getCategoryid().getName(), Categorizer.getUrl(baseURL, catName, null));
             }
             if (art.getComments()) {
                 i.setComments(i.getLink() + "#comments");
@@ -115,7 +116,7 @@ public class ArticleRss implements DynamicFeed {
         Map<String, String> urls = new LinkedHashMap<>();
         urls.put(getName(), "All articles");
         GramTenant ten = GramLandlord.getTenant(req);
-        for (Section category : ten.getCategories().getAll(null)) {
+        for (Category category : ten.getCategories().getAll(null)) {
             urls.put(category.getName() + getName(), category.getName() + " articles");
         }
         return urls;
@@ -147,7 +148,7 @@ public class ArticleRss implements DynamicFeed {
             String category = (regex.group(1) != null && !regex.group(1).isEmpty())
                     ? regex.group(1) : null;
             try {
-                Document XML = createFeed(ten, resolvedLocales, category,
+                Document XML = createFeed(ten, resolvedLocales, category, name.toString(),
                         Integer.parseInt(ten.getImeadValue(POSTS_PER_PAGE)) * Integer.parseInt(ten.getImeadValue(PAGES_AROUND_CURRENT)));
                 DOMSource DOMsrc = new DOMSource(XML);
                 StringWriter holder = new StringWriter(100000);

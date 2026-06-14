@@ -31,6 +31,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
 import libWebsiteTools.UUIDConverter;
+import libWebsiteTools.file.FileRepository;
 import libWebsiteTools.file.Fileupload;
 import libWebsiteTools.imead.Localization;
 import libWebsiteTools.rss.Feed;
@@ -50,12 +51,12 @@ public class PostgresGramTenant implements GramTenant {
     private final EntityManagerFactory gramPU;
     private final PageCacheProvider pageCacheProvider;
     private final SecurityRepository error;
-    private final FileDatabase file;
+    private final FileRepository file;
     private final GramIMEADRepository imead;
     private final Repository<Feed> feeds;
     private final ArticleRepository arts;
     private final Repository<Comment> comms;
-    private final Repository<Section> sects;
+    private final Repository<Category> sects;
     private final SiteMapper mapper;
     private final PerfStats perfs;
 
@@ -137,7 +138,7 @@ public class PostgresGramTenant implements GramTenant {
     }
 
     @Override
-    public Repository<Section> getCategories() {
+    public Repository<Category> getCategories() {
         if (!gramPU.isOpen()) {
             throw new IllegalStateException(CLOSED);
         }
@@ -161,7 +162,7 @@ public class PostgresGramTenant implements GramTenant {
     }
 
     @Override
-    public FileDatabase getFile() {
+    public FileRepository getFile() {
         if (!gramPU.isOpen()) {
             throw new IllegalStateException(CLOSED);
         }
@@ -232,7 +233,7 @@ class GramEclipselinkUnitInfo implements PersistenceUnitInfo {
                 Fileupload.class.getName(),
                 Localization.class.getName(),
                 Article.class.getName(),
-                Section.class.getName(),
+                Category.class.getName(),
                 Comment.class.getName());
     }
 
@@ -269,6 +270,7 @@ class GramEclipselinkUnitInfo implements PersistenceUnitInfo {
     }
 
     @Override
+    @SuppressWarnings({"deprecation", "removal"})
     public PersistenceUnitTransactionType getTransactionType() {
         return PersistenceUnitTransactionType.RESOURCE_LOCAL;
     }
@@ -326,5 +328,15 @@ class GramEclipselinkUnitInfo implements PersistenceUnitInfo {
     @Override
     public ClassLoader getNewTempClassLoader() {
         return null;
+    }
+
+    @Override
+    public String getScopeAnnotationName() {
+        return null;
+    }
+
+    @Override
+    public List<String> getQualifierAnnotationNames() {
+        return List.of();
     }
 }

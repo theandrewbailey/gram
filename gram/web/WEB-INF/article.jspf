@@ -3,7 +3,7 @@
 <header><h1 id="article${Article.articleid}" data-href="<g:articleUrl article='${Article}' link='false'/>">${Article.articletitle}</h1></header>
 <c:out escapeXml="false" value="${Article.postedhtml}"/>
 <footer class="articleFooter reset"><h:local key="page_articleFooter"><h:param><h:time datetime="${Article.posted}" /></h:param>
-    <h:param><g:categoryUrl category="${Article.sectionid}" text="${Article.sectionid.name}"/></h:param></h:local>${commentCount}
+    <h:param><g:categoryUrl category="${Article.categoryid}" text="${Article.categoryid.name}"/></h:param></h:local>${commentCount}
 </footer></article>
 <c:choose><c:when test="${milligram || null == commentForm}"><section id="comments"><c:forEach items="${Article.commentCollection}" var="comm" varStatus="status"><c:if test="${status.last}"><span id="last"></span></c:if>
 <article class="comment" id="${comm.uuid}"><c:out escapeXml="false" value="${comm.postedhtml}"/>

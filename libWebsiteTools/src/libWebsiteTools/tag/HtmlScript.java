@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.jsp.JspWriter;
 import jakarta.servlet.jsp.PageContext;
 import jakarta.servlet.jsp.tagext.SimpleTagSupport;
 import java.io.StringWriter;
@@ -16,6 +17,7 @@ import libWebsiteTools.imead.Local;
 import libWebsiteTools.Landlord;
 import libWebsiteTools.Tenant;
 import libWebsiteTools.security.SecurityRepository;
+import static libWebsiteTools.tag.HtmlMeta.emptyBuilder;
 
 /**
  *
@@ -25,8 +27,8 @@ public class HtmlScript extends SimpleTagSupport {
 
     public static final String SITE_JAVASCRIPT_KEY = "site_javascript";
     private static final String CSP_SCRIPTS = "$_CSP_SCRIPTS";
-    private static final String EXTERNAL_INTEGRITY_TEMPLATE = "<script type=\"%s\" src=\"%s\" async=\"async\" integrity=\"%s-%s\" nonce=\"%s\"></script>";
-    private static final String EXTERNAL_TEMPLATE = "<script type=\"%s\" src=\"%s\" async=\"async\" nonce=\"%s\"></script>";
+//    private static final String EXTERNAL_INTEGRITY_TEMPLATE = "<script type=\"%s\" src=\"%s\" async=\"async\" integrity=\"%s-%s\" nonce=\"%s\"></script>";
+//    private static final String EXTERNAL_TEMPLATE = "<script type=\"%s\" src=\"%s\" async=\"async\" nonce=\"%s\"></script>";
     private static final String SCRIPT_TAG_TEMPLATE = "<script type=\"%s\" nonce=\"%s\">%s</script>";
     private static final String WARNING = "Encountered inline javascript '%s' in JSP '%s'. This is contrary to best practices. Try to refactor into an external script, and use tag data- attributes to pass data.";
     private static final Logger LOG = Logger.getLogger(HtmlScript.class.getName());
@@ -85,33 +87,36 @@ public class HtmlScript extends SimpleTagSupport {
             }
         } catch (Exception ex) {
         }
+        StringBuilder out=new StringBuilder(1000);
         Tenant ten = Landlord.getTenant(req);
+        JspWriter output = getJspContext().getOut();
         for (Fileupload f : getJavascriptFiles(ten, (HttpServletRequest) ((PageContext) getJspContext()).getRequest())) {
             String nonce = UUID.randomUUID().toString();
-            // TOTAL HACK: this assumes that the CSS is hosted locally 
+            // TOTAL HACK: this assumes that the JS is hosted locally 
             try {
                 // will create a unique URL based on the file's last update time, so browsers will get and cache a new resource
                 String url = ten.getImeadValue(SecurityRepository.BASE_URL) + f.getUrl();
                 // TOTAL HACK: this assumes that the etag is a base64 sha-2 hash of the file contents ONLY, for subresource integrity
                 switch (f.getEtag().length()) { // different flavors of sha-2 will have different digest lengths
                     case 44:
-                        getJspContext().getOut().println(String.format(EXTERNAL_INTEGRITY_TEMPLATE, f.getMimetype(), url, "sha256", f.getEtag(), nonce));
+                        out.append("<script type=\"").append(f.getMimetype()).append("\" src=\"").append(url).append("\" async=\"async\" integrity=\"sha256-").append(f.getEtag()).append("\" nonce=\"").append(nonce).append("\"></script>\n");
 //                        hashes.add("'sha256-" + f.getEtag() + "'");
                         break;
                     case 64:
-                        getJspContext().getOut().println(String.format(EXTERNAL_INTEGRITY_TEMPLATE, f.getMimetype(), url, "sha384", f.getEtag(), nonce));
+                        out.append("<script type=\"").append(f.getMimetype()).append("\" src=\"").append(url).append("\" async=\"async\" integrity=\"sha384-").append(f.getEtag()).append("\" nonce=\"").append(nonce).append("\"></script>\n");
 //                        hashes.add("'sha384-" + f.getEtag() + "'");
                         break;
                     case 88:
-                        getJspContext().getOut().println(String.format(EXTERNAL_INTEGRITY_TEMPLATE, f.getMimetype(), url, "sha512", f.getEtag(), nonce));
+                        out.append("<script type=\"").append(f.getMimetype()).append("\" src=\"").append(url).append("\" async=\"async\" integrity=\"sha512-").append(f.getEtag()).append("\" nonce=\"").append(nonce).append("\"></script>\n");
 //                        hashes.add("'sha512-" + f.getEtag() + "'");
                         break;
                     default: // can't recognize
-                        getJspContext().getOut().println(String.format(EXTERNAL_TEMPLATE, f.getMimetype(), url, nonce));
+                        out.append("<script type=\"").append(f.getMimetype()).append("\" src=\"").append(url).append("\" async=\"async\" nonce=\"").append(nonce).append("\"></script>\n");
                         break;
                 }
                 hashes.add("'nonce-" + nonce + "'");
-            } catch (IOException | NullPointerException e) {
+                emptyBuilder(output, out);
+            } catch (NullPointerException e) {
                 //getJspContext().getOut().print(String.format("<script type=\"text/javascript\" src=\"%s\" async=\"true\"></script>", javascript));
             }
         }

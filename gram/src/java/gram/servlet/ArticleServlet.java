@@ -25,7 +25,6 @@ import libWebsiteTools.imead.Local;
 import libWebsiteTools.imead.LocalizedStringNotFoundException;
 import libWebsiteTools.rss.FeedBucket;
 import libWebsiteTools.turbo.RequestTimer;
-import libWebsiteTools.tag.AbstractInput;
 import libWebsiteTools.tag.HtmlMeta;
 import libWebsiteTools.tag.HtmlTime;
 import gram.bean.database.ArticleRepository;
@@ -34,18 +33,21 @@ import gram.bean.database.Article;
 import gram.tag.ArticleUrl;
 import gram.tag.Categorizer;
 import gram.bean.GramTenant;
-import gram.bean.database.Section;
+import gram.bean.database.Category;
+import jakarta.persistence.NoResultException;
 import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import libWebsiteTools.SearchableRepository;
 
-@WebServlet(name = "ArticleServlet", description = "Gets a single article from the DB with comments", urlPatterns = {"/article/*", "/amp/*"})
+@WebServlet(name = "ArticleServlet", description = "Gets a single article from the DB with comments", urlPatterns = {"/article/*"})
 public class ArticleServlet extends GramServlet {
 
     private static final String ARTICLE_JSP = "/WEB-INF/singleArticle.jsp";
     public static final String SPAM_WORDS = "site_spamwords";
-    public static final Pattern ARTICLE_PATTERN = Pattern.compile(".*?/(?:(?:article)|(?:comments)|(?:amp)|(?:edit))/([0-9]*)(?:/[\\w\\-\\.\\(\\)\\[\\]\\{\\}\\+,%_]*/?)?(?:\\?.*)?(?:#.*)?$");
+    public static final Pattern ARTICLE_PATTERN = Pattern.compile(".*?/(?:(?:article)|(?:comments)|(?:edit))/([0-9]*)(?:/[\\w\\-\\.\\(\\)\\[\\]\\{\\}\\+,%_]*/?)?(?:\\?.*)?(?:#.*)?$");
+    public static final Pattern URL_PATTERN = Pattern.compile(".*?/(?:(?:article)|(?:comments)|(?:edit))/([\\w\\-\\.\\(\\)\\[\\]\\{\\}\\+,%_]*)");
+    public static final Pattern GUESS_ARTICLE = Pattern.compile(".*(?<=/)([^/\\.]*)\\..*");
 
     /**
      * @param URL
@@ -64,8 +66,17 @@ public class ArticleServlet extends GramServlet {
 
     public static Article getArticleFromURL(GramTenant ten, String URL) {
         try {
-            return ten.getArts().get(Integer.valueOf(getArticleIdFromURL(URL)));
+            return ten.getArts().get(Integer.decode(getArticleIdFromURL(URL)));
         } catch (NumberFormatException x) {
+            Matcher m = URL_PATTERN.matcher(URL);
+            boolean matches = m.matches();
+            String group1 = m.group(1);
+            if (matches) {
+                try {
+                    return ten.getArts().get(group1);
+                } catch (NoResultException n) {
+                }
+            }
             return null;
         }
     }
@@ -97,6 +108,18 @@ public class ArticleServlet extends GramServlet {
                 RequestTimer.addTiming(request, "query", Duration.between(start, Instant.now()));
                 request.setAttribute(Article.class.getCanonicalName(), art);
             } catch (RuntimeException ex) {
+                if (ten.getArts() instanceof SearchableRepository<Article> searchableArticles) {
+                    Matcher m = GUESS_ARTICLE.matcher(request.getRequestURI());
+                    if (m.find()) {
+                        String term = m.group(1).replace('-', ' ');
+                        Collection<Article> seeAlso = searchableArticles.search(term, 18);
+                        if (!seeAlso.isEmpty()) {
+                            request.setAttribute("seeAlso", seeAlso);
+                            request.setAttribute("articles", seeAlso);
+                            request.setAttribute("seeAlsoTerm", term);
+                        }
+                    }
+                }
                 RequestTimer.addTiming(request, "query", Duration.between(start, Instant.now()));
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
@@ -106,16 +129,18 @@ public class ArticleServlet extends GramServlet {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        String properUrl = ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null);
-        String actual = request.getAttribute(AbstractInput.ORIGINAL_REQUEST_URL).toString();
-        if (!actual.contains(properUrl) && null == request.getAttribute("searchSuggestion")) {
-            request.setAttribute(Article.class.getCanonicalName(), null);
-            GramServlet.permaMove(response, properUrl);
-            return;
-        }
+//        String properUrl = ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null, null, false);
+//        String actual = request.getAttribute(AbstractInput.ORIGINAL_REQUEST_URL).toString();
+
+//        if (!actual.contains(properUrl) && null == request.getAttribute("searchSuggestion")) {
+//            request.setAttribute(Article.class.getCanonicalName(), null);
+//            GramServlet.permaMove(response, properUrl);
+//            return;
+//        }
         response.setDateHeader(HttpHeaders.DATE, art.getModified().toInstant().toEpochMilli());
         String ifNoneMatch = request.getHeader(HttpHeaders.IF_NONE_MATCH);
         String etag = request.getAttribute(HttpHeaders.ETAG).toString();
+
         if (etag.equals(ifNoneMatch)) {
             request.setAttribute(Article.class.getCanonicalName(), null);
             response.sendError(HttpServletResponse.SC_NOT_MODIFIED);
@@ -143,21 +168,21 @@ public class ArticleServlet extends GramServlet {
             RequestTimer.addTiming(request, "seeAlsoQuery", Duration.between(start, Instant.now()));
             pageArticles.addAll(seeAlso);
         }
-        List<Locale> resolvedLocales = Local.resolveLocales(ten.getImead(), request);
         request.setAttribute("seeAlsoTerm", null != art.getSuggestion() ? art.getSuggestion() : ArticleRepository.getArticleSuggestionTerm(art));
+        List<Locale> resolvedLocales = Local.resolveLocales(ten.getImead(), request);
         // keep track of articles referenced on the page, to help de-duplicate links and maximize unique articles linked to
         request.setAttribute("articles", pageArticles);
         request.setAttribute(Article.class.getSimpleName(), art);
         request.setAttribute("title", art.getArticletitle());
-        request.setAttribute("articleCategory", art.getSectionid());
+        request.setAttribute("articleCategory", art.getCategoryid());
         String commentCount = " " + (1 == art.getCommentCollection().size()
                 ? ("1 " + ten.getImead().getLocal("page_comment", resolvedLocales) + ".")
                 : (art.getCommentCollection().size() + " " + ten.getImead().getLocal("page_comments", resolvedLocales) + "."));
         request.setAttribute("commentCount", commentCount);
-        if (null == art.getSectionid()) {
-            art.setSectionid(new Section(ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales)));
+        if (null == art.getCategoryid()) {
+            art.setCategoryid(new Category(ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales)));
         }
-        String catName = art.getSectionid().getName();
+        String catName = art.getCategoryid().getName();
         if (art.getComments()) {
             request.setAttribute("commentForm", "comments/" + art.getArticleid() + "?iframe");
             String format = FeedBucket.TIME_FORMAT;
@@ -174,7 +199,7 @@ public class ArticleServlet extends GramServlet {
         HtmlMeta.addNameTag(request, "description", art.getDescription());
         HtmlMeta.addNameTag(request, "author", art.getPostedname());
         if (null == request.getParameter("milligram")) {
-            String canonical = ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null);
+            String canonical = ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null, null, true);
             HtmlMeta.addLink(request, "canonical", canonical);
             HashSet<Locale> locales = new HashSet<>(ten.getImead().getLocales());
             locales.add(Locale.getDefault());
@@ -186,14 +211,14 @@ public class ArticleServlet extends GramServlet {
                 if (l != Locale.getDefault() && !l.toLanguageTag().isEmpty()) {
                     base += l.toLanguageTag() + "/";
                 }
-                String langUrl = ArticleUrl.getUrl(base, art, null);
+                String langUrl = ArticleUrl.getUrl(base, art, null, null, false);
                 if (!langUrl.equals(canonical)) {
                     HtmlMeta.addLocaleURL(request, l, langUrl);
                 }
             }
 
             HtmlMeta.addPropertyTag(request, "og:title", art.getArticletitle());
-            HtmlMeta.addPropertyTag(request, "og:url", ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null));
+            HtmlMeta.addPropertyTag(request, "og:url", ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null, null, false));
             if (null != art.getImageurl()) {
                 HtmlMeta.addPropertyTag(request, "og:image", art.getImageurl());
             }
@@ -217,8 +242,8 @@ public class ArticleServlet extends GramServlet {
             }
             JsonArrayBuilder itemList = Json.createArrayBuilder();
             itemList.add(HtmlMeta.getLDBreadcrumb(ten.getImead().getLocal("page_title", resolvedLocales), 1, request.getAttribute(SecurityRepository.BASE_URL).toString()));
-            itemList.add(HtmlMeta.getLDBreadcrumb(catName, 2, Categorizer.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), null != art.getSectionid() ? art.getSectionid().getName() : null, null)));
-            itemList.add(HtmlMeta.getLDBreadcrumb(art.getArticletitle(), 3, ArticleUrl.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), art, null)));
+            itemList.add(HtmlMeta.getLDBreadcrumb(catName, 2, Categorizer.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), null != art.getCategoryid() ? art.getCategoryid().getName() : null, null)));
+            itemList.add(HtmlMeta.getLDBreadcrumb(art.getArticletitle(), 3, ArticleUrl.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), art, null, null, false)));
             JsonObjectBuilder breadcrumbs = Json.createObjectBuilder().add("@context", "https://schema.org").add("@type", "BreadcrumbList").add("itemListElement", itemList);
             HtmlMeta.addLDJSON(request, breadcrumbs.build().toString());
         }
@@ -235,32 +260,18 @@ public class ArticleServlet extends GramServlet {
     public static Collection<Article> getArticleSuggestions(SearchableRepository<Article> arts, Article art) {
         try {
             // search with article's search term, up to 12
-            Collection<Article> seeAlso = new LinkedHashSet<>(arts.search(null != art.getSuggestion() ? art.getSuggestion() : ArticleRepository.getArticleSuggestionTerm(art), 13));
-            seeAlso.remove(art);
-            if (seeAlso.size() < 6) {
-                // search for other articles that link to this one, up to 6
-                Article temp = new Article();
-                temp.setUrl(ArticleUrl.getUrl("", art, null));
-                seeAlso.addAll(arts.search(temp, 7));
-                seeAlso.remove(art);
-            }
-            if (seeAlso.size() < 6 && null != art.getSectionid()) {
-                // add most recent articles from the current section, up to 6
-                seeAlso.addAll(arts.search(art.getSectionid(), 7));
-                seeAlso.remove(art);
-            }
-            if (seeAlso.size() < 6) {
-                // add other articles from any category, up to 6
-                seeAlso.addAll(arts.getAll(7));
-                seeAlso.remove(art);
-            }
+            Article tempArt = new Article(art.getArticleid());
+            tempArt.setArticletitle(art.getArticletitle());
+            tempArt.setSuggestion(null != art.getSuggestion() ? art.getSuggestion() : ArticleRepository.getArticleSuggestionTerm(art));
+            tempArt.setUrl(ArticleUrl.getUrl("", art, null, null, false));
+            tempArt.setCategoryid(art.getCategoryid());
+            Collection<Article> seeAlso = new LinkedHashSet<>(arts.search(tempArt, 8));
             // limit to 6
-            List<Article> temp = Arrays.asList(Arrays.copyOf(seeAlso.toArray(Article[]::new), 6));
-            seeAlso = new ArrayList(temp);
+            List<Article> tempArr = Arrays.asList(Arrays.copyOf(seeAlso.toArray(Article[]::new), 6));
+            seeAlso = new ArrayList(tempArr);
             seeAlso.removeAll(Collections.singleton(null));
             // sort articles without images last
-            // show low-res images only
-            for (Article a : temp) {
+            for (Article a : tempArr) {
                 if (null == a) {
                     break;
                 } else if (null == a.getImageurl()) {

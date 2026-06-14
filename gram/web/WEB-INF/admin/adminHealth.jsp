@@ -26,7 +26,7 @@
         <ul><c:forEach items="${cached.get()}" var="pageEnt"><li>${pageEnt}</li></c:forEach></ul>
     </details>
     <details class="articles"><summary><h:local key="page_health_article_count"><h:param object="${articles.get().size()}"/></h:local></summary><table>
-    <c:forEach items="${articles.get()}" var="art"><tr class="secondmin" id="${art.uuid}"><td><g:articleUrl article="${art}" cssClass="nocache"/></td><td><c:if test="${art.sectionid.name != ' '}">${art.sectionid.name}</c:if></td><td><h:time datetime="${art.posted}" pattern="EEE MM/dd/yy h:mm a"/></td></tr>
+    <c:forEach items="${articles.get()}" var="art"><tr class="secondmin" id="${art.uuid}"><td><g:articleUrl article="${art}" cssClass="nocache"/></td><td><c:if test="${art.categoryid.name != ' '}">${art.categoryid.name}</c:if></td><td><h:time datetime="${art.posted}" pattern="EEE MM/dd/yy h:mm a"/></td></tr>
     </c:forEach></table></details>
     <details class="comments"><summary><h:local key="page_health_comment_count"><h:param object="${comments.get().size()}"/></h:local></summary><table>
     <c:forEach items="${comments.get()}" var="comm"><tr class="secondmin" id="${comm.uuid}"><td><h:time datetime="${comm.posted}" pattern="EEE MM/dd/yy h:mm a"/></td><td>${comm.postedname}</td><td><g:articleUrl article="${comm.articleid}" cssClass="nocache"/></td></tr>

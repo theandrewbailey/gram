@@ -94,7 +94,8 @@ public class AdminHealthServlet extends AdminServlet {
                 processes.put(command, ten.getExec().submit(() -> {
                     Instant start = Instant.now();
                     try {
-                        return new String(FileUtil.runProcess(command.trim(), null, 1000));
+                        ProcessBuilder b = new ProcessBuilder(command.trim().split(" "));
+                        return new String(FileUtil.runProcess(b, null, 1000));
                     } catch (IOException | RuntimeException t) {
                         return t.getLocalizedMessage();
                     } finally {

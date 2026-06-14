@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import libWebsiteTools.SearchableRepository;
 import libWebsiteTools.file.BaseFileServlet;
 import libWebsiteTools.file.Fileupload;
 import libWebsiteTools.security.SecurityRepository;
@@ -73,7 +74,13 @@ public class PictureTag {
                 name = BaseFileServlet.getNameFromURL(fileStem);
             } catch (NoResultException lp) {
             }
-            List<Fileupload> files = ten.getFile().search(name, null);
+            List<Fileupload> files;
+            if (ten.getFile() instanceof SearchableRepository<Fileupload> file) {
+                files = file.search(name, null);
+            } else {
+                files = new ArrayList<>();
+                files.add(ten.getFile().get(name));
+            }
             LinkedHashSet<Fileupload> tempUploads = new LinkedHashSet<>(files.size() + 1);
             if (!files.isEmpty()) {
                 lowImageSize.set(Integer.MAX_VALUE);

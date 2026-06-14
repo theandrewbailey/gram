@@ -59,8 +59,7 @@ public class CertUtil {
             customCerts = KeyStore.getInstance(KeyStore.getDefaultType());
             customCerts.load(null, null);
             for (Certificate c : certs) {
-                if (c instanceof X509Certificate) {
-                    X509Certificate x509 = (X509Certificate) c;
+                if (c instanceof X509Certificate x509) {
                     CERTIFICATE_STORE.add(x509.getSubjectX500Principal(), x509);
                     customCerts.setEntry(x509.getSubjectX500Principal().getName(), new KeyStore.TrustedCertificateEntry(c), null);
                 }

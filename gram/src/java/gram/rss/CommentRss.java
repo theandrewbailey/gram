@@ -49,15 +49,15 @@ public class CommentRss implements DynamicFeed {
     public CommentRss() {
     }
 
-    public Document createFeed(GramTenant ten, List<Locale> locales, Object articleId) {
+    public Document createFeed(GramTenant ten, List<Locale> locales, String source, Object articleId) {
         RssChannel entries;
         if (null == articleId) {
-            entries = createChannel(ten, locales, ten.getComms().getAll(Integer.parseInt(ten.getImeadValue(gram.CategoryFetcher.POSTS_PER_PAGE)) * Integer.parseInt(ten.getImeadValue(gram.CategoryFetcher.PAGES_AROUND_CURRENT))));
+            entries = createChannel(ten, locales, source, ten.getComms().getAll(Integer.parseInt(ten.getImeadValue(gram.CategoryFetcher.POSTS_PER_PAGE)) * Integer.parseInt(ten.getImeadValue(gram.CategoryFetcher.PAGES_AROUND_CURRENT))));
         } else {
             Article art = ten.getArts().get(Integer.valueOf(articleId.toString()));
             List<Comment> lComments = new ArrayList<>(art.getCommentCollection());
             Collections.reverse(lComments);
-            entries = createChannel(ten, locales, lComments);
+            entries = createChannel(ten, locales, source, lComments);
             entries.setTitle(art.getArticletitle() + " - Comments");
             entries.setDescription("from " + ten.getImead().getLocal(GramServlet.SITE_TITLE, locales));
             if (!art.getComments()) {
@@ -67,7 +67,7 @@ public class CommentRss implements DynamicFeed {
         return Feed.refreshFeed(Arrays.asList(entries));
     }
 
-    public RssChannel createChannel(GramTenant ten, List<Locale> locales, Collection<Comment> lComments) {
+    public RssChannel createChannel(GramTenant ten, List<Locale> locales, String source, Collection<Comment> lComments) {
         String lang = locales.get(0).toLanguageTag();
         String baseURL = ten.getImeadValue(SecurityRepository.BASE_URL);
         if ("und".equals(lang)) {
@@ -75,6 +75,7 @@ public class CommentRss implements DynamicFeed {
         } else {
             baseURL += lang + "/";
         }
+        Map params = null != source ? Map.of("from", source) : null;
         RssChannel entries = new RssChannel(ten.getImead().getLocal(GramServlet.SITE_TITLE, locales) + " - Comments", ten.getImeadValue(SecurityRepository.BASE_URL), ten.getImead().getLocal(GramServlet.TAGLINE, locales));
         entries.setWebMaster(ten.getImeadValue(Feed.MASTER));
         entries.setManagingEditor(entries.getWebMaster());
@@ -86,14 +87,14 @@ public class CommentRss implements DynamicFeed {
         for (Comment c : lComments) {
             RssItem i = new RssItem(c.getPostedhtml());
             entries.addItem(i);
-            i.addCategory(c.getArticleid().getSectionid().getName(), Categorizer.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), c.getArticleid().getSectionid().getName(), null));
-            i.setLink(ArticleUrl.getUrl(baseURL, c.getArticleid(), "comments"));
+            i.addCategory(c.getArticleid().getCategoryid().getName(), Categorizer.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), c.getArticleid().getCategoryid().getName(), null));
+            i.setLink(ArticleUrl.getUrl(baseURL, c.getArticleid(), params, "comments", true));
             i.setGuid(c.getUuid().toString());
             i.setPubDate(c.getPosted());
             i.setTitle(c.getArticleid().getArticletitle());
             i.setAuthor(c.getPostedname());
             if (c.getArticleid().getComments()) {
-                i.setComments(ArticleUrl.getUrl(baseURL, c.getArticleid(), "comments"));
+                i.setComments(ArticleUrl.getUrl(baseURL, c.getArticleid(), null, "comments", false));
             }
             timings.add(Duration.between(c.getPosted(), lastTime).abs());
             lastTime = c.getPosted();
@@ -156,7 +157,7 @@ public class CommentRss implements DynamicFeed {
                 } else {
                     Integer.valueOf(group);
                 }
-                Document XML = createFeed(ten, resolvedLocales, group);
+                Document XML = createFeed(ten, resolvedLocales, name.toString(), group);
                 DOMSource DOMsrc = new DOMSource(XML);
                 StringWriter holder = new StringWriter(10000);
                 StreamResult str = new StreamResult(holder);

@@ -226,6 +226,13 @@ public class SecurityRepository implements ExceptionRepository {
 
     public static String getIP(HttpServletRequest req) {
         String proxyAddress = req.getHeader("x-forwarded-for");
+        try {
+            Enumeration<String> headers = req.getHeaders("x-forwarded-for");
+            while (headers.hasMoreElements()) {
+                proxyAddress = headers.nextElement();
+            }
+        } catch (NullPointerException n) {
+        }
         return null == proxyAddress ? req.getRemoteAddr() : proxyAddress;
     }
 

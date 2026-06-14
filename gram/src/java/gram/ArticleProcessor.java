@@ -21,9 +21,11 @@ import libWebsiteTools.Markdowner;
 import libWebsiteTools.file.BaseFileServlet;
 import libWebsiteTools.file.Fileupload;
 import gram.bean.database.Article;
+import gram.servlet.ArticleServlet;
 import gram.tag.ArticleUrl;
 import jakarta.persistence.NoResultException;
 import java.util.UUID;
+import libWebsiteTools.SearchableRepository;
 import libWebsiteTools.tag.HtmlScript;
 import libWebsiteTools.tag.StyleSheet;
 
@@ -76,6 +78,14 @@ public class ArticleProcessor implements Callable<Article> {
         if (null == art.getUuid()) {
             art.setUuid(UUID.randomUUID());
         }
+        if (null == art.getUrl()) {
+            String desiredURL = ArticleUrl.getUrlArticleTitle(art) + ".html";
+            Article shouldBeNull = ArticleServlet.getArticleFromURL(ten, ten.getImeadValue(SecurityRepository.BASE_URL) + "article/" + desiredURL);
+            if (null != shouldBeNull) {
+                desiredURL = ArticleUrl.getUrl("", art, null, null, true);
+            }
+            art.setUrl(desiredURL);
+        }
         lowSizeEstimate = 0;
         highSizeEstimate = 0;
         String html = art.getPostedhtml();
@@ -117,7 +127,7 @@ public class ArticleProcessor implements Callable<Article> {
                     art.setImageurl(origAttribs.get("src"));
                     origAttribs.put("loading", "lazy");
                     String summary = String.format("<article class=\"article%s\" id=\"%s\"><a class=\"withFigure\" href=\"%s\"><figure>%s<figcaption><h1>%s</h1></figcaption></figure></a>%s</article>",
-                            art.getArticleid(), art.getUuid().toString(), ArticleUrl.getUrl("", art, null),
+                            art.getArticleid(), art.getUuid().toString(), ArticleUrl.getUrl("", art, null, null, false),
                             pictureTag.get().append(PictureTag.createTag("img", origAttribs).append("/>").toString()).append("</picture>").toString(), art.getArticletitle(), paragraph);
                     art.setSummary(PictureTag.deres(summary));
                 }
@@ -126,7 +136,7 @@ public class ArticleProcessor implements Callable<Article> {
                     art.setImageurl(origAttribs.get("src"));
                     origAttribs.put("loading", "lazy");
                     art.setSummary(String.format("<article class=\"article%s\" id=\"%s\"><a class=\"withFigure\" href=\"%s\"><figure>%s<figcaption><h1>%s</h1></figcaption></figure></a>%s</article>",
-                            art.getArticleid(), art.getUuid().toString(), ArticleUrl.getUrl("", art, null),
+                            art.getArticleid(), art.getUuid().toString(), ArticleUrl.getUrl("", art, null, null, false),
                             PictureTag.createTag("img", origAttribs).append("/>").append("</picture>").toString(), art.getArticletitle(), paragraph
                     ));
                 }
@@ -137,7 +147,7 @@ public class ArticleProcessor implements Callable<Article> {
         art.setPostedhtml(html);
         if (null == art.getSummary()) {
             art.setSummary(String.format("<article class=\"article%s\" id=\"%s\"><header><a href=\"%s\"><h1>%s</h1></a></header>%s</article>",
-                    art.getArticleid(), art.getUuid().toString(), ArticleUrl.getUrl("", art, null), art.getArticletitle(), paragraph));
+                    art.getArticleid(), art.getUuid().toString(), ArticleUrl.getUrl("", art, null, null, false), art.getArticletitle(), paragraph));
         }
         return art;
     }
@@ -190,14 +200,19 @@ public class ArticleProcessor implements Callable<Article> {
         List<Fileupload> javascriptFiles = HtmlScript.getJavascriptFiles(ten, null);
         Fileupload fileterm = new Fileupload();
         fileterm.setMimetype("font");
+        long fontsize = 0;
+        if (ten.getFile() instanceof SearchableRepository<Fileupload> file) {
+            fontsize = file.search(fileterm, null).stream().mapToLong((f) -> {
+                return f.getDatasize();
+            }).sum();
+        }
         try {
+            int htmlSize = null != art.getPostedhtml() ? art.getPostedhtml().getBytes("UTF-8").length : 0;
             return cssFiles.stream().mapToLong((f) -> {
                 return f.getDatasize();
             }).sum() + javascriptFiles.stream().mapToLong((f) -> {
                 return f.getDatasize();
-            }).sum() + ten.getFile().search(fileterm, null).stream().mapToLong((f) -> {
-                return f.getDatasize();
-            }).sum() + art.getPostedhtml().getBytes("UTF-8").length;
+            }).sum() + fontsize + htmlSize;
         } catch (UnsupportedEncodingException dt) {
             throw new JVMNotSupportedError(dt);
         }
@@ -208,6 +223,10 @@ public class ArticleProcessor implements Callable<Article> {
         List<Fileupload> javascriptFiles = HtmlScript.getJavascriptFiles(ten, null);
         Fileupload fileterm = new Fileupload();
         fileterm.setMimetype("font");
-        return resourceCount + cssFiles.size() + javascriptFiles.size() + ten.getFile().search(fileterm, null).size();
+        int fontcount = 0;
+        if (ten.getFile() instanceof SearchableRepository<Fileupload> file) {
+            fontcount = file.search(fileterm, null).size();
+        }
+        return resourceCount + cssFiles.size() + javascriptFiles.size() + fontcount;
     }
 }

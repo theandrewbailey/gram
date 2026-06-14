@@ -6,7 +6,7 @@ import gram.bean.database.Article;
 import gram.bean.database.ArticleRepository;
 import gram.bean.database.Comment;
 import gram.bean.database.GramIMEADRepository;
-import gram.bean.database.Section;
+import gram.bean.database.Category;
 import jakarta.enterprise.concurrent.ManagedExecutorService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -52,7 +52,7 @@ public class NullTenant implements GramTenant {
     }
 
     @Override
-    public Repository<Section> getCategories() {
+    public Repository<Category> getCategories() {
         return new NullCategories();
     }
 
@@ -256,7 +256,7 @@ class NullArticles implements ArticleRepository {
     }
 
     @Override
-    public List<Article> search(Section term, Integer limit) {
+    public List<Article> search(Category term, Integer limit) {
         return Collections.unmodifiableList(new ArrayList<>());
     }
 
@@ -332,34 +332,34 @@ class NullComments implements Repository<Comment> {
     }
 }
 
-class NullCategories implements Repository<Section> {
+class NullCategories implements Repository<Category> {
 
     @Override
-    public Collection<Section> upsert(Collection<Section> entities) {
+    public Collection<Category> upsert(Collection<Category> entities) {
         return Collections.unmodifiableList(new ArrayList<>());
     }
 
     @Override
-    public Section get(Object id) {
+    public Category get(Object id) {
         return null;
     }
 
     @Override
-    public List<Section> getAll(Integer limit) {
+    public List<Category> getAll(Integer limit) {
         return Collections.unmodifiableList(new ArrayList<>());
     }
 
     @Override
-    public Section delete(Object id) {
+    public Category delete(Object id) {
         return null;
     }
 
     @Override
-    public void processArchive(Consumer<Section> operation, Boolean transaction) {
+    public void processArchive(Consumer<Category> operation, Boolean transaction) {
     }
 
     @Override
-    public Repository<Section> evict() {
+    public Repository<Category> evict() {
         return this;
     }
 

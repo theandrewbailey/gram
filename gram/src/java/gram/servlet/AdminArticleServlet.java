@@ -6,7 +6,6 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -17,7 +16,6 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.regex.Matcher;
 import libWebsiteTools.imead.Local;
-import libWebsiteTools.rss.FeedBucket;
 import libWebsiteTools.turbo.RequestTimer;
 import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.tag.AbstractInput;
@@ -26,7 +24,7 @@ import gram.PictureTag;
 import gram.bean.database.ArticleRepository;
 import gram.bean.GramLandlord;
 import gram.bean.database.Article;
-import gram.bean.database.Section;
+import gram.bean.database.Category;
 import gram.tag.ArticleUrl;
 import gram.bean.GramTenant;
 import java.io.UnsupportedEncodingException;
@@ -35,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import libWebsiteTools.JVMNotSupportedError;
 import libWebsiteTools.SearchableRepository;
@@ -55,6 +54,9 @@ public class AdminArticleServlet extends AdminServlet {
     public static final long FIXED_SIZE_LIMIT = 200000L;
     public static final int RESOURCE_COUNT_LIMIT = 10;
     private static final String DEFAULT_NAME = "site_defaultName";
+    private static final String SAVE_ERROR = "page_articleSaveError";
+    private static final String URL_ERROR_FORMAT="page_articleUrl_errorUrlFormat";
+    private static final String URL_ERROR_DUPLICATE="page_articleUrl_errorUrlDuplicate";
 
     @Override
     public AdminPermission[] getRequiredPermissions() {
@@ -113,75 +115,106 @@ public class AdminArticleServlet extends AdminServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         GramTenant ten = GramLandlord.getTenant(request);
         Matcher validator = AbstractInput.DEFAULT_REGEXP.matcher("");
-        ArticleProcessor artPro = updateArticleFromPage(request);
-        Article art = artPro.getArt();
-        if ("Preview".equals(request.getParameter("action"))) {
+        try {
+            ArticleProcessor artPro = updateArticleFromPage(request);
+            Article art = artPro.getArt();
+            if ("Preview".equals(request.getParameter("action"))) {
+                AdminArticleServlet.displayArticleEdit(ten, request, response, artPro);
+                return;
+            } else if (!validator.reset(art.getArticletitle()).matches()
+                    || !validator.reset(art.getDescription()).matches()
+                    || !validator.reset(art.getPostedname()).matches()
+                    || !validator.reset(art.getPostedmarkdown()).matches()
+                    || (null != art.getCategoryid() && !validator.reset(art.getCategoryid().getName()).matches())) {
+                request.setAttribute(GramServlet.ERROR_MESSAGE_PARAM, ten.getImead().getLocal("page_patternMismatch", Local.resolveLocales(ten.getImead(), request)));
+                AdminArticleServlet.displayArticleEdit(ten, request, response, artPro);
+                return;
+            }
+            Instant start = Instant.now();
+            try {
+                ten.getArts().upsert(Arrays.asList(art));
+            } catch (Exception dx) {
+                request.setAttribute("ERROR_MESSAGE", ten.getImeadValue(SAVE_ERROR));
+                displayArticleEdit(ten, request, response, artPro);
+                return;
+            }
+            if (null == art.getArticleid()) {
+                art = ten.getArts().getAll(1).get(0);
+            }
+            RequestTimer.addTiming(request, "save", Duration.between(start, Instant.now()));
+            response.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(request, Boolean.FALSE));
+            ten.getArts().evict().warmCache();
+            ten.getGlobalCache().clear();
+            request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName());
+            request.getSession().invalidate();
+            response.setHeader("Clear-Site-Data", "*");
+            response.sendRedirect(ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null, null, false));
+            if (ten.getArts() instanceof SearchableRepository<Article> searchableArticles) {
+                ten.getExec().submit(searchableArticles::refreshSearch);
+            }
+        } catch (IllegalArgumentException a) {
+            request.setAttribute(GramServlet.ERROR_MESSAGE_PARAM, a.getMessage());
+            Article art = (Article) request.getSession().getAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName());
+            ArticleProcessor artPro = getProcessor(request, art);
             AdminArticleServlet.displayArticleEdit(ten, request, response, artPro);
-            return;
-        } else if (!validator.reset(art.getArticletitle()).matches()
-                || !validator.reset(art.getDescription()).matches()
-                || !validator.reset(art.getPostedname()).matches()
-                || !validator.reset(art.getPostedmarkdown()).matches()
-                || (null != art.getSectionid() && !validator.reset(art.getSectionid().getName()).matches())) {
-            request.setAttribute(GramServlet.ERROR_MESSAGE_PARAM, ten.getImead().getLocal("page_patternMismatch", Local.resolveLocales(ten.getImead(), request)));
-            AdminArticleServlet.displayArticleEdit(ten, request, response, artPro);
-            return;
-        }
-        Instant start = Instant.now();
-        ten.getArts().upsert(Arrays.asList(art));
-        if (null == art.getArticleid()) {
-            art = ten.getArts().getAll(1).get(0);
-        }
-        RequestTimer.addTiming(request, "save", Duration.between(start, Instant.now()));
-        response.setHeader(RequestTimer.SERVER_TIMING, RequestTimer.getTimingHeader(request, Boolean.FALSE));
-        ten.getArts().evict().warmCache();
-        ten.getGlobalCache().clear();
-        request.getSession().removeAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName());
-        request.getSession().invalidate();
-        response.setHeader("Clear-Site-Data", "*");
-        response.sendRedirect(ArticleUrl.getUrl(request.getAttribute(SecurityRepository.BASE_URL).toString(), art, null));
-        if (ten.getArts() instanceof SearchableRepository<Article> searchableArticles) {
-            ten.getExec().submit(searchableArticles::refreshSearch);
         }
     }
 
     private ArticleProcessor updateArticleFromPage(HttpServletRequest req) {
         Instant start = Instant.now();
         GramTenant ten = GramLandlord.getTenant(req);
-        Article art = (Article) req.getSession().getAttribute(ten.getImeadValue(SecurityRepository.BASE_URL) + Article.class.getCanonicalName());
+        String baseURL = ten.getImeadValue(SecurityRepository.BASE_URL);
+        Article art = (Article) req.getSession().getAttribute(baseURL + Article.class.getCanonicalName());
         boolean isNewArticle = null == art.getArticleid();
+        art.setArticletitle(AbstractInput.getParameter(req, "articletitle").trim());
+        art.setDescription(AbstractInput.getParameter(req, "description").trim());
+        List<Locale> resolvedLocales = Local.resolveLocales(ten.getImead(), req);
+        String catName = AbstractInput.getParameter(req, "category").trim();
+        art.setCategoryid(new Category(catName.isEmpty() ? ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales) : catName));
+        art.setPostedname(AbstractInput.getParameter(req, "postedname") == null || AbstractInput.getParameter(req, "postedname").isEmpty()
+                ? ten.getImeadValue(DEFAULT_NAME)
+                : AbstractInput.getParameter(req, "postedname"));
+//        String date = AbstractInput.getParameter(req, "posted").trim();
+//        if (date != null) {
+//            try {
+//                art.setPosted(FeedBucket.parseTimeFormat(DateTimeFormatter.ISO_OFFSET_DATE_TIME, date));
+//            } catch (DateTimeException p) {
+//                art.setPosted(OffsetDateTime.now());
+//            }
+//        }
+        art.setComments(AbstractInput.getParameter(req, "comments") != null);
+        art.setPostedmarkdown(AbstractInput.getParameter(req, "postedmarkdown").trim());
+        String suggestion = AbstractInput.getParameter(req, "suggestion");
         if (isNewArticle) {
             int nextID = ten.getArts().count(null).intValue();
             art.setArticleid(++nextID);
+            art.setPosted(OffsetDateTime.now());
             req.setAttribute("isNewArticle", true);
         } else {
             req.setAttribute("isNewArticle", false);
         }
-        art.setArticletitle(AbstractInput.getParameter(req, "articletitle").trim());
-        art.setDescription(AbstractInput.getParameter(req, "description").trim());
-        List<Locale> resolvedLocales = Local.resolveLocales(ten.getImead(), req);
-        String catName = AbstractInput.getParameter(req, "section").trim();
-        art.setSectionid(new Section(catName.isEmpty() ? ten.getImead().getLocal(GramServlet.SITE_TITLE, resolvedLocales) : catName));
-        art.setPostedname(AbstractInput.getParameter(req, "postedname") == null || AbstractInput.getParameter(req, "postedname").isEmpty()
-                ? ten.getImeadValue(DEFAULT_NAME)
-                : AbstractInput.getParameter(req, "postedname"));
-        String date = AbstractInput.getParameter(req, "posted").trim();
-        if (date != null) {
-            try {
-                art.setPosted(FeedBucket.parseTimeFormat(DateTimeFormatter.ISO_OFFSET_DATE_TIME, date));
-            } catch (DateTimeException p) {
-                art.setPosted(OffsetDateTime.now());
-            }
-        }
-        art.setComments(AbstractInput.getParameter(req, "comments") != null);
-        art.setPostedmarkdown(AbstractInput.getParameter(req, "postedmarkdown").trim());
-        String suggestion = AbstractInput.getParameter(req, "suggestion");
         if (null != suggestion && suggestion.length() > 0) {
             art.setSuggestion(suggestion.trim());
         } else {
             art.setSuggestion(null);
         }
         try {
+            String url = AbstractInput.getParameter(req, "url");
+            if (null != url && !url.isBlank()) {
+                art.setUrl(url);
+                String nonCanonicalURL = ArticleUrl.getUrl(baseURL, art, null, null, false);
+                String canonicalURL = ArticleUrl.getUrl(baseURL, art, null, null, true);
+                Matcher m = ArticleServlet.ARTICLE_PATTERN.matcher(nonCanonicalURL);
+                if (!nonCanonicalURL.equals(canonicalURL)) {
+                    if (m.matches()) {
+                        throw new IllegalArgumentException(ten.getImeadValue(URL_ERROR_FORMAT));
+                    }
+                    Article test = ArticleServlet.getArticleFromURL(ten, nonCanonicalURL);
+                    if (null != test && !Objects.equals(test.getArticleid(), art.getArticleid())) {
+                        throw new IllegalArgumentException(ten.getImeadValue(URL_ERROR_DUPLICATE));
+                    }
+                }
+            }
             art.setImageurl(null);
             art.setSummary(null);
             art.setPostedhtml(null);
@@ -208,12 +241,12 @@ public class AdminArticleServlet extends AdminServlet {
             art.setCommentCollection(new ArrayList<>());
         }
         LinkedHashSet<String> groups = new LinkedHashSet<>();
-        for (Section category : ten.getCategories().getAll(null)) {
+        for (Category category : ten.getCategories().getAll(null)) {
             groups.add(category.getName());
         }
         request.setAttribute("groups", groups);
-        if (null != art.getSectionid() && !groups.add(art.getSectionid().getName())) {
-            groups.add(art.getSectionid().getName());
+        if (null != art.getCategoryid() && !groups.add(art.getCategoryid().getName())) {
+            groups.add(art.getCategoryid().getName());
         }
         request.setAttribute("iframeSrc", null == art.getArticleid() ? "adminArticle?action=Preview&iframe" : "edit/" + art.getArticleid() + "?action=Preview&iframe");
         request.setAttribute("defaultSearchTerm", ArticleRepository.getArticleSuggestionTerm(art));

@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.NoResultException;
+import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import libWebsiteTools.SearchableRepository;
 
@@ -143,10 +144,14 @@ public class FileDatabase implements FileRepository, SearchableRepository<Fileup
         try (EntityManager em = PU.createEntityManager()) {
             if (transaction) {
                 em.getTransaction().begin();
-                em.createNamedQuery("Fileupload.findAll", Fileupload.class).getResultStream().forEach(operation);
+            }
+            int pageSize = 100;
+            Long count = count(null);
+            for (int pageNumber = 0; pageNumber < count; pageNumber += pageSize) {
+                em.createNamedQuery("Fileupload.findAll", Fileupload.class).setFirstResult(pageNumber).setMaxResults(pageSize).getResultStream().parallel().forEach(operation);
+            }
+            if (transaction) {
                 em.getTransaction().commit();
-            } else {
-                em.createNamedQuery("Fileupload.findAll", Fileupload.class).getResultStream().forEach(operation);
             }
         }
     }
@@ -172,6 +177,22 @@ public class FileDatabase implements FileRepository, SearchableRepository<Fileup
         try (EntityManager em = PU.createEntityManager()) {
             TypedQuery<Long> qn = em.createNamedQuery("Fileupload.count", Long.class);
             return qn.getSingleResult();
+        }
+    }
+
+    @Override
+    public byte[] getFiledata(Fileupload metadata, String compression) {
+        if (null == metadata || !(ZSTD_COMPRESSION.equals(compression)
+                || BR_COMPRESSION.equals(compression)
+                || GZIP_COMPRESSION.equals(compression)
+                || NO_COMPRESSION.equals(compression))) {
+            throw new IllegalArgumentException();
+        }
+        try (EntityManager em = PU.createEntityManager()) {
+            Query q = em.createNativeQuery("SELECT " + compression + " from tools.fileupload f where filename = ?1;")
+                    .setParameter(1, metadata.getFilename());
+            Object o = q.getSingleResult();
+            return (byte[]) o;
         }
     }
 }

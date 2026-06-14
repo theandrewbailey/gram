@@ -10,7 +10,7 @@ import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.sitemap.ChangeFreq;
 import libWebsiteTools.sitemap.UrlMap;
 import gram.bean.database.Article;
-import gram.bean.database.Section;
+import gram.bean.database.Category;
 import gram.tag.ArticleUrl;
 
 /**
@@ -29,7 +29,7 @@ public class SitemapProvider implements Iterable<UrlMap> {
     public Iterator<UrlMap> iterator() {
         List<Article> entries = new ArrayList<>(ten.getArts().getAll(null));
         Collections.reverse(entries);
-        List<Section> categories = ten.getCategories().getAll(null);
+        List<Category> categories = ten.getCategories().getAll(null);
         ArrayList<UrlMap> urlMap = new ArrayList<>(entries.size() + categories.size() + 10);
         urlMap.add(new UrlMap(ten.getImeadValue(SecurityRepository.BASE_URL), null, ChangeFreq.daily, "0.7"));
         @SuppressWarnings("null")
@@ -55,9 +55,9 @@ public class SitemapProvider implements Iterable<UrlMap> {
                     freq = ChangeFreq.yearly;
                 }
             }
-            urlMap.add(new UrlMap(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), e, null), e.getModified(), freq, String.format("%.1f", difference)));
+            urlMap.add(new UrlMap(ArticleUrl.getUrl(ten.getImeadValue(SecurityRepository.BASE_URL), e, null, null, true), e.getModified(), freq, String.format("%.1f", difference)));
         }
-        for (Section s : categories) {
+        for (Category s : categories) {
             String name = s.getName();
             CategoryFetcher f = new CategoryFetcher(ten, "/index/" + name);
             if (!name.isEmpty()) {

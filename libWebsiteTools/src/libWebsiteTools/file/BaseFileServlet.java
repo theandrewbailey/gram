@@ -87,7 +87,11 @@ public abstract class BaseFileServlet extends BaseServlet {
         Fileupload c;
         try {
             Instant start = Instant.now();
-            c = ten.getFile().get(getNameFromURL(request.getRequestURL()));
+            c = ten.getFile().getFileMetadata(List.of(getNameFromURL(request.getRequestURL()))).get(0);
+            request.setAttribute(BaseFileServlet.class.getCanonicalName(), c);
+            CompressionSorter sorted = CompressionSorter.getInstance(c, request);
+            sorted.getResult();
+            request.setAttribute(CompressionSorter.class.getCanonicalName(), sorted);
             RequestTimer.addTiming(request, "query", Duration.between(start, Instant.now()));
             c.getAtime();
             request.setAttribute(BaseFileServlet.class.getCanonicalName(), c);
@@ -125,17 +129,20 @@ public abstract class BaseFileServlet extends BaseServlet {
         OffsetDateTime localNow = OffsetDateTime.now();
         Fileupload c = (Fileupload) request.getAttribute(BaseFileServlet.class.getCanonicalName());
         Tenant ten = Landlord.getTenant(request);
+        CompressionSorter sorted = (CompressionSorter) request.getAttribute(CompressionSorter.class.getCanonicalName());
         if (null == c) {
             Instant start = Instant.now();
             try {
                 String name = getNameFromURL(request.getRequestURL());
-                c = ten.getFile().get(name);
+                c = ten.getFile().getFileMetadata(List.of(name)).get(0);
+                sorted = CompressionSorter.getInstance(c, request);
+                sorted.getResult();
                 RequestTimer.addTiming(request, "query", Duration.between(start, Instant.now()));
                 if (null == c) {
                     throw new FileNotFoundException(name);
                 }
                 request.setAttribute(BaseFileServlet.class.getCanonicalName(), c);
-            } catch (FileNotFoundException | NoResultException ex) {
+            } catch (ArrayIndexOutOfBoundsException | FileNotFoundException | NoResultException ex) {
                 response.setHeader(HttpHeaders.CACHE_CONTROL, "public, max-age=" + MAX_AGE_SECONDS);
                 response.setDateHeader(HttpHeaders.EXPIRES, localNow.toInstant().toEpochMilli());
                 if (HttpMethod.HEAD.equals(request.getMethod()) && fromApprovedDomain(request, ten.getImead().getPatterns(SecurityRepository.ALLOWED_ORIGINS))) {
@@ -164,9 +171,11 @@ public abstract class BaseFileServlet extends BaseServlet {
         response.setDateHeader(HttpHeaders.LAST_MODIFIED, c.getAtime().toInstant().toEpochMilli());
         response.setContentType(c.getMimetype());
         if (!c.getMimetype().startsWith("text")) {
-            response.setCharacterEncoding(null);
+            response.setCharacterEncoding((String) null);
         }
-        CompressionSorter sorted = CompressionSorter.getInstance(c, request);
+        if (null == sorted) {
+            sorted = CompressionSorter.getInstance(c, request);
+        }
         request.setAttribute(CompressionSorter.class.getCanonicalName(), sorted);
         sorted.getOutputStream(response);
         String etag = "\"" + c.getEtag() + sorted.getType() + "\"";

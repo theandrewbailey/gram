@@ -102,7 +102,7 @@ public class IndexServlet extends GramServlet {
                     request.setAttribute("pagen_last", f.getLastPage());
                     request.setAttribute("pagen_current", f.getCurrentPage());
                     request.setAttribute("pagen_count", f.getPageCount());
-                } else if ((null == f.getCategory() || null == f.getCategory().getSectionid()) && 0 == ten.getArts().count(null)) {
+                } else if ((null == f.getCategory() || null == f.getCategory().getCategoryid()) && 0 == ten.getArts().count(null)) {
                     request.getRequestDispatcher("/page/noPosts.html").forward(request, response);
                     return;
                 } else if (HttpServletResponse.SC_NOT_FOUND == response.getStatus()) {

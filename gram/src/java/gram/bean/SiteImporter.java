@@ -4,7 +4,7 @@ import gram.ArticleProcessor;
 import gram.UtilStatic;
 import gram.bean.database.Article;
 import gram.bean.database.Comment;
-import gram.bean.database.Section;
+import gram.bean.database.Category;
 import gram.rss.ArticleRss;
 import gram.rss.CommentRss;
 import gram.rss.GramRssItem;
@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -137,13 +138,13 @@ public class SiteImporter implements Runnable {
                                     incomingFile.setMimetype(FileRepository.DEFAULT_MIME_TYPE);
                                 }
                                 Fileupload existingFile = ten.getFile().get(incomingFile.getFilename());
-                                if (null == existingFile) {
-                                    fileUploads.add(incomingFile);
-                                } else if (!incomingFile.getEtag().equals(existingFile.getEtag())) {
-                                    LOG.log(Level.FINER, "Existing file different, updating {0}", incomingFile.getFilename());
-                                    fileUploads.add(incomingFile);
-                                }
                                 synchronized (fileUploads) {
+                                    if (null == existingFile) {
+                                        fileUploads.add(incomingFile);
+                                    } else if (!incomingFile.getEtag().equals(existingFile.getEtag())) {
+                                        LOG.log(Level.FINER, "Existing file different, updating {0}", incomingFile.getFilename());
+                                        fileUploads.add(incomingFile);
+                                    }
                                     if (fileUploads.size() > 100) {
                                         ten.getFile().upsert(fileUploads);
                                         fileUploads.clear();
@@ -160,6 +161,13 @@ public class SiteImporter implements Runnable {
             throw new RuntimeException(ex);
         }
         UtilStatic.finish(restoreTasks).clear();
+        restoreTasks.add(ten.getExec().submit(() -> {
+            if (!fileUploads.isEmpty()) {
+                ten.getFile().upsert(fileUploads);
+                fileUploads.clear();
+            }
+            ten.getFile().evict();
+        }));
         restoreTasks.add(ten.getExec().submit(() -> {
             try {
                 if (null != articleImporter.getTask()) {
@@ -179,7 +187,6 @@ public class SiteImporter implements Runnable {
                         }
                     }
                     UtilStatic.finish(reprocessTasks).clear();
-                    ten.getArts().delete(null);
                     ten.getArts().upsert(articles);
                     if (null != commentImporter.getTask()) {
                         ten.getComms().upsert(commentImporter.getTask().get());
@@ -189,9 +196,8 @@ public class SiteImporter implements Runnable {
                 throw new RuntimeException(p);
             }
         }, true));
+        UtilStatic.finish(restoreTasks).clear();
         restoreTasks.add(ten.getExec().submit(() -> {
-            ten.getFile().upsert(fileUploads);
-            fileUploads.clear();
             ten.getFile().evict().processArchive((file) -> {
                 if (mimes.containsKey(file.getFilename()) && !file.getMimetype().equals(mimes.get(file.getFilename()))) {
                     file.setMimetype(mimes.get(file.getFilename()));
@@ -213,7 +219,12 @@ public class SiteImporter implements Runnable {
                 searchableArticles.refreshSearch();
             }
             ten.getFile().processArchive((f) -> {
-                FileCompressorJob.startAllJobs(ten, f);
+                for (Future future : FileCompressorJob.startAllJobs(ten, f)) {
+                    try {
+                        future.get();
+                    } catch (InterruptedException | ExecutionException ex) {
+                    }
+                }
             }, false);
         });
     }
@@ -257,7 +268,11 @@ public class SiteImporter implements Runnable {
                 Article art = new Article(UUID.randomUUID());
                 art.setComments(Boolean.FALSE);
                 for (Node n : new XmlNodeSearcher(item, "link")) {
-                    art.setArticleid(Integer.decode(ArticleServlet.getArticleIdFromURL(n.getTextContent().trim())));
+                    Matcher m = ArticleServlet.URL_PATTERN.matcher(n.getTextContent().trim());
+                    if (m.matches()) {
+                        art.setUrl(m.group(1));
+                    }
+                    // art.setArticleid(Integer.decode(ArticleServlet.getArticleIdFromURL(n.getTextContent().trim())));
                 }
                 for (Node n : new XmlNodeSearcher(item, "title")) {
                     art.setArticletitle(n.getTextContent().trim());
@@ -266,7 +281,7 @@ public class SiteImporter implements Runnable {
                     art.setPosted(FeedBucket.parseTimeFormat(DateTimeFormatter.ISO_OFFSET_DATE_TIME, n.getTextContent().trim()));
                 }
                 for (Node n : new XmlNodeSearcher(item, "category")) {
-                    art.setSectionid(new Section(null, n.getTextContent().trim(), UUID.randomUUID()));
+                    art.setCategoryid(new Category(null, n.getTextContent().trim(), UUID.randomUUID()));
                 }
                 for (Node n : new XmlNodeSearcher(item, "comments")) {
                     art.setComments(null != n);
@@ -304,15 +319,12 @@ public class SiteImporter implements Runnable {
                 articles.add(art);
             }
             articles.sort((Article a, Article r) -> {
-                if (null != a.getArticleid() && null != r.getArticleid()) {
-                    return a.getArticleid() - r.getArticleid();
-                } else if (null != a.getArticleid()) {
-                    return 1;
-                } else if (null != r.getArticleid()) {
-                    return -1;
-                }
-                return 0;
+                return a.getPosted().compareTo(r.getPosted());
             });
+            int articleId = 1;
+            for (Article art : articles) {
+                art.setArticleid(articleId++);
+            }
             rssFeed = null;
             return articles;
         }

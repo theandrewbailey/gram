@@ -10,7 +10,7 @@ import jakarta.servlet.jsp.PageContext;
 import jakarta.servlet.jsp.tagext.SimpleTagSupport;
 import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.JVMNotSupportedError;
-import gram.bean.database.Section;
+import gram.bean.database.Category;
 import gram.bean.GramTenant;
 import gram.bean.database.Article;
 import gram.servlet.GramServlet;
@@ -25,7 +25,7 @@ import libWebsiteTools.imead.Local;
 public class Categorizer extends SimpleTagSupport {
 
     private Article article;
-    private Section category;
+    private Category category;
     private Integer page;
 
     @Override
@@ -37,8 +37,8 @@ public class Categorizer extends SimpleTagSupport {
         HttpServletRequest req = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest());
         GramTenant ten = GramLandlord.getTenant(req);
         if (null != article) {
-            if (null != article.getSectionid()) {
-                execute(article.getSectionid());
+            if (null != article.getCategoryid()) {
+                execute(article.getCategoryid());
             } else {
                 List<Locale> resolvedLocales = Local.resolveLocales(ten.getImead(), req);
                 Object baseURL = req.getAttribute(SecurityRepository.BASE_URL);
@@ -49,12 +49,12 @@ public class Categorizer extends SimpleTagSupport {
             }
             return;
         }
-        for (Section cat : ten.getCategories().getAll(null)) {
+        for (Category cat : ten.getCategories().getAll(null)) {
             execute(cat);
         }
     }
 
-    private void execute(Section category) throws JspException, IOException {
+    private void execute(Category category) throws JspException, IOException {
         Object baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepository.BASE_URL);
         if (null != baseURL) {
             getJspContext().setAttribute("_category_url", getUrl(baseURL.toString(), category.getName(), page));
@@ -84,7 +84,7 @@ public class Categorizer extends SimpleTagSupport {
         this.article = article;
     }
 
-    public void setCategory(Section category) {
+    public void setCategory(Category category) {
         this.category = category;
     }
 

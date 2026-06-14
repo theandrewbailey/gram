@@ -16,6 +16,7 @@ import libWebsiteTools.file.Fileupload;
 import libWebsiteTools.turbo.RequestTimer;
 import libWebsiteTools.tag.AbstractInput;
 import gram.bean.GramTenant;
+import libWebsiteTools.SearchableRepository;
 
 /**
  *
@@ -43,14 +44,16 @@ public class AdminFileServlet extends AdminServlet {
         String del = AbstractInput.getParameter(request, "action");
         if (del != null) {
             String filename = del.split("\\|")[1];
-            try {
-                Fileupload toDelete = ten.getFile().search(filename, 1).get(0);
-                Fileupload deleted = ten.getFile().delete(toDelete.getFilename());
-                String[] split = splitDirectoryAndName(deleted.getFilename());
-                request.setAttribute("opened_dir", split[0]);
-            } catch (ArrayIndexOutOfBoundsException d) {
-                request.setAttribute(GramServlet.ERROR_MESSAGE_PARAM, "Can't find file to delete: " + FileServlet.getNameFromURL(filename));
-                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            if (ten.getFile() instanceof SearchableRepository<Fileupload> file) {
+                try {
+                    Fileupload toDelete = file.search(filename, 1).get(0);
+                    Fileupload deleted = ten.getFile().delete(toDelete.getFilename());
+                    String[] split = splitDirectoryAndName(deleted.getFilename());
+                    request.setAttribute("opened_dir", split[0]);
+                } catch (ArrayIndexOutOfBoundsException d) {
+                    request.setAttribute(GramServlet.ERROR_MESSAGE_PARAM, "Can't find file to delete: " + FileServlet.getNameFromURL(filename));
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                }
             }
         }
         ten.getFile().evict();

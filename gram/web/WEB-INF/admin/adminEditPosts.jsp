@@ -13,7 +13,7 @@
     <c:choose><c:when test="${null==art.imageurl}"><h:checkbox name="selectedArticle" label="" value="${art.articleid}" styleClass="articleCheckbox"/></c:when>
     <c:otherwise><h:checkbox name="selectedArticle" value="${art.articleid}" styleClass="articleCheckbox articleCheckboxWithImage"/></c:otherwise></c:choose>
     <button type="submit" formmethod="GET" formaction="edit/${art.articleid}"><h:local key="page_edit"/></button>
-    <g:articleUrl article="${art}" cssClass="nocache"/> <label for="${$_LAST_CHECKBOX_ID}"><c:if test="${null!=art.sectionid}">under ${art.sectionid.name}, </c:if>
+    <g:articleUrl article="${art}" cssClass="nocache"/> <label for="${$_LAST_CHECKBOX_ID}"><c:if test="${null!=art.categoryid}">under ${art.categoryid.name}, </c:if>
     <h:time datetime="${art.posted}" pattern="EEE MM/dd/yy h:mm a"/></label>
     <c:if test="${0!=fn:length(art.commentCollection)}"><ol>
     <c:forEach items="${art.commentCollection}" var="comm"><li><h:time datetime="${comm.posted}" pattern="EEE MM/dd/yy h:mm a"/> by ${comm.postedname} <button type="submit" name="deletecomment" value="${comm.commentid}"><h:local key="page_delete"/></button></li>

@@ -18,7 +18,7 @@ import gram.UtilStatic;
  *
  * @author alpha
  */
-public class CategoryDatabase implements Repository<Section> {
+public class CategoryDatabase implements Repository<Category> {
 
     private final EntityManagerFactory gramPU;
 
@@ -27,17 +27,17 @@ public class CategoryDatabase implements Repository<Section> {
     }
 
     @Override
-    public Collection<Section> upsert(Collection<Section> entities) {
+    public Collection<Category> upsert(Collection<Category> entities) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Section get(Object id) {
+    public Category get(Object id) {
         try (EntityManager em = gramPU.createEntityManager()) {
             if (id instanceof Integer) {
-                return em.find(Section.class, id);
+                return em.find(Category.class, id);
             } else if (id instanceof String) {
-                return em.createNamedQuery("Category.findByName", Section.class).setParameter("name", id).getSingleResult();
+                return em.createNamedQuery("Category.findByName", Category.class).setParameter("name", id).getSingleResult();
             }
         } catch (NoResultException n) {
             return null;
@@ -46,26 +46,26 @@ public class CategoryDatabase implements Repository<Section> {
     }
 
     @Override
-    public Section delete(Object id) {
+    public Category delete(Object id) {
         throw new UnsupportedOperationException();
     }
 
     /**
      * @param limit ignored
-     * @return sections sorted by popularity
+     * @return Categories sorted by popularity
      */
     @Override
     @SuppressWarnings("unchecked")
-    public List<Section> getAll(Integer limit) {
+    public List<Category> getAll(Integer limit) {
         List<Object[]> categoriesByArticlesPosted;
         try (EntityManager em = gramPU.createEntityManager()) {
             categoriesByArticlesPosted = em.createNamedQuery("Category.byArticlesPosted").getResultList();
         }
         try {
             double now = OffsetDateTime.now().toInstant().toEpochMilli();
-            TreeMap<Double, Section> popularity = new TreeMap<>();
+            TreeMap<Double, Category> popularity = new TreeMap<>();
             for (Object[] data : categoriesByArticlesPosted) {
-                Section category = (Section) data[0];
+                Category category = (Category) data[0];
                 if (null == category.getName()) {
                     continue;
                 }
@@ -75,7 +75,7 @@ public class CategoryDatabase implements Repository<Section> {
                 double score = UtilStatic.score(points, years, 1.8);
                 popularity.put(score, category);
             }
-            ArrayList<Section> allCategories = new ArrayList<>(popularity.values());
+            ArrayList<Category> allCategories = new ArrayList<>(popularity.values());
             Collections.reverse(allCategories);
             return allCategories;
         } catch (ArrayIndexOutOfBoundsException ex) {
@@ -85,7 +85,7 @@ public class CategoryDatabase implements Repository<Section> {
 
     /**
      * Return number of categories in DB. Does not include empty/default
-     * section.
+     * category.
      *
      * @param term ignored
      * @return
@@ -100,21 +100,21 @@ public class CategoryDatabase implements Repository<Section> {
     }
 
     @Override
-    public void processArchive(Consumer<Section> operation, Boolean transaction) {
+    public void processArchive(Consumer<Category> operation, Boolean transaction) {
         try (EntityManager em = gramPU.createEntityManager()) {
             if (transaction) {
                 em.getTransaction().begin();
-                em.createNamedQuery("Category.findAll", Section.class).getResultStream().forEach(operation);
+                em.createNamedQuery("Category.findAll", Category.class).getResultStream().forEach(operation);
                 em.getTransaction().commit();
             } else {
-                em.createNamedQuery("Category.findAll", Section.class).getResultStream().forEach(operation);
+                em.createNamedQuery("Category.findAll", Category.class).getResultStream().forEach(operation);
             }
         }
     }
 
     @Override
     public CategoryDatabase evict() {
-        gramPU.getCache().evict(Section.class);
+        gramPU.getCache().evict(Category.class);
         return this;
     }
 

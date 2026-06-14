@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -21,7 +22,6 @@ import libWebsiteTools.Tenant;
 public class SitemapServlet extends BaseServlet {
 
     public static final String XML_JSP = "/XMLOut.jsp";
-    private final TransformerFactory xFormFact = TransformerFactory.newInstance();
     private static final Logger LOG = Logger.getLogger(SitemapServlet.class.getName());
 
     @Override
@@ -37,10 +37,11 @@ public class SitemapServlet extends BaseServlet {
         StringWriter write = new StringWriter(1000000);
         StreamResult str = new StreamResult(write);
         try {
-            Transformer trans;
-            synchronized (xFormFact) {
-                trans = xFormFact.newTransformer();
-            }
+            TransformerFactory xFormFact = TransformerFactory.newInstance();
+            xFormFact.setAttribute("indent-number", 0);
+            Transformer trans = xFormFact.newTransformer();
+            trans.setOutputProperty(OutputKeys.STANDALONE, "yes");
+            trans.setOutputProperty(OutputKeys.INDENT, "yes");
             trans.transform(DOMsrc, str);
             request.setAttribute("XMLOut", write.toString());
             // forward to JSP so feed may be cached

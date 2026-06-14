@@ -8,6 +8,8 @@ import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.LinkedList;
 import libWebsiteTools.CompressionAlgorithm;
+import libWebsiteTools.Landlord;
+import libWebsiteTools.Tenant;
 
 /**
  * Because sometimes other compression methods have a smaller size for a random
@@ -16,36 +18,26 @@ import libWebsiteTools.CompressionAlgorithm;
  *
  * @author alpha
  */
-public abstract class CompressionSorter implements CompressionAlgorithm<HttpServletResponse, HttpServletRequest>, Comparable<CompressionAlgorithm> {
+public abstract class CompressionSorter implements CompressionAlgorithm<HttpServletResponse, HttpServletRequest>, Comparable<CompressionSorter> {
 
     public static CompressionSorter getInstance(Fileupload f, HttpServletRequest req) {
         LinkedList<CompressionSorter> algorithms = new LinkedList<>();
-        ZstdFile z = new ZstdFile(f);
+        Tenant ten = Landlord.getTenant(req);
+        ZstdFile z = new ZstdFile(f, ten);
         if (z.shouldCompress(req)) {
             algorithms.push(z);
         }
-        BrFile b = new BrFile(f);
+        BrFile b = new BrFile(f, ten);
         if (b.shouldCompress(req)) {
             algorithms.push(b);
         }
-        GzipFile g = new GzipFile(f);
+        GzipFile g = new GzipFile(f, ten);
         if (g.shouldCompress(req)) {
             algorithms.push(g);
         }
-        algorithms.push(new PlainFile(f));
+        algorithms.push(new PlainFile(f, ten));
         algorithms.sort(null);
         return algorithms.poll();
-    }
-
-    @Override
-    public boolean shouldCompress(HttpServletRequest req) {
-        if (null != getResult()) {
-            String encoding = req.getHeader(HttpHeaders.ACCEPT_ENCODING);
-            if (null != encoding) {
-                return Arrays.asList(encoding.split(", ")).contains(getType());
-            }
-        }
-        return false;
     }
 
     /**
@@ -68,16 +60,31 @@ public abstract class CompressionSorter implements CompressionAlgorithm<HttpServ
     }
 
     @Override
-    public int compareTo(CompressionAlgorithm t) {
-        return this.getResult().length - t.getResult().length;
+    public boolean shouldCompress(HttpServletRequest req) {
+        if (0 != getSize()) {
+            String encoding = req.getHeader(HttpHeaders.ACCEPT_ENCODING);
+            if (null != encoding) {
+                return Arrays.asList(encoding.split(", ")).contains(getType());
+            }
+        }
+        return false;
     }
+
+    @Override
+    public int compareTo(CompressionSorter t) {
+        return this.getSize() - t.getSize();
+    }
+
+    public abstract int getSize();
 
     private static class ZstdFile extends CompressionSorter {
 
         private final Fileupload f;
+        private final Tenant ten;
 
-        public ZstdFile(Fileupload file) {
+        public ZstdFile(Fileupload file, Tenant t) {
             f = file;
+            ten = t;
         }
 
         @Override
@@ -87,16 +94,27 @@ public abstract class CompressionSorter implements CompressionAlgorithm<HttpServ
 
         @Override
         public byte[] getResult() {
+            if (null == f.getZstddata()) {
+                f.setZstddata(ten.getFile().getFiledata(f, FileRepository.ZSTD_COMPRESSION));
+            }
             return f.getZstddata();
         }
+
+        @Override
+        public int getSize() {
+            return null != f.getZstdsize() ? f.getZstdsize() : 0;
+        }
+
     }
 
     private static class BrFile extends CompressionSorter {
 
         private final Fileupload f;
+        private final Tenant ten;
 
-        public BrFile(Fileupload file) {
+        public BrFile(Fileupload file, Tenant t) {
             f = file;
+            ten = t;
         }
 
         @Override
@@ -106,16 +124,26 @@ public abstract class CompressionSorter implements CompressionAlgorithm<HttpServ
 
         @Override
         public byte[] getResult() {
+            if (null == f.getBrdata()) {
+                f.setBrdata(ten.getFile().getFiledata(f, FileRepository.BR_COMPRESSION));
+            }
             return f.getBrdata();
+        }
+
+        @Override
+        public int getSize() {
+            return null != f.getBrsize() ? f.getBrsize() : 0;
         }
     }
 
     private static class GzipFile extends CompressionSorter {
 
         private final Fileupload f;
+        private final Tenant ten;
 
-        public GzipFile(Fileupload file) {
+        public GzipFile(Fileupload file, Tenant t) {
             f = file;
+            ten = t;
         }
 
         @Override
@@ -125,16 +153,26 @@ public abstract class CompressionSorter implements CompressionAlgorithm<HttpServ
 
         @Override
         public byte[] getResult() {
+            if (null == f.getGzipdata()) {
+                f.setGzipdata(ten.getFile().getFiledata(f, FileRepository.GZIP_COMPRESSION));
+            }
             return f.getGzipdata();
+        }
+
+        @Override
+        public int getSize() {
+            return null != f.getGzipsize() ? f.getGzipsize() : 0;
         }
     }
 
     private static class PlainFile extends CompressionSorter {
 
         private final Fileupload f;
+        private final Tenant ten;
 
-        public PlainFile(Fileupload file) {
+        public PlainFile(Fileupload file, Tenant t) {
             f = file;
+            ten = t;
         }
 
         @Override
@@ -155,7 +193,15 @@ public abstract class CompressionSorter implements CompressionAlgorithm<HttpServ
 
         @Override
         public byte[] getResult() {
+            if (null == f.getFiledata()) {
+                f.setFiledata(ten.getFile().getFiledata(f, FileRepository.NO_COMPRESSION));
+            }
             return f.getFiledata();
+        }
+
+        @Override
+        public int getSize() {
+            return null != f.getDatasize() ? f.getDatasize() : 0;
         }
     }
 }

@@ -23,7 +23,7 @@ public interface ArticleRepository extends Repository<Article> {
 
     public List<Article> search(CategoryFetcher term, Integer limit);
 
-    public List<Article> search(Section term, Integer limit);
+    public List<Article> search(Category term, Integer limit);
 
     public static final Pattern ARTICLE_TERM = Pattern.compile("(.+?)(?=(?: \\d.*)|(?:[:,] .*)|(?: \\(\\d+\\))|(?: \\()|(?: IX|IV|V?I{0,3})$)");
 
@@ -57,8 +57,8 @@ public interface ArticleRepository extends Repository<Article> {
             sha.update(e.getArticletitle().getBytes("UTF-8"));
             sha.update(e.getPostedhtml().getBytes("UTF-8"));
             sha.update(e.getPostedname().getBytes("UTF-8"));
-            if (null != e.getSectionid()) {
-                sha.update(e.getSectionid().getName().getBytes("UTF-8"));
+            if (null != e.getCategoryid()) {
+                sha.update(e.getCategoryid().getName().getBytes("UTF-8"));
             }
             if (e.getDescription() != null) {
                 sha.update(e.getDescription().getBytes("UTF-8"));

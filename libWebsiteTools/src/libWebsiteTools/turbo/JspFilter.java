@@ -69,6 +69,13 @@ public class JspFilter implements Filter {
             }
         } catch (Exception x) {
         }
+        try {
+            String scheme = ten.getImeadValue("site_colorScheme");
+            if (null != scheme) {
+                HtmlMeta.addNameTag(req, "color-scheme", scheme);
+            }
+        } catch (Exception x) {
+        }
         res.setHeader("Accept-Ranges", "none");
         res.setHeader(HttpHeaders.VARY, VARY_HEADER);
         res.setHeader(HttpHeaders.CONTENT_LANGUAGE, primaryLocale.toLanguageTag());
@@ -96,7 +103,12 @@ public class JspFilter implements Filter {
         if (null != cache) {
             cache.put(PageCache.getLookup(ten.getImead(), req), page);
         }
-        res.flushBuffer();
+        if (!res.isCommitted()) {
+            try {
+                res.flushBuffer();
+            } catch (IOException x) {
+            }
+        }
     }
 
     private CachedPage capturePage(FilterChain chain, HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
@@ -121,8 +133,9 @@ public class JspFilter implements Filter {
                     scriptHashes = "'none'";
                 }
 //            String scriptHashes = "'self'";
-                String csp = String.format(CSP_TEMPLATE, scriptHashes, stylesheetHashes, ten.getImeadValue(SecurityRepository.BASE_URL));
-                res.setHeader(CONTENT_SECURITY_POLICY, csp);
+                StringBuilder out = new StringBuilder(1000).append("default-src 'self'; img-src 'self' data:; font-src data:; object-src 'none'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'; upgrade-insecure-requests; script-src ").append(scriptHashes).append("; style-src ")
+                        .append(stylesheetHashes).append("; report-uri ").append(ten.getImeadValue(SecurityRepository.BASE_URL)).append("report;");
+                res.setHeader(CONTENT_SECURITY_POLICY, out.toString());
             }
             if (null == req.getAttribute(REPORTING_ENDPOINTS)) {
 //            res.setHeader(REPORTING_ENDPOINTS, String.format(REPORTING_TEMPLATE, ten.getImeadValue(SecurityRepo.BASE_URL)));

@@ -1,5 +1,5 @@
 <%@ page session="false" %>
-    <c:if test="${articleCategory ne null && articleCategory.sectionid ne null}"><g:recentArticles section="${articleCategory}"><nav>
+    <c:if test="${articleCategory ne null && articleCategory.categoryid ne null}"><g:recentArticles category="${articleCategory}"><nav>
     <h1><h:local key="page_sideRecentCategory"><h:param object="${articleCategory.name}"/></h:local></h1><ul>
         <c:forEach items="${_articles}" var="art" ><li><g:articleUrl article="${art}"/></li></c:forEach>
     </ul></nav></g:recentArticles></c:if>

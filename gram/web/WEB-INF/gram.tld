@@ -19,7 +19,7 @@
       <name>category</name>
       <required>false</required>
       <rtexprvalue>true</rtexprvalue>
-      <type>gram.bean.database.Section</type>
+      <type>gram.bean.database.Category</type>
     </attribute>
     <attribute>
       <description>page number</description>
@@ -149,11 +149,11 @@
       <type>java.lang.Integer</type>
     </attribute>
     <attribute>
-      <description>section to display from</description>
-      <name>section</name>
+      <description>category to display from</description>
+      <name>category</name>
       <required>false</required>
       <rtexprvalue>true</rtexprvalue>
-      <type>gram.bean.database.Section</type>
+      <type>gram.bean.database.Category</type>
     </attribute>
   </tag>
 </taglib>

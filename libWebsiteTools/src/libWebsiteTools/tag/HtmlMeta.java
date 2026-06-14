@@ -106,50 +106,65 @@ public class HtmlMeta extends SimpleTagSupport {
         JspWriter output = getJspContext().getOut();
         HttpServletRequest req = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest());
         Tenant ten = Landlord.getTenant(req);
-        output.println(String.format("<meta charset=\"%s\"/>", ((PageContext) getJspContext()).getResponse().getCharacterEncoding()));
+        StringBuilder out = new StringBuilder(4000).append("<meta charset=\"").append(((PageContext) getJspContext()).getResponse().getCharacterEncoding()).append("\"/>\n");
         Object baseURL = ((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepository.BASE_URL);
         if (null != baseURL && !baseURL.toString().isEmpty()) {
-            output.println(String.format("<base href=\"%s\"/>", baseURL.toString()));
+            out.append("<base href=\"").append(baseURL.toString()).append("\"/>\n");
         } else {
             baseURL = ten.getImeadValue(SecurityRepository.BASE_URL);
         }
+        emptyBuilder(output, out);
         try {
             for (Map.Entry<String, String> tag : (List<Map.Entry<String, String>>) getJspContext().findAttribute(META_NAME_TAGS)) {
-                output.println(String.format("<meta name=\"%s\" content=\"%s\"/>", tag.getKey(), tag.getValue()));
+                out.append("<meta name=\"").append(tag.getKey()).append("\" content=\"").append(tag.getValue()).append("\"/>\n");
             }
         } catch (NullPointerException n) {
         }
+        emptyBuilder(output, out);
         try {
             for (Map.Entry<String, String> tag : (List<Map.Entry<String, String>>) getJspContext().findAttribute(META_PROPERTY_TAGS)) {
-                output.println(String.format("<meta property=\"%s\" content=\"%s\"/>", tag.getKey(), tag.getValue()));
+                out.append("<meta property=\"").append(tag.getKey()).append("\" content=\"").append(tag.getValue()).append("\"/>\n");
             }
         } catch (NullPointerException n) {
         }
+        emptyBuilder(output, out);
         try {
             for (Map.Entry<String, String> tag : (List<Map.Entry<String, String>>) getJspContext().findAttribute(LINK_TAGS)) {
-                output.println(String.format("<link rel=\"%s\" href=\"%s\">", tag.getKey(), tag.getValue()));
+                out.append("<link rel=\"").append(tag.getKey()).append("\" href=\"").append(tag.getValue()).append("\">\n");
             }
         } catch (NullPointerException n) {
         }
+        emptyBuilder(output, out);
         try {
             for (Map.Entry<String, String> tag : (List<Map.Entry<String, String>>) getJspContext().findAttribute(LINK_LOCALE_URLS)) {
-                output.println(String.format("<link rel=\"alternate\" hreflang=\"%s\" href=\"%s\">", tag.getKey(), tag.getValue()));
+                out.append("<link rel=\"alternate\" hreflang=\"").append(tag.getKey()).append("\" href=\"").append(tag.getValue()).append("\">\n");
             }
         } catch (NullPointerException n) {
         }
+        emptyBuilder(output, out);
         for (Feed feed : ten.getFeeds().getAll(null)) {
-            if (feed instanceof DynamicFeed) {
-                for (Map.Entry<String, String> entry : ((DynamicFeed) feed).getFeedURLs(req).entrySet()) {
-                    output.println(String.format("<link rel=\"alternate\" href=\"%srss/%s\" title=\"%s\" type=\"%s\">",
-                            baseURL.toString(), entry.getKey(), entry.getValue(), feed.getMimeType().toString()));
+            if (feed instanceof DynamicFeed dFeed) {
+                for (Map.Entry<String, String> entry : dFeed.getFeedURLs(req).entrySet()) {
+                    out.append("<link rel=\"alternate\" href=\"").append(baseURL.toString()).append("rss/").append(entry.getKey())
+                            .append("\" title=\"").append(entry.getValue())
+                            .append("\" type=\"").append(feed.getMimeType().toString()).append("\">\n");
                 }
             }
         }
+        emptyBuilder(output, out);
         try {
             for (Object json : (List) getJspContext().findAttribute(LDJSON)) {
-                output.println(String.format("<script type=\"application/ld+json\">%s</script>", json.toString()));
+                out.append("<script type=\"application/ld+json\">").append(json.toString()).append("</script>\n");
             }
         } catch (NullPointerException n) {
+        }
+        emptyBuilder(output, out);
+    }
+
+    public static void emptyBuilder(JspWriter output, StringBuilder out) throws IOException {
+        if (!out.isEmpty()) {
+            output.print(out.toString());
+            out.setLength(0);
         }
     }
 }

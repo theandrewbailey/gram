@@ -14,7 +14,7 @@ import libWebsiteTools.security.HashUtil;
  *
  * @author alpha
  */
-public class IMEADDatabase extends IMEADHolder{
+public class IMEADDatabase extends IMEADHolder {
 
     protected final EntityManagerFactory PU;
 

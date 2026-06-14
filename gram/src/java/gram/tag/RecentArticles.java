@@ -12,12 +12,12 @@ import jakarta.servlet.jsp.PageContext;
 import jakarta.servlet.jsp.tagext.SimpleTagSupport;
 import gram.bean.database.Article;
 import gram.bean.GramTenant;
-import gram.bean.database.Section;
+import gram.bean.database.Category;
 
 public class RecentArticles extends SimpleTagSupport {
 
     private Integer number;
-    private Section section;
+    private Category category;
 
     @Override
     @SuppressWarnings("unchecked")
@@ -36,11 +36,11 @@ public class RecentArticles extends SimpleTagSupport {
             excludes = new ArrayList<>();
             req.setAttribute("articles", excludes);
         }
-        String sectionName = null != section ? section.getName() : null;
-        String sectionURL = Categorizer.getUrl("/", sectionName, null);
-        List<Article> latest = ten.getArts().search(new CategoryFetcher(ten, sectionURL).without(excludes), number);
+        String categoryName = null != category ? category.getName() : null;
+        String categoryURL = Categorizer.getUrl("/", categoryName, null);
+        List<Article> latest = ten.getArts().search(new CategoryFetcher(ten, categoryURL).without(excludes), number);
         if (2 > latest.size()) {
-            latest = ten.getArts().search(new CategoryFetcher(ten, sectionURL), number);
+            latest = ten.getArts().search(new CategoryFetcher(ten, categoryURL), number);
         }
         if (!latest.isEmpty()) {
             getJspContext().setAttribute("_articles", latest);
@@ -53,7 +53,7 @@ public class RecentArticles extends SimpleTagSupport {
         this.number = number;
     }
 
-    public void setSection(Section section) {
-        this.section = section;
+    public void setCategory(Category category) {
+        this.category = category;
     }
 }

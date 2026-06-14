@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -223,9 +224,17 @@ class ConsolidatedJobs implements Callable<Boolean> {
 
     @Override
     public Boolean call() throws Exception {
-        new FileCompressorJob.Gzip(null, file).call();
-        new FileCompressorJob.Brotli(null, file).call();
-        new FileCompressorJob.Zstd(null, file).call();
+//        new FileCompressorJob.Gzip(null, file).call();
+//        new FileCompressorJob.Brotli(null, file).call();
+//        new FileCompressorJob.Zstd(null, file).call();
+        for (Future future : List.of(ten.getExec().submit(new FileCompressorJob.Gzip(null, file)),
+                ten.getExec().submit(new FileCompressorJob.Brotli(null, file)),
+                ten.getExec().submit(new FileCompressorJob.Zstd(null, file)))) {
+            try {
+                future.get();
+            } catch (InterruptedException | ExecutionException ex) {
+            }
+        }
         ten.getFile().upsert(Arrays.asList(file));
         ten.getFile().evict();
         ten.getGlobalCache().clear();

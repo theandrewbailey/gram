@@ -10,6 +10,8 @@ import jakarta.servlet.jsp.tagext.SimpleTagSupport;
 import libWebsiteTools.security.SecurityRepository;
 import libWebsiteTools.JVMNotSupportedError;
 import gram.bean.database.Article;
+import java.util.Iterator;
+import java.util.Map;
 
 public class ArticleUrl extends SimpleTagSupport {
 
@@ -27,7 +29,7 @@ public class ArticleUrl extends SimpleTagSupport {
         if (link) {
             b.append("<a href=\"");
         }
-        b.append(getUrl(((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepository.BASE_URL).toString(), article, anchor));
+        b.append(getUrl(((HttpServletRequest) ((PageContext) getJspContext()).getRequest()).getAttribute(SecurityRepository.BASE_URL).toString(), article, null, anchor, false));
         if (link && id != null) {
             b.append("\" id=\"").append(id);
         } else if (link) {
@@ -45,15 +47,36 @@ public class ArticleUrl extends SimpleTagSupport {
         getJspContext().getOut().print(b.toString());
     }
 
-    public static String getUrl(String baseURL, Article article, String anchor) {
-        StringBuilder url = new StringBuilder(baseURL).append("article/").append(article.getArticleid()).append('/').append(getUrlArticleTitle(article)).append(".html");
+    public static String getUrl(String baseURL, Article article, Map parameters, String anchor, boolean alwaysCanonical) {
+        StringBuilder url = new StringBuilder(baseURL).append("article/");
+        if (!alwaysCanonical && null != article.getUrl() && !article.getUrl().isEmpty()) {
+            url.append(article.getUrl());
+        } else {
+            url.append(article.getArticleid()).append('/').append(getUrlArticleTitle(article)).append(".html");
+        }
+        if (null != parameters && !parameters.isEmpty()) {
+            try {
+                boolean firstParam = url.indexOf("?") == -1;
+                for (Iterator it = parameters.entrySet().iterator(); it.hasNext();) {
+                    Map.Entry param = (Map.Entry) it.next();
+                    url.append(firstParam ? "?" : "&");
+                    firstParam = false;
+                    url.append(URLEncoder.encode(param.getKey().toString(), "UTF-8"));
+                    if (null != param.getValue()) {
+                        url.append("=").append(param.getValue().toString());
+                    }
+                }
+            } catch (UnsupportedEncodingException u) {
+                throw new JVMNotSupportedError(u);
+            }
+        }
         if (null != anchor) {
             url.append("#").append(anchor);
         }
         return url.toString();
     }
 
-    private static String getUrlArticleTitle(Article article) {
+    public static String getUrlArticleTitle(Article article) {
         try {
             String title = null != article.getArticletitle() ? URLEncoder.encode(article.getArticletitle(), "UTF-8") : "";
             title = title.replaceAll("%[0-9A-F]{2}", "").replace(":", "").replace("+", "-").replace("--", "-");

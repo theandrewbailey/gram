@@ -33,9 +33,10 @@ import libWebsiteTools.UUIDConverter;
 @Table(name = "article", schema = "gram")
 @NamedQueries({
     @NamedQuery(name = "Article.findAll", query = "SELECT a FROM Article a WHERE a.articleid NOT IN :exclude ORDER BY a.posted DESC"),
-    @NamedQuery(name = "Article.findByCategory", query = "SELECT a FROM Article a WHERE a.sectionid.name=:category AND a.articleid NOT IN :exclude ORDER BY a.posted DESC"),
+    @NamedQuery(name = "Article.findByURL", query = "SELECT a FROM Article a WHERE lower(a.url)=lower(:url) AND a.articleid NOT IN :exclude ORDER BY a.posted DESC"),
+    @NamedQuery(name = "Article.findByCategory", query = "SELECT a FROM Article a WHERE a.categoryid.name=:category AND a.articleid NOT IN :exclude ORDER BY a.posted DESC"),
     @NamedQuery(name = "Article.count", query = "SELECT COUNT(a) FROM Article a"),
-    @NamedQuery(name = "Article.countByCategory", query = "SELECT COUNT(a) FROM Article a WHERE a.sectionid.name=:category")})
+    @NamedQuery(name = "Article.countByCategory", query = "SELECT COUNT(a) FROM Article a WHERE a.categoryid.name=:category")})
 public class Article implements Serializable, Comparable<Article> {
 
     private static final long serialVersionUID = 1L;
@@ -102,9 +103,9 @@ public class Article implements Serializable, Comparable<Article> {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "articleid")
     @OrderBy("posted ASC")
     private Collection<Comment> commentCollection;
-    @JoinColumn(name = "sectionid", referencedColumnName = "sectionid", nullable = true)
+    @JoinColumn(name = "categoryid", referencedColumnName = "categoryid", nullable = true)
     @ManyToOne(optional = true)
-    private Section sectionid;
+    private Category categoryid;
 
     public Article() {
     }
@@ -248,12 +249,12 @@ public class Article implements Serializable, Comparable<Article> {
         this.commentCollection = commentCollection;
     }
 
-    public Section getSectionid() {
-        return sectionid;
+    public Category getCategoryid() {
+        return categoryid;
     }
 
-    public void setSectionid(Section sectionid) {
-        this.sectionid = sectionid;
+    public void setCategoryid(Category categoryid) {
+        this.categoryid = categoryid;
     }
 
     public String getSuggestion() {

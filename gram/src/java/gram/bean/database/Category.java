@@ -18,27 +18,24 @@ import java.util.UUID;
 import libWebsiteTools.UUIDConverter;
 
 /**
- * TODO: rename Section to Category
- *
  * @author alpha
  */
 @Entity
 @Cacheable(true)
-@Table(name = "section", schema = "gram")
+@Table(name = "category", schema = "gram")
 @NamedQueries({
-    @NamedQuery(name = "Category.findAll", query = "SELECT s FROM Section s"),
-    @NamedQuery(name = "Category.findByName", query = "SELECT s FROM Section s WHERE s.name = :name"),
-    @NamedQuery(name = "Category.count", query = "SELECT COUNT(s) FROM Section s"),
-    @NamedQuery(name = "Category.byArticlesPosted", query = "SELECT a.sectionid, min(a.posted), COUNT(a.sectionid.sectionid) FROM Article a GROUP BY a.sectionid ORDER BY min(a.posted)")})
-@SuppressWarnings("ValidPrimaryTableName")
-public class Section implements Serializable {
+    @NamedQuery(name = "Category.findAll", query = "SELECT c FROM Category c"),
+    @NamedQuery(name = "Category.findByName", query = "SELECT c FROM Category c WHERE c.name = :name"),
+    @NamedQuery(name = "Category.count", query = "SELECT COUNT(c) FROM Category c"),
+    @NamedQuery(name = "Category.byArticlesPosted", query = "SELECT a.categoryid, min(a.posted), COUNT(a.categoryid.categoryid) FROM Article a GROUP BY a.categoryid ORDER BY min(a.posted)")})
+public class Category implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Basic(optional = false)
-    @Column(name = "sectionid", nullable = false)
-    private Integer sectionid;
+    @Column(name = "categoryid", nullable = false)
+    private Integer categoryid;
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 250)
@@ -51,32 +48,32 @@ public class Section implements Serializable {
     private UUID uuid;
 //    private String url;
 
-    public Section() {
+    public Category() {
         uuid = UUID.randomUUID();
     }
 
-    public Section(Integer categoryid) {
-        this.sectionid = categoryid;
+    public Category(Integer categoryid) {
+        this.categoryid = categoryid;
         uuid = UUID.randomUUID();
     }
 
-    public Section(String name) {
+    public Category(String name) {
         this.name = name;
         uuid = UUID.randomUUID();
     }
 
-    public Section(Integer categoryid, String name, UUID uuid) {
-        this.sectionid = categoryid;
+    public Category(Integer categoryid, String name, UUID uuid) {
+        this.categoryid = categoryid;
         this.name = name;
         this.uuid = uuid;
     }
 
-    public Integer getSectionid() {
-        return sectionid;
+    public Integer getCategoryid() {
+        return categoryid;
     }
 
-    public void setSectionid(Integer sectionid) {
-        this.sectionid = sectionid;
+    public void setCategoryid(Integer categoryid) {
+        this.categoryid = categoryid;
     }
 
     public String getName() {
@@ -104,29 +101,28 @@ public class Section implements Serializable {
     @Override
     public int hashCode() {
         int hash = 0;
-        hash += (sectionid != null ? sectionid.hashCode() : 0);
+        hash += (categoryid != null ? categoryid.hashCode() : 0);
         return hash;
     }
 
     @Override
     public boolean equals(Object object) {
         // Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Section)) {
+        if (!(object instanceof Category)) {
             return false;
         }
-        Section other = (Section) object;
-        return !((this.sectionid == null && other.sectionid != null) || (this.sectionid != null && !this.sectionid.equals(other.sectionid)));
+        Category other = (Category) object;
+        return !((this.categoryid == null && other.categoryid != null) || (this.categoryid != null && !this.categoryid.equals(other.categoryid)));
     }
 
     @Override
     public String toString() {
-        return "gram.bean.database.Section[ sectionid=" + sectionid + " ]";
+        return "gram.bean.database.Category[ categoryid=" + categoryid + " ]";
     }
 
 //    public String getUrl() {
 //        return url;
 //    }
-
 //    public void setUrl(String url) {
 //        this.url = url;
 //    }
