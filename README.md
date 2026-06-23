@@ -49,7 +49,7 @@ Gram is a monolith, built with Jakarta EE Servlets, JSPs, and an EJB. This isn't
 (Having trouble? Open an issue on this repository.)
 
 1. Download `gram.war` release and [`setupUsTheBlog.sh`](https://github.com/theandrewbailey/gram/blob/master/setupUsTheBlog.sh) from the repository. Run `setupUsTheBlog.sh`.
-	1. This script will create will create a directory, `~/gram`, and dump most stuff there. (Feel free to create it yourself and put the war and script there.) Payara will be extracted to `~/payara6`.
+	1. This script will create will create a directory, `~/gram`, and dump most stuff there. (Feel free to create it yourself and put the war and script there.) Payara will be extracted to `~/payara7`.
 	1. This script will setup a Postgres database, download Payara, setup a domain on Payara (and slightly optimize it), and deploy `gram.war`.
 	1. The last 7 or so lines are important. Save them somewhere. If you don't, they will be placed in `~/gram/passwords.txt`.
 1. Setup Gram.
@@ -85,7 +85,7 @@ Gram is a monolith, built with Jakarta EE Servlets, JSPs, and an EJB. This isn't
 		* Tip: upload all your images first before publishing your post.
 		* While Gram supports multiple locales, there's no support for a single article translated into multiple languages. It was implemented for skinning purposes. [Tip: try using private use extensions.](https://docs.oracle.com/javase/tutorial/i18n/locale/extensions.html#private)
 			* Access locales by appending the locale to the URL, e.g. https://theandrewbailey.com/x-scrolls/, or inspect any page's source for `<link rel="alternate" hreflang="..." href="...">` elements.
-1. To start Payara again after a reboot, run `~/payara6/glassfish/bin/asadmin start-domain gramPayara-xxxxx` where `gramPayara-xxxxx` is the Payara username that the script gave you. (You kept that info, right? I told you it's important!)
+1. To start Payara again after a reboot, run `~/payara7/glassfish/bin/asadmin start-domain gramPayara-xxxxx` where `gramPayara-xxxxx` is the Payara username that the script gave you. (You kept that info, right? I told you it's important!)
 1. To setup another blog on the same server, an additional database must be created and registered as a JDBC resource (named "java/gram/`domain.name`") in Payara.
 	1. Run `setupUsTheBlog.sh -a domain.name`
 		* The new blog will be available at `https://domain.name`.
@@ -95,7 +95,7 @@ Gram is a monolith, built with Jakarta EE Servlets, JSPs, and an EJB. This isn't
 I'm using [HAProxy](https://www.haproxy.org/) in front of Payara to handle port conversions, HTTPS, HTTP/3, and another cache layer. However, I've run Payara directly on the internet with nothing between:
 
 * Port numbers can be changed in the admin console. (Configurations > server-config > HTTP Service > HTTP Listeners > http-listener-1, http-listener-2)
-* TLS certificates (like from Let's Encrypt) must be added in `~/payara6/glassfish/domains/gramPayara-xxxxx/config/keystore.p12` which uses the Payara master password (if using the script, it's the same as admin console login). You can setup a HTTPS-only redirect in Configurations > server-config > Network Config > Network Listeners > http-listener-1 > HTTP tab > Redirect Port.
+* TLS certificates (like from Let's Encrypt) must be added in `~/payara7/glassfish/domains/gramPayara-xxxxx/config/keystore.p12` which uses the Payara master password (if using the script, it's the same as admin console login). You can setup a HTTPS-only redirect in Configurations > server-config > Network Config > Network Listeners > http-listener-1 > HTTP tab > Redirect Port.
 
 ## Notes
 

@@ -70,11 +70,11 @@ public class ArticleServlet extends GramServlet {
         } catch (NumberFormatException x) {
             Matcher m = URL_PATTERN.matcher(URL);
             boolean matches = m.matches();
-            String group1 = m.group(1);
             if (matches) {
+                String group1 = m.group(1);
                 try {
                     return ten.getArts().get(group1);
-                } catch (NoResultException n) {
+                } catch (IllegalStateException | NoResultException n) {
                 }
             }
             return null;
